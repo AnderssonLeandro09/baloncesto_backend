@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: basketball_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      POSTGRES_DB: basketball_db
+      POSTGRES_USER: basketball_user
+      POSTGRES_PASSWORD: basketball_pass_2024
+    ports:
+      - "5432:5432"
+    networks:
+      - basketball_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U basketball_user -d basketball_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: basketball_web
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DEBUG=True
+      - DB_HOST=db
+      - DB_NAME=basketball_db
+      - DB_USER=basketball_user
+      - DB_PASSWORD=basketball_pass_2024
+      - DB_PORT=5432
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - basketball_network
+
+networks:
+  basketball_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
