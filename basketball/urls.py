@@ -2,14 +2,40 @@
 URLs del módulo Basketball
 
 Definición de rutas para el módulo.
-TODO: Agregar las rutas cuando los controladores estén implementados
 """
 
 from django.urls import path
+from basketball.controllers.estudiante_vinculacion_controller import (
+    EstudianteVinculacionListController,
+    EstudianteVinculacionDetailController,
+    EstudianteVinculacionReactivarController,
+)
 
 app_name = 'basketball'
 
 urlpatterns = [
+    # ==========================================================================
+    # Rutas de EstudianteVinculacion (Pasantes)
+    # ==========================================================================
+    # Listar todos / Crear nuevo
+    path(
+        'estudiantes-vinculacion/',
+        EstudianteVinculacionListController.as_view(),
+        name='estudiante-vinculacion-list'
+    ),
+    # Obtener, Actualizar, Dar de baja por ID
+    path(
+        'estudiantes-vinculacion/<int:pk>/',
+        EstudianteVinculacionDetailController.as_view(),
+        name='estudiante-vinculacion-detail'
+    ),
+    # Reactivar estudiante dado de baja
+    path(
+        'estudiantes-vinculacion/<int:pk>/reactivar/',
+        EstudianteVinculacionReactivarController.as_view(),
+        name='estudiante-vinculacion-reactivar'
+    ),
+    
     # TODO: Rutas de Atleta
     # path('atletas/', AtletaController.as_view(), name='atleta-list'),
     # path('atletas/<int:pk>/', AtletaController.as_view(), name='atleta-detail'),
@@ -33,8 +59,4 @@ urlpatterns = [
     # TODO: Rutas de Entrenador
     # path('entrenadores/', EntrenadorController.as_view(), name='entrenador-list'),
     # path('entrenadores/<int:pk>/', EntrenadorController.as_view(), name='entrenador-detail'),
-    
-    # TODO: Rutas de EstudianteVinculacion
-    # path('estudiantes/', EstudianteVinculacionController.as_view(), name='estudiante-list'),
-    # path('estudiantes/<int:pk>/', EstudianteVinculacionController.as_view(), name='estudiante-detail'),
 ]

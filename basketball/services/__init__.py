@@ -1,5 +1,7 @@
 """
 Módulo de Servicios para el módulo Basketball
 
-TODO: Exportar servicios cuando estén implementados
+Cada integrante exporta su servicio aquí
 """
+
+from basketball.services.estudiante_vinculacion_service import EstudianteVinculacionService
