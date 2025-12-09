@@ -6,6 +6,7 @@ Configuración para el ambiente de desarrollo del módulo de Basketball.
 
 import os
 from pathlib import Path
+from datetime import timedelta
 
 # Intentar cargar dotenv si está disponible
 try:
@@ -37,9 +38,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    # Third party apps (descomentar después de instalar dependencias)
-    # 'rest_framework',
-    # 'corsheaders',
+    # Third party apps
+    'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
+    'corsheaders',
+    'drf_spectacular',
     
     # Local apps
     'basketball.apps.BasketballConfig',
@@ -48,7 +52,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # 'corsheaders.middleware.CorsMiddleware',  # Descomentar después de instalar
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -141,18 +145,127 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# Django REST Framework Configuration (descomentar después de instalar)
-# REST_FRAMEWORK = {
-#     'DEFAULT_PERMISSION_CLASSES': [
-#         'rest_framework.permissions.AllowAny',
-#     ],
-#     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-#     'PAGE_SIZE': 10,
-# }
+# Django REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
 
 
-# CORS Configuration (descomentar después de instalar corsheaders)
-# CORS_ALLOW_ALL_ORIGINS = DEBUG
+# drf-spectacular Configuration for Swagger/OpenAPI
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Basketball API',
+    'DESCRIPTION': 'API para el módulo de Basketball - Gestión de atletas, entrenadores y estudiantes de vinculación',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'TAGS': [
+        {'name': 'Auth', 'description': 'Autenticación JWT - Obtener, refrescar y verificar tokens'},
+        {'name': 'Estudiantes de Vinculación', 'description': 'Gestión de pasantes y estudiantes de vinculación'},
+    ],
+    # Configuración de seguridad JWT para Swagger
+    'SECURITY': [{'BearerAuth': []}],
+    'COMPONENTS': {
+        'securitySchemes': {
+            'BearerAuth': {
+                'type': 'http',
+                'scheme': 'bearer',
+                'bearerFormat': 'JWT',
+                'description': 'Ingrese el token JWT en el formato: Bearer <token>',
+            }
+        }
+    },
+}
+
+
+# CORS Configuration
+# En desarrollo permite todos los orígenes, en producción solo los especificados
+CORS_ALLOW_ALL_ORIGINS = DEBUG
+
+# Orígenes permitidos en producción (agregar los dominios de tu frontend)
+CORS_ALLOWED_ORIGINS = os.getenv(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173'
+).split(',')
+
+# Permitir credenciales (cookies, authorization headers)
+CORS_ALLOW_CREDENTIALS = True
+
+# Headers permitidos
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+# Métodos HTTP permitidos
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Tiempo de cache para preflight requests (en segundos)
+CORS_PREFLIGHT_MAX_AGE = 86400
+
+
+# =============================================================================
+# JWT Configuration (Simple JWT)
+# =============================================================================
+SIMPLE_JWT = {
+    # Tiempo de vida de los tokens
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', '60'))),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv('JWT_REFRESH_TOKEN_LIFETIME_DAYS', '7'))),
+    'ROTATE_REFRESH_TOKENS': True,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': True,
+
+    # Algoritmo de firma
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,
+    'VERIFYING_KEY': None,
+    'AUDIENCE': None,
+    'ISSUER': None,
+    'JWK_URL': None,
+    'LEEWAY': 0,
+
+    # Headers
+    'AUTH_HEADER_TYPES': ('Bearer',),
+    'AUTH_HEADER_NAME': 'HTTP_AUTHORIZATION',
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',
+    'USER_AUTHENTICATION_RULE': 'rest_framework_simplejwt.authentication.default_user_authentication_rule',
+
+    # Tipos de token
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+    'TOKEN_TYPE_CLAIM': 'token_type',
+    'TOKEN_USER_CLASS': 'rest_framework_simplejwt.models.TokenUser',
+
+    # Claims personalizados
+    'JTI_CLAIM': 'jti',
+
+    # Serializers
+    'SLIDING_TOKEN_REFRESH_EXP_CLAIM': 'refresh_exp',
+    'SLIDING_TOKEN_LIFETIME': timedelta(minutes=5),
+    'SLIDING_TOKEN_REFRESH_LIFETIME': timedelta(days=1),
+}
 
 
 # Logging Configuration
