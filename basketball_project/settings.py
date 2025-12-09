@@ -37,9 +37,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    # Third party apps (descomentar después de instalar dependencias)
-    # 'rest_framework',
-    # 'corsheaders',
+    # Third party apps
+    'rest_framework',
+    'corsheaders',
+    'drf_spectacular',
     
     # Local apps
     'basketball.apps.BasketballConfig',
@@ -48,7 +49,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    # 'corsheaders.middleware.CorsMiddleware',  # Descomentar después de instalar
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -141,18 +142,32 @@ MEDIA_ROOT = BASE_DIR / 'media'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# Django REST Framework Configuration (descomentar después de instalar)
-# REST_FRAMEWORK = {
-#     'DEFAULT_PERMISSION_CLASSES': [
-#         'rest_framework.permissions.AllowAny',
-#     ],
-#     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-#     'PAGE_SIZE': 10,
-# }
+# Django REST Framework Configuration
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny',
+    ],
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 10,
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
 
 
-# CORS Configuration (descomentar después de instalar corsheaders)
-# CORS_ALLOW_ALL_ORIGINS = DEBUG
+# drf-spectacular Configuration for Swagger/OpenAPI
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Basketball API',
+    'DESCRIPTION': 'API para el módulo de Basketball - Gestión de atletas, entrenadores y estudiantes de vinculación',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
+    'TAGS': [
+        {'name': 'Estudiantes de Vinculación', 'description': 'Gestión de pasantes y estudiantes de vinculación'},
+    ],
+}
+
+
+# CORS Configuration
+CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 
 # Logging Configuration
