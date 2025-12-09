@@ -33,6 +33,7 @@ services:
       - "8000:8000"
     environment:
       - DEBUG=True
+      - USE_SQLITE=False
       - DB_HOST=db
       - DB_NAME=basketball_db
       - DB_USER=basketball_user

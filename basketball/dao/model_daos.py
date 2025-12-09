@@ -8,7 +8,7 @@ from typing import Optional, List
 from django.db.models import Q, QuerySet
 
 from basketball.dao.generic_dao import GenericDAO
-from basketball.models import EstudianteVinculacion
+from basketball.models import EstudianteVinculacion, Entrenador
 
 
 class EstudianteVinculacionDAO(GenericDAO[EstudianteVinculacion]):
@@ -133,10 +133,47 @@ class EstudianteVinculacionDAO(GenericDAO[EstudianteVinculacion]):
         return queryset.exists()
 
 
+# EntrenadorDAO
+class EntrenadorDAO(GenericDAO[Entrenador]):
+    """
+    DAO específico para el modelo Entrenador.
+    Proporciona operaciones CRUD y métodos auxiliares específicos para entrenadores.
+    """
+
+    model = Entrenador
+
+    def get_by_email(self, email: str) -> Optional[Entrenador]:
+        """Obtiene un entrenador por email."""
+        return self.get_first(email=email)
+
+    def email_exists(self, email: str, exclude_pk: int = None) -> bool:
+        """Verifica si un email ya existe (opcionalmente excluyendo una PK)."""
+        queryset = self.model.objects.filter(email=email)
+        if exclude_pk:
+            queryset = queryset.exclude(pk=exclude_pk)
+        return queryset.exists()
+
+    def dni_exists(self, dni: str, exclude_pk: int = None) -> bool:
+        """Verifica si un DNI ya existe (opcionalmente excluyendo una PK)."""
+        queryset = self.model.objects.filter(dni=dni)
+        if exclude_pk:
+            queryset = queryset.exclude(pk=exclude_pk)
+        return queryset.exists()
+
+    def get_activos(self) -> QuerySet[Entrenador]:
+        """Obtiene todos los entrenadores activos."""
+        return self.get_by_filter(estado=True)
+
+    def search_entrenadores(self, search_term: str) -> QuerySet[Entrenador]:
+        """Busca entrenadores por nombre, apellido, email, dni, especialidad o club."""
+        return self.search(
+            search_fields=['nombre', 'apellido', 'email', 'dni', 'especialidad', 'club_asignado'],
+            search_term=search_term
+        ).filter(estado=True)
+
 # TODO: Implementar AtletaDAO
 # TODO: Implementar GrupoAtletaDAO
 # TODO: Implementar InscripcionDAO
 # TODO: Implementar PruebaAntropometricaDAO
 # TODO: Implementar PruebaFisicaDAO
-# TODO: Implementar EntrenadorDAO
 # TODO: Implementar UsuarioDAO

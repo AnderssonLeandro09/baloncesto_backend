@@ -10,6 +10,11 @@ from basketball.controllers.estudiante_vinculacion_controller import (
     EstudianteVinculacionDetailController,
     EstudianteVinculacionReactivarController,
 )
+from basketball.controllers.entrenador_controller import (
+    EntrenadorListController,
+    EntrenadorDetailController,
+    EntrenadorReactivarController,
+)
 
 app_name = 'basketball'
 
@@ -57,6 +62,7 @@ urlpatterns = [
     # path('pruebas-fisicas/<int:pk>/', PruebaFisicaController.as_view(), name='prueba-fisica-detail'),
     
     # TODO: Rutas de Entrenador
-    # path('entrenadores/', EntrenadorController.as_view(), name='entrenador-list'),
-    # path('entrenadores/<int:pk>/', EntrenadorController.as_view(), name='entrenador-detail'),
+    path('entrenadores/', EntrenadorListController.as_view(), name='entrenador-list'),
+    path('entrenadores/<int:pk>/', EntrenadorDetailController.as_view(), name='entrenador-detail'),
+    path('entrenadores/<int:pk>/reactivar/', EntrenadorReactivarController.as_view(), name='entrenador-reactivar'),
 ]
