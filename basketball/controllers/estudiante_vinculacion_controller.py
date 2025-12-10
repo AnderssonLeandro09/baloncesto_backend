@@ -6,7 +6,7 @@ Implementa los endpoints CRUD para estudiantes de vinculación
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, serializers
+from rest_framework import status, serializers, permissions
 from rest_framework.decorators import api_view
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiExample
 from drf_spectacular.types import OpenApiTypes
@@ -91,6 +91,7 @@ class EstudianteVinculacionListController(BaseController):
     GET: Lista todos los estudiantes activos
     POST: Crea un nuevo estudiante de vinculación
     """
+    permission_classes = [permissions.AllowAny]
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -215,6 +216,7 @@ class EstudianteVinculacionDetailController(BaseController):
     PUT: Actualiza un estudiante
     DELETE: Da de baja un estudiante (soft delete)
     """
+    permission_classes = [permissions.AllowAny]
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -315,6 +317,7 @@ class EstudianteVinculacionReactivarController(BaseController):
     """
     Controlador para reactivar estudiantes dados de baja.
     """
+    permission_classes = [permissions.AllowAny]
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

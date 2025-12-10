@@ -5,7 +5,7 @@ TODO: Implementar controlador
 """
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status, serializers
+from rest_framework import status, serializers, permissions
 from rest_framework.decorators import api_view
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from drf_spectacular.types import OpenApiTypes
@@ -58,6 +58,7 @@ class ServiceResultSerializer(serializers.Serializer):
 
 class EntrenadorListController(BaseController):
 	"""Lista y crea entrenadores."""
+	permission_classes = [permissions.AllowAny]
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -105,6 +106,7 @@ class EntrenadorListController(BaseController):
 
 class EntrenadorDetailController(BaseController):
 	"""Operaciones sobre un entrenador especifico."""
+	permission_classes = [permissions.AllowAny]
 
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
@@ -147,6 +149,8 @@ class EntrenadorDetailController(BaseController):
 
 
 class EntrenadorReactivarController(BaseController):
+	permission_classes = [permissions.AllowAny]
+
 	def __init__(self, **kwargs):
 		super().__init__(**kwargs)
 		self.service = EntrenadorService()
