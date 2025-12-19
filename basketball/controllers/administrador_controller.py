@@ -9,6 +9,7 @@ from ..permissions import IsAdmin
 
 class AdministradorController(viewsets.ViewSet):
     permission_classes = [IsAdmin]
+    serializer_class = AdministradorSerializer
     service = AdministradorService()
 
     def list(self, request):

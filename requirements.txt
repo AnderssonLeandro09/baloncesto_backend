@@ -25,3 +25,6 @@ black==23.11.0
 
 # Coverage
 coverage==7.3.2
+
+# HTTP Client
+requests==2.31.0

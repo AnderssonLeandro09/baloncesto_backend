@@ -31,13 +31,21 @@ services:
       - .:/app
     ports:
       - "8023:8000"
+    env_file:
+      - .env
     environment:
-      - DEBUG=True
-      - DB_HOST=db
-      - DB_NAME=basketball_db
-      - DB_USER=basketball_user
-      - DB_PASSWORD=basketball_pass_2024
-      - DB_PORT=5432
+      - USE_SQLITE=${USE_SQLITE:-False}
+      - DEBUG=${DEBUG:-True}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_NAME=${DB_NAME:-basketball_db}
+      - DB_USER=${DB_USER:-basketball_user}
+      - DB_PASSWORD=${DB_PASSWORD:-basketball_pass_2024}
+      - DB_PORT=${DB_PORT:-5432}
+      - USER_MODULE_URL=${USER_MODULE_URL:-http://host.docker.internal:8096}
+      - USER_MODULE_ADMIN_EMAIL=${USER_MODULE_ADMIN_EMAIL:-admin@admin.com}
+      - USER_MODULE_ADMIN_PASSWORD=${USER_MODULE_ADMIN_PASSWORD:-admin123}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       db:
         condition: service_healthy
