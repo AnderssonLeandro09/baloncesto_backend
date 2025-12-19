@@ -64,6 +64,29 @@ class Usuario(models.Model):
         return f"{self.nombre} {self.apellido}"
 
 
+class Administrador(models.Model):
+    """Administrador referenciado al módulo de usuarios mediante persona_external."""
+
+    persona_external = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name='External ID Persona',
+        help_text='UUID externo de la persona en el módulo de usuarios'
+    )
+    cargo = models.CharField(max_length=100, blank=True, null=True, verbose_name='Cargo')
+    fecha_registro = models.DateTimeField(auto_now_add=True, verbose_name='Fecha de registro')
+    estado = models.BooleanField(default=True, verbose_name='Estado')
+
+    class Meta:
+        db_table = 'administrador'
+        verbose_name = 'Administrador'
+        verbose_name_plural = 'Administradores'
+        ordering = ['-fecha_registro']
+
+    def __str__(self):
+        return f"Administrador: {self.persona_external}"
+
+
 # =============================================================================
 # Modelo GrupoAtleta
 # =============================================================================

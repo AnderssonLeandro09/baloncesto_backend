@@ -12,7 +12,7 @@ services:
       POSTGRES_USER: basketball_user
       POSTGRES_PASSWORD: basketball_pass_2024
     ports:
-      - "5432:5432"
+      - "55432:5432"
     networks:
       - basketball_network
     healthcheck:
@@ -30,7 +30,7 @@ services:
     volumes:
       - .:/app
     ports:
-      - "8000:8000"
+      - "8023:8000"
     environment:
       - DEBUG=True
       - DB_HOST=db
