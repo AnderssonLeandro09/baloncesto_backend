@@ -1,8 +1,7 @@
 """
 Modelos del módulo Basketball - ORM Django
 
-Basado en el diagrama de clases proporcionado.
-NOTA: La clase Usuario pertenece a otro módulo y será integrada posteriormente.
+Las personas se referencian al módulo externo de usuarios mediante `persona_external`.
 """
 
 from django.db import models
@@ -32,36 +31,6 @@ class Sexo(models.TextChoices):
     MASCULINO = 'M', 'Masculino'
     FEMENINO = 'F', 'Femenino'
     OTRO = 'O', 'Otro'
-
-
-# =============================================================================
-# Clase Usuario (Referencia - implementada por otro equipo)
-# =============================================================================
-class Usuario(models.Model):
-    """
-    Modelo de Usuario - REFERENCIA
-    NOTA: Este modelo es implementado por otro equipo.
-    Se incluye aquí como referencia para las relaciones con otros modelos.
-    Cuando el módulo de usuarios esté listo, se debe reemplazar por la importación correspondiente.
-    """
-    nombre = models.CharField(max_length=100, verbose_name='Nombre')
-    apellido = models.CharField(max_length=100, verbose_name='Apellido')
-    email = models.EmailField(unique=True, verbose_name='Email')
-    clave = models.CharField(max_length=255, verbose_name='Clave')
-    foto_perfil = models.CharField(max_length=255, blank=True, null=True, verbose_name='Foto de perfil')
-    dni = models.CharField(max_length=20, unique=True, verbose_name='DNI')
-    rol = models.CharField(max_length=50, verbose_name='Rol')
-    estado = models.BooleanField(default=True, verbose_name='Estado')
-    fecha_registro = models.DateField(auto_now_add=True, verbose_name='Fecha de registro')
-
-    class Meta:
-        db_table = 'usuario'
-        verbose_name = 'Usuario'
-        verbose_name_plural = 'Usuarios'
-        # managed = False  # Descomentar cuando se integre con el módulo de usuarios externo
-
-    def __str__(self):
-        return f"{self.nombre} {self.apellido}"
 
 
 class Administrador(models.Model):
@@ -125,10 +94,17 @@ class GrupoAtleta(models.Model):
 
 
 # =============================================================================
-# Modelo Entrenador (hereda de Usuario)
+# Modelo Entrenador (referencia externa al módulo de usuarios)
 # =============================================================================
-class Entrenador(Usuario):
-    """Modelo para Entrenadores - hereda de Usuario"""
+class Entrenador(models.Model):
+    """Modelo para Entrenadores usando persona_external del módulo de usuarios."""
+
+    persona_external = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name='External ID Persona',
+        help_text='UUID externo de la persona en el módulo de usuarios'
+    )
     especialidad = models.CharField(max_length=100, verbose_name='Especialidad')
     club_asignado = models.CharField(max_length=100, verbose_name='Club asignado')
 
@@ -136,16 +112,24 @@ class Entrenador(Usuario):
         db_table = 'entrenador'
         verbose_name = 'Entrenador'
         verbose_name_plural = 'Entrenadores'
+        ordering = ['persona_external']
 
     def __str__(self):
-        return f"Entrenador: {self.nombre} {self.apellido}"
+        return f"Entrenador: {self.persona_external} - {self.especialidad}"
 
 
 # =============================================================================
-# Modelo EstudianteVinculacion (hereda de Usuario)
+# Modelo Estudiante de Vinculación referencia externa
 # =============================================================================
-class EstudianteVinculacion(Usuario):
-    """Modelo para Estudiantes de Vinculación - hereda de Usuario"""
+class EstudianteVinculacion(models.Model):
+    """Modelo para Estudiantes de Vinculación usando persona_external."""
+
+    persona_external = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name='External ID Persona',
+        help_text='UUID externo de la persona en el módulo de usuarios'
+    )
     carrera = models.CharField(max_length=100, verbose_name='Carrera')
     semestre = models.CharField(max_length=20, verbose_name='Semestre')
 
@@ -153,9 +137,10 @@ class EstudianteVinculacion(Usuario):
         db_table = 'estudiante_vinculacion'
         verbose_name = 'Estudiante de Vinculación'
         verbose_name_plural = 'Estudiantes de Vinculación'
+        ordering = ['persona_external']
 
     def __str__(self):
-        return f"Estudiante: {self.nombre} {self.apellido}"
+        return f"Estudiante Vinculación: {self.persona_external} - {self.carrera}"
 
 
 # =============================================================================
