@@ -1,7 +1,7 @@
 """Serializadores del módulo Basketball."""
 
 from rest_framework import serializers
-from .models import Administrador
+from .models import Administrador, EstudianteVinculacion
 import requests
 import os
 from django.conf import settings
@@ -83,4 +83,10 @@ def get_persona_from_user_module(persona_external):
 class AdministradorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Administrador
+        fields = '__all__'
+
+
+class EstudianteVinculacionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EstudianteVinculacion
         fields = '__all__'

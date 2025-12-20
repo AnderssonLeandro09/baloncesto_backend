@@ -132,6 +132,7 @@ class EstudianteVinculacion(models.Model):
     )
     carrera = models.CharField(max_length=100, verbose_name='Carrera')
     semestre = models.CharField(max_length=20, verbose_name='Semestre')
+    eliminado = models.BooleanField(default=False, verbose_name='Eliminado')
 
     class Meta:
         db_table = 'estudiante_vinculacion'
