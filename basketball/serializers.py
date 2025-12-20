@@ -6,20 +6,8 @@ import requests
 import os
 from django.conf import settings
 
-# Importar serializadores desde la nueva carpeta
-from .serializar.persona import PersonaSerializer
-from .serializar.estudiante_vinculacion import (
-    EstudianteVinculacionSerializer,
-    EstudianteVinculacionDataSerializer,
-    EstudianteVinculacionInputSerializer,
-    EstudianteVinculacionResponseSerializer
-)
-from .serializar.administrador import (
-    AdministradorSerializer,
-    AdministradorDataSerializer,
-    AdministradorInputSerializer,
-    AdministradorResponseSerializer
-)
+# Importar todos los serializadores desde el archivo de barril
+from .serializar import *
 
 # Cache global para tokens y datos de persona
 _user_module_token = None
@@ -95,7 +83,3 @@ def get_persona_from_user_module(persona_external):
     return None
 
 
-class LoginSerializer(serializers.Serializer):
-    """Serializador para el login."""
-    email = serializers.EmailField(required=True)
-    password = serializers.CharField(required=True, write_only=True)
