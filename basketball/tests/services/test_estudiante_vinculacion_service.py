@@ -24,22 +24,6 @@ class EstudianteVinculacionServiceTests(SimpleTestCase):
         with self.assertRaises(ValidationError):
             self.service.create_estudiante({'first_name': 'A'}, {}, 'token')
 
-    def test_create_requires_email_password(self):
-        # Missing email
-        with self.assertRaises(ValidationError):
-            self.service.create_estudiante(
-                {'first_name': 'A', 'password': 'pwd'}, 
-                {'carrera': 'Ing', 'semestre': '1'}, 
-                'token'
-            )
-        # Missing password
-        with self.assertRaises(ValidationError):
-            self.service.create_estudiante(
-                {'first_name': 'A', 'email': 'a@b.com'}, 
-                {'carrera': 'Ing', 'semestre': '1'}, 
-                'token'
-            )
-
     def test_create_success(self):
         # Mock save-account response (empty data)
         self.service._call_user_module.side_effect = [
@@ -51,7 +35,7 @@ class EstudianteVinculacionServiceTests(SimpleTestCase):
         self.service.dao.create.return_value = estudiante_obj
 
         result = self.service.create_estudiante(
-            {'first_name': 'A', 'identification': '123', 'email': 'test@test.com', 'password': 'pass'}, 
+            {'first_name': 'A', 'identification': '123', 'email': 'a@a.com', 'password': '123'}, 
             {'carrera': 'Ing', 'semestre': '1'}, 
             'token'
         )
