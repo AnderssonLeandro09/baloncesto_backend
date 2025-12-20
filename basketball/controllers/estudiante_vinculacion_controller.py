@@ -2,9 +2,15 @@
 
 from rest_framework import status, viewsets
 from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema
 
 from ..permissions import IsAdmin
-from ..serializers import EstudianteVinculacionSerializer
+from ..serializers import (
+    EstudianteVinculacionSerializer, 
+    EstudianteVinculacionInputSerializer, 
+    EstudianteVinculacionResponseSerializer,
+    get_user_module_token
+)
 from ..services.estudiante_vinculacion_service import EstudianteVinculacionService
 
 
@@ -12,19 +18,27 @@ class EstudianteVinculacionController(viewsets.ViewSet):
 	"""CRUD para estudiantes de vinculación."""
 
 	permission_classes = [IsAdmin]
+	# serializer_class se usa por defecto, pero extend_schema lo sobreescribe
 	serializer_class = EstudianteVinculacionSerializer
 	service = EstudianteVinculacionService()
 
+	@extend_schema(
+		responses={200: EstudianteVinculacionResponseSerializer(many=True)}
+	)
 	def list(self, request):
-		token = request.headers.get('Authorization')
+		# Usar token de admin para consultar el módulo de usuarios
+		token = get_user_module_token()
 		try:
 			data = self.service.list_estudiantes(token)
 			return Response(data, status=status.HTTP_200_OK)
 		except Exception as exc:
 			return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+	@extend_schema(
+		responses={200: EstudianteVinculacionResponseSerializer}
+	)
 	def retrieve(self, request, pk=None):
-		token = request.headers.get('Authorization')
+		token = get_user_module_token()
 		try:
 			data = self.service.get_estudiante(pk, token)
 			if not data:
@@ -33,8 +47,12 @@ class EstudianteVinculacionController(viewsets.ViewSet):
 		except Exception as exc:
 			return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+	@extend_schema(
+		request=EstudianteVinculacionInputSerializer,
+		responses={201: EstudianteVinculacionResponseSerializer}
+	)
 	def create(self, request):
-		token = request.headers.get('Authorization')
+		token = get_user_module_token()
 		payload = request.data.dict() if hasattr(request.data, 'dict') else request.data
 		persona_data = payload.get('persona') or payload.get('persona_data')
 		estudiante_data = payload.get('estudiante') or payload.get('estudiante_data') or {}
@@ -44,8 +62,12 @@ class EstudianteVinculacionController(viewsets.ViewSet):
 		except Exception as exc:
 			return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+	@extend_schema(
+		request=EstudianteVinculacionInputSerializer,
+		responses={200: EstudianteVinculacionResponseSerializer}
+	)
 	def update(self, request, pk=None):
-		token = request.headers.get('Authorization')
+		token = get_user_module_token()
 		payload = request.data.dict() if hasattr(request.data, 'dict') else request.data
 		persona_data = payload.get('persona') or payload.get('persona_data')
 		estudiante_data = payload.get('estudiante') or payload.get('estudiante_data') or {}
@@ -57,6 +79,10 @@ class EstudianteVinculacionController(viewsets.ViewSet):
 		except Exception as exc:
 			return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+	@extend_schema(
+		request=EstudianteVinculacionInputSerializer,
+		responses={200: EstudianteVinculacionResponseSerializer}
+	)
 	def partial_update(self, request, pk=None):
 		return self.update(request, pk)
 

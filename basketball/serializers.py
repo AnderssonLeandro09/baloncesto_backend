@@ -1,10 +1,19 @@
 """Serializadores del módulo Basketball."""
 
 from rest_framework import serializers
-from .models import Administrador, EstudianteVinculacion
+from .models import Administrador
 import requests
 import os
 from django.conf import settings
+
+# Importar serializadores desde la nueva carpeta
+from .serializar.persona import PersonaSerializer
+from .serializar.estudiante_vinculacion import (
+    EstudianteVinculacionSerializer,
+    EstudianteVinculacionDataSerializer,
+    EstudianteVinculacionInputSerializer,
+    EstudianteVinculacionResponseSerializer
+)
 
 # Cache global para tokens y datos de persona
 _user_module_token = None
@@ -83,12 +92,6 @@ def get_persona_from_user_module(persona_external):
 class AdministradorSerializer(serializers.ModelSerializer):
     class Meta:
         model = Administrador
-        fields = '__all__'
-
-
-class EstudianteVinculacionSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = EstudianteVinculacion
         fields = '__all__'
 
 
