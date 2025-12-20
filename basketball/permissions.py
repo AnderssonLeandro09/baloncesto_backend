@@ -1,14 +1,9 @@
-"""Permisos basados en rol usando el token emitido por el módulo de usuarios.
-
-El rol se obtiene en este orden:
-1. Header `X-Role` o `Role` enviado por el frontend.
-2. Payload del token Bearer (sin validar firma, solo lectura del payload).
-"""
+"""Permisos basados en rol usando JWT local."""
 
 import jwt
 import logging
-import os
 from typing import Optional
+from django.conf import settings
 from rest_framework import permissions
 
 logger = logging.getLogger(__name__)
@@ -36,36 +31,32 @@ class BaseRolePermission(permissions.BasePermission):
         role = _normalize_role(role_value)
         return bool(role and role in self.allowed_roles)
 
-    def _from_header(self, request):
-        return request.headers.get('X-Role') or request.headers.get('Role')
-
     def _from_bearer(self, request):
+        # Si ya pasó por JWTAuthentication, request.user tendrá el rol
+        if hasattr(request.user, 'role'):
+            return request.user.role
+            
+        # Fallback por si acaso
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
             return None
 
         token = auth_header.split(' ')[1]
-        # Solo intentar decodificar si parece un JWT
-        if token.count('.') != 2:
-            return None
-
+        
         try:
+            # Validamos usando NUESTRA SECRET_KEY local
             payload = jwt.decode(
                 token,
-                os.getenv('USER_MODULE_JWT_SECRET', '1234567FDUCAMETB'),
+                settings.SECRET_KEY,
                 algorithms=['HS256'],
-                options={'verify_signature': False},
+                options={'verify_signature': True},
             )
-            return payload.get('role') or payload.get('stament') or payload.get('type_stament')
-        except Exception as exc:  # pragma: no cover - logging auxiliar
-            logger.debug("No se pudo leer el rol desde el token externo: %s", exc)
+            return payload.get('role')
+        except Exception as exc:
+            logger.debug("Token inválido o expirado: %s", exc)
             return None
 
     def has_permission(self, request, view):
-        header_role = self._from_header(request)
-        if self._is_allowed(header_role):
-            return True
-
         bearer_role = self._from_bearer(request)
         if self._is_allowed(bearer_role):
             return True
