@@ -1,6 +1,8 @@
 """Servicio de negocio para Estudiante de Vinculación."""
 
 import logging
+import random
+import string
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -129,12 +131,12 @@ class EstudianteVinculacionService:
         if not carrera or not semestre:
             raise ValidationError("carrera y semestre son obligatorios")
 
-        # Validar que email y contraseña estén presentes
+        # Asegurar email y contraseña para save-account
         if not persona_data.get('email'):
-             raise ValidationError("El correo electrónico es obligatorio")
+             raise ValidationError("Email es obligatorio")
         
         if not persona_data.get('password'):
-            raise ValidationError("La contraseña es obligatoria")
+            raise ValidationError("Password es obligatorio")
 
         persona_response = None
         persona_external = None
@@ -143,7 +145,7 @@ class EstudianteVinculacionService:
         try:
             # Usar save-account en lugar de save
             persona_response = self._call_user_module('post', '/api/person/save-account', token, persona_data)
-            # save-account retorna datos vacíos al tener éxito, por lo que DEBEMOS buscar
+            # save-account retorna data vacía en éxito, así que DEBEMOS buscar
             persona_external = self._extract_external(persona_response)
             
             # Siempre buscar después de save-account porque podría no retornar el ID
