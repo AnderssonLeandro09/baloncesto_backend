@@ -1,10 +1,16 @@
 """Controlador para Administrador."""
 
+import logging
 from rest_framework import status, viewsets
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
+from django.core.exceptions import ValidationError
+
 from ..services.administrador_service import AdministradorService
 from ..serializers import AdministradorSerializer
 from ..permissions import IsAdmin
+
+logger = logging.getLogger(__name__)
 
 
 class AdministradorController(viewsets.ViewSet):
@@ -17,8 +23,11 @@ class AdministradorController(viewsets.ViewSet):
         try:
             data = self.service.get_all_administradores(token)
             return Response(data, status=status.HTTP_200_OK)
-        except Exception as exc:
+        except (ValidationError, PermissionDenied) as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.error(f"Error interno en list administradores: {exc}")
+            return Response({'error': 'Error interno del servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def create(self, request):
         token = request.headers.get('Authorization')
@@ -28,8 +37,11 @@ class AdministradorController(viewsets.ViewSet):
         try:
             result = self.service.create_administrador(persona_data or {}, administrador_data, token)
             return Response(result, status=status.HTTP_201_CREATED)
-        except Exception as exc:
+        except (ValidationError, PermissionDenied) as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.error(f"Error interno en create administrador: {exc}")
+            return Response({'error': 'Error interno del servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def retrieve(self, request, pk=None):
         token = request.headers.get('Authorization')
@@ -38,8 +50,11 @@ class AdministradorController(viewsets.ViewSet):
             if not data:
                 return Response({'error': 'Administrador no encontrado'}, status=status.HTTP_404_NOT_FOUND)
             return Response(data, status=status.HTTP_200_OK)
-        except Exception as exc:
+        except (ValidationError, PermissionDenied) as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.error(f"Error interno en retrieve administrador: {exc}")
+            return Response({'error': 'Error interno del servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def update(self, request, pk=None):
         token = request.headers.get('Authorization')
@@ -51,11 +66,18 @@ class AdministradorController(viewsets.ViewSet):
             if not result:
                 return Response({'error': 'Administrador no encontrado'}, status=status.HTTP_404_NOT_FOUND)
             return Response(result, status=status.HTTP_200_OK)
-        except Exception as exc:
+        except (ValidationError, PermissionDenied) as exc:
             return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.error(f"Error interno en update administrador: {exc}")
+            return Response({'error': 'Error interno del servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def destroy(self, request, pk=None):
-        success = self.service.delete_administrador(pk)
-        if not success:
-            return Response({'error': 'Administrador no encontrado'}, status=status.HTTP_404_NOT_FOUND)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        try:
+            success = self.service.delete_administrador(pk)
+            if not success:
+                return Response({'error': 'Administrador no encontrado'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as exc:
+            logger.error(f"Error interno en destroy administrador: {exc}")
+            return Response({'error': 'Error interno del servidor'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

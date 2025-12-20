@@ -37,7 +37,9 @@ class BaseRolePermission(permissions.BasePermission):
         return bool(role and role in self.allowed_roles)
 
     def _from_header(self, request):
-        return request.headers.get('X-Role') or request.headers.get('Role')
+        # SEGURIDAD: No confiar en headers manipulables por el cliente.
+        # return request.headers.get('X-Role') or request.headers.get('Role')
+        return None
 
     def _from_bearer(self, request):
         auth_header = request.headers.get('Authorization')
@@ -54,7 +56,7 @@ class BaseRolePermission(permissions.BasePermission):
                 token,
                 os.getenv('USER_MODULE_JWT_SECRET', '1234567FDUCAMETB'),
                 algorithms=['HS256'],
-                options={'verify_signature': False},
+                options={'verify_signature': True},
             )
             return payload.get('role') or payload.get('stament') or payload.get('type_stament')
         except Exception as exc:  # pragma: no cover - logging auxiliar
