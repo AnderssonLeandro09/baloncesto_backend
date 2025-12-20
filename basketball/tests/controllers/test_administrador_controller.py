@@ -1,7 +1,7 @@
 """Tests del controlador de Administrador usando mocks."""
 
 import jwt
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from django.core.exceptions import ValidationError
 from django.conf import settings
@@ -26,22 +26,21 @@ class AdministradorControllerTests(SimpleTestCase):
             'delete': 'destroy'
         })
         self.token = self._get_token('ADMIN')
+        self.system_token = 'system-token'
 
     def _get_token(self, role):
         payload = {'sub': '123', 'role': role, 'email': 'test@test.com', 'name': 'Test User'}
         return jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
-    def test_list_returns_data(self):
+    @patch('basketball.controllers.administrador_controller.get_user_module_token')
+    def test_list_returns_data(self, mock_get_token):
+        mock_get_token.return_value = self.system_token
         mock_service = MagicMock()
         # El servicio ahora retorna una lista de diccionarios
         mock_service.get_all_administradores.return_value = [
             {'administrador': {'id': 1}, 'persona': {'name': 'John'}}
         ]
-        # Asignar el mock a la clase del controlador (o instancia si fuera posible, pero viewsets son complejos)
-        # Al ser ViewSet, 'self.view.cls' accede a la clase.
-        # NOTA: Esto afecta a todos los tests si no se restaura, pero al ser SimpleTestCase y re-crear mocks...
-        # Mejor asignar a la instancia si pudiéramos, pero DRF instancia por request.
-        # Monkey-patching la clase es lo más directo aquí.
+        
         original_service = AdministradorController.service
         AdministradorController.service = mock_service
         
@@ -51,12 +50,14 @@ class AdministradorControllerTests(SimpleTestCase):
 
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(len(response.data), 1)
-            # El servicio recibe el token tal cual
-            mock_service.get_all_administradores.assert_called_with(f'Bearer {self.token}')
+            # El servicio recibe el token del sistema
+            mock_service.get_all_administradores.assert_called_with(self.system_token)
         finally:
             AdministradorController.service = original_service
 
-    def test_create_success(self):
+    @patch('basketball.controllers.administrador_controller.get_user_module_token')
+    def test_create_success(self, mock_get_token):
+        mock_get_token.return_value = self.system_token
         mock_service = MagicMock()
         expected_response = {'administrador': {'id': 2}, 'persona': {'name': 'Jane'}}
         mock_service.create_administrador.return_value = expected_response
@@ -83,12 +84,14 @@ class AdministradorControllerTests(SimpleTestCase):
             mock_service.create_administrador.assert_called_with(
                 payload['persona'], 
                 payload['administrador'], 
-                f'Bearer {self.token}'
+                self.system_token
             )
         finally:
             AdministradorController.service = original_service
 
-    def test_create_handles_error(self):
+    @patch('basketball.controllers.administrador_controller.get_user_module_token')
+    def test_create_handles_error(self, mock_get_token):
+        mock_get_token.return_value = self.system_token
         mock_service = MagicMock()
         mock_service.create_administrador.side_effect = ValidationError('bad')
         
@@ -109,7 +112,9 @@ class AdministradorControllerTests(SimpleTestCase):
         finally:
             AdministradorController.service = original_service
 
-    def test_retrieve_not_found(self):
+    @patch('basketball.controllers.administrador_controller.get_user_module_token')
+    def test_retrieve_not_found(self, mock_get_token):
+        mock_get_token.return_value = self.system_token
         mock_service = MagicMock()
         mock_service.get_administrador_by_id.return_value = None
         
@@ -121,11 +126,13 @@ class AdministradorControllerTests(SimpleTestCase):
             response = self.view_detail(request, pk=99)
 
             self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-            mock_service.get_administrador_by_id.assert_called_with(99, f'Bearer {self.token}')
+            mock_service.get_administrador_by_id.assert_called_with(99, self.system_token)
         finally:
             AdministradorController.service = original_service
 
-    def test_update_success(self):
+    @patch('basketball.controllers.administrador_controller.get_user_module_token')
+    def test_update_success(self, mock_get_token):
+        mock_get_token.return_value = self.system_token
         mock_service = MagicMock()
         expected_response = {'administrador': {'id': 3, 'cargo': 'Ops'}, 'persona': {'name': 'Jim'}}
         mock_service.update_administrador.return_value = expected_response
@@ -153,7 +160,7 @@ class AdministradorControllerTests(SimpleTestCase):
                 3, 
                 payload['persona'], 
                 payload['administrador'], 
-                f'Bearer {self.token}'
+                self.system_token
             )
         finally:
             AdministradorController.service = original_service

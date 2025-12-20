@@ -78,8 +78,13 @@ class AuthController(viewsets.ViewSet):
         # 3. Determinar Rol Local en nuestra BD
         role = 'USER' # Rol por defecto
         
+        logger.info(f"Login attempt for external_id: '{external_id}'")
+        
         # Verificamos jerárquicamente
-        if Administrador.objects.filter(persona_external=external_id, estado=True).exists():
+        is_admin = Administrador.objects.filter(persona_external=external_id, estado=True).exists()
+        logger.info(f"Is Admin? {is_admin}")
+
+        if is_admin:
             role = 'ADMIN'
         elif Entrenador.objects.filter(persona_external=external_id).exists():
             role = 'ENTRENADOR'
