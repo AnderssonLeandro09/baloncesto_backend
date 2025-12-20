@@ -90,3 +90,9 @@ class EstudianteVinculacionSerializer(serializers.ModelSerializer):
     class Meta:
         model = EstudianteVinculacion
         fields = '__all__'
+
+
+class LoginSerializer(serializers.Serializer):
+    """Serializador para el login."""
+    email = serializers.EmailField(required=True)
+    password = serializers.CharField(required=True, write_only=True)

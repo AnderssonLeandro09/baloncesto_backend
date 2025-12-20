@@ -1,7 +1,10 @@
 """Tests del controlador de Administrador usando mocks."""
 
+import jwt
 from unittest.mock import MagicMock
 
+from django.core.exceptions import ValidationError
+from django.conf import settings
 from django.test import SimpleTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
@@ -22,6 +25,11 @@ class AdministradorControllerTests(SimpleTestCase):
             'put': 'update',
             'delete': 'destroy'
         })
+        self.token = self._get_token('ADMIN')
+
+    def _get_token(self, role):
+        payload = {'sub': '123', 'role': role, 'email': 'test@test.com', 'name': 'Test User'}
+        return jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
     def test_list_returns_data(self):
         mock_service = MagicMock()
@@ -38,12 +46,13 @@ class AdministradorControllerTests(SimpleTestCase):
         AdministradorController.service = mock_service
         
         try:
-            request = self.factory.get('/administradores/', HTTP_AUTHORIZATION='Bearer token', HTTP_X_ROLE='ADMIN')
+            request = self.factory.get('/administradores/', HTTP_AUTHORIZATION=f'Bearer {self.token}')
             response = self.view_list_create(request)
 
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(len(response.data), 1)
-            mock_service.get_all_administradores.assert_called_with('Bearer token')
+            # El servicio recibe el token tal cual
+            mock_service.get_all_administradores.assert_called_with(f'Bearer {self.token}')
         finally:
             AdministradorController.service = original_service
 
@@ -65,8 +74,7 @@ class AdministradorControllerTests(SimpleTestCase):
                 '/administradores/', 
                 payload, 
                 format='json', 
-                HTTP_AUTHORIZATION='Bearer token',
-                HTTP_X_ROLE='ADMIN'
+                HTTP_AUTHORIZATION=f'Bearer {self.token}'
             )
             response = self.view_list_create(request)
 
@@ -75,14 +83,14 @@ class AdministradorControllerTests(SimpleTestCase):
             mock_service.create_administrador.assert_called_with(
                 payload['persona'], 
                 payload['administrador'], 
-                'Bearer token'
+                f'Bearer {self.token}'
             )
         finally:
             AdministradorController.service = original_service
 
     def test_create_handles_error(self):
         mock_service = MagicMock()
-        mock_service.create_administrador.side_effect = Exception('bad')
+        mock_service.create_administrador.side_effect = ValidationError('bad')
         
         original_service = AdministradorController.service
         AdministradorController.service = mock_service
@@ -92,8 +100,7 @@ class AdministradorControllerTests(SimpleTestCase):
                 '/administradores/', 
                 {}, 
                 format='json', 
-                HTTP_AUTHORIZATION='Bearer token',
-                HTTP_X_ROLE='ADMIN'
+                HTTP_AUTHORIZATION=f'Bearer {self.token}'
             )
             response = self.view_list_create(request)
 
@@ -110,11 +117,11 @@ class AdministradorControllerTests(SimpleTestCase):
         AdministradorController.service = mock_service
 
         try:
-            request = self.factory.get('/administradores/99/', HTTP_AUTHORIZATION='Bearer token', HTTP_X_ROLE='ADMIN')
+            request = self.factory.get('/administradores/99/', HTTP_AUTHORIZATION=f'Bearer {self.token}')
             response = self.view_detail(request, pk=99)
 
             self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-            mock_service.get_administrador_by_id.assert_called_with(99, 'Bearer token')
+            mock_service.get_administrador_by_id.assert_called_with(99, f'Bearer {self.token}')
         finally:
             AdministradorController.service = original_service
 
@@ -136,18 +143,17 @@ class AdministradorControllerTests(SimpleTestCase):
                 '/administradores/3/', 
                 payload, 
                 format='json', 
-                HTTP_AUTHORIZATION='Bearer token',
-                HTTP_X_ROLE='ADMIN'
+                HTTP_AUTHORIZATION=f'Bearer {self.token}'
             )
             response = self.view_detail(request, pk=3)
 
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(response.data, expected_response)
             mock_service.update_administrador.assert_called_with(
-                3,
-                payload['persona'],
-                payload['administrador'],
-                'Bearer token'
+                3, 
+                payload['persona'], 
+                payload['administrador'], 
+                f'Bearer {self.token}'
             )
         finally:
             AdministradorController.service = original_service
@@ -160,7 +166,7 @@ class AdministradorControllerTests(SimpleTestCase):
         AdministradorController.service = mock_service
 
         try:
-            request = self.factory.delete('/administradores/3/', HTTP_AUTHORIZATION='Bearer token', HTTP_X_ROLE='ADMIN')
+            request = self.factory.delete('/administradores/3/', HTTP_AUTHORIZATION=f'Bearer {self.token}')
             response = self.view_detail(request, pk=3)
 
             self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
