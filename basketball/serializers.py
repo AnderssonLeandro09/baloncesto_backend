@@ -14,6 +14,12 @@ from .serializar.estudiante_vinculacion import (
     EstudianteVinculacionInputSerializer,
     EstudianteVinculacionResponseSerializer
 )
+from .serializar.administrador import (
+    AdministradorSerializer,
+    AdministradorDataSerializer,
+    AdministradorInputSerializer,
+    AdministradorResponseSerializer
+)
 
 # Cache global para tokens y datos de persona
 _user_module_token = None
@@ -87,12 +93,6 @@ def get_persona_from_user_module(persona_external):
         print(f"Error obteniendo datos de persona {persona_external}: {e}")
     
     return None
-
-
-class AdministradorSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Administrador
-        fields = '__all__'
 
 
 class LoginSerializer(serializers.Serializer):
