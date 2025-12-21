@@ -1,5 +1,7 @@
 """Tests del controlador de EstudianteVinculacion usando mocks."""
 
+import jwt
+from django.conf import settings
 from unittest.mock import MagicMock
 
 from django.test import SimpleTestCase
@@ -21,13 +23,16 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
                 'delete': 'destroy',
             }
         )
+        payload = {'role': 'ADMIN', 'sub': 'test_user'}
+        self.token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+        self.auth_header = f'Bearer {self.token}'
 
     def test_list_returns_data(self):
         mock_service = MagicMock()
         mock_service.list_estudiantes.return_value = [{'estudiante': {'id': 1}}]
         self.view.cls.service = mock_service
 
-        request = self.factory.get('/estudiantes-vinculacion/', HTTP_X_ROLE='ADMIN', HTTP_AUTHORIZATION='Bearer t')
+        request = self.factory.get('/estudiantes-vinculacion/', HTTP_AUTHORIZATION=self.auth_header)
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -42,8 +47,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
             '/estudiantes-vinculacion/',
             {'persona': {'first_name': 'A'}, 'estudiante': {'carrera': 'Ing', 'semestre': '1'}},
             format='json',
-            HTTP_X_ROLE='ADMIN',
-            HTTP_AUTHORIZATION='Bearer t',
+            HTTP_AUTHORIZATION=self.auth_header,
         )
         response = self.view(request)
 
@@ -59,8 +63,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
             '/estudiantes-vinculacion/',
             {'persona': {}, 'estudiante': {}},
             format='json',
-            HTTP_X_ROLE='ADMIN',
-            HTTP_AUTHORIZATION='Bearer t',
+            HTTP_AUTHORIZATION=self.auth_header,
         )
         response = self.view(request)
 
@@ -73,7 +76,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
         mock_service.get_estudiante.return_value = None
         view.cls.service = mock_service
 
-        request = self.factory.get('/estudiantes-vinculacion/9/', HTTP_X_ROLE='ADMIN', HTTP_AUTHORIZATION='Bearer t')
+        request = self.factory.get('/estudiantes-vinculacion/9/', HTTP_AUTHORIZATION=self.auth_header)
         response = view(request, pk=9)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
@@ -88,8 +91,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
             '/estudiantes-vinculacion/2/',
             {'persona': {'external': 'x'}, 'estudiante': {'semestre': '2'}},
             format='json',
-            HTTP_X_ROLE='ADMIN',
-            HTTP_AUTHORIZATION='Bearer t',
+            HTTP_AUTHORIZATION=self.auth_header,
         )
         response = view(request, pk=2)
 
@@ -102,7 +104,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
         mock_service.delete_estudiante.return_value = True
         view.cls.service = mock_service
 
-        request = self.factory.delete('/estudiantes-vinculacion/3/', HTTP_X_ROLE='ADMIN', HTTP_AUTHORIZATION='Bearer t')
+        request = self.factory.delete('/estudiantes-vinculacion/3/', HTTP_AUTHORIZATION=self.auth_header)
         response = view(request, pk=3)
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
