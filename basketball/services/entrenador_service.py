@@ -1,195 +1,344 @@
-"""
-Servicio para Entrenador
+"""Servicio de negocio para Entrenador."""
 
-Implementa la lógica de negocio, validaciones y manejo de errores
-para la entidad `Entrenador`.
-"""
-from typing import Dict, Any, Optional, List
-import re
+import logging
+from typing import Any, Dict, List, Optional
+
+import requests
+from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.db import IntegrityError
+from rest_framework.exceptions import PermissionDenied
 
-from basketball.services.base_service import BaseService, ServiceResult
-from basketball.dao.model_daos import EntrenadorDAO
-from basketball.models import Entrenador
+from ..dao.entrenador_dao import EntrenadorDAO
+from ..models import Entrenador
+
+logger = logging.getLogger(__name__)
 
 
-class EntrenadorService(BaseService[Entrenador]):
-    """
-    Servicio para gestionar entrenadores.
-    """
-
-    REQUIRED_FIELDS = ['nombre', 'apellido', 'email', 'dni', 'clave', 'especialidad', 'club_asignado']
-    UPDATE_FIELDS = ['nombre', 'apellido', 'email', 'especialidad', 'club_asignado', 'foto_perfil']
+class EntrenadorService:
+    """Lógica de negocio para entrenadores."""
 
     def __init__(self):
         self.dao = EntrenadorDAO()
+        self.user_module_url = settings.USER_MODULE_URL.rstrip("/")
 
-    def _validate_email_institucional(self, email: str) -> Optional[str]:
-        if not email:
-            return "El correo es obligatorio"
-        email = email.strip().lower()
-        if not email.endswith('@unl.edu.ec'):
-            return "El correo debe ser institucional (@unl.edu.ec)"
-        pattern = r'^[a-zA-Z0-9._%+-]+@unl\.edu\.ec$'
-        if not re.match(pattern, email):
-            return "Formato de correo inválido"
-        return None
+    # ======================================================================
+    # Helper HTTP
+    # ======================================================================
+    def _build_auth_header(self, token: Optional[str]) -> Dict[str, str]:
+        if not token:
+            raise PermissionDenied("Token de autenticacion requerido")
+        bearer = token if token.startswith("Bearer ") else f"Bearer {token}"
+        return {"Authorization": bearer}
 
-    def _validate_dni(self, dni: str) -> Optional[str]:
-        if not dni:
-            return "El DNI es obligatorio"
-        if len(dni) != 10 or not dni.isdigit():
-            return "El DNI debe tener 10 dígitos numéricos"
-        return None
+    def _call_user_module(
+        self,
+        method: str,
+        path: str,
+        token: str,
+        payload: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        headers = self._build_auth_header(token)
+        url = f"{self.user_module_url}{path}"
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=headers,
+                json=payload,
+                timeout=8,
+            )
+        except requests.RequestException as exc:
+            logger.error("Fallo al invocar user_module %s: %s", url, exc)
+            raise ValidationError("No se pudo contactar al módulo de usuarios")
 
-    def crear_entrenador(self, data: Dict[str, Any]) -> ServiceResult:
-        errors: List[str] = []
+        if response.status_code in (401, 403):
+            raise PermissionDenied("Token sin permisos en módulo de usuarios")
 
-        required_errors = self.validate_required_fields(data, self.REQUIRED_FIELDS)
-        errors.extend(required_errors)
-        if errors:
-            return ServiceResult.validation_error("Error de validación", errors)
-
-        email = data.get('email', '').lower().strip()
-        dni = data.get('dni', '').strip()
-
-        email_err = self._validate_email_institucional(email)
-        if email_err:
-            errors.append(email_err)
-
-        dni_err = self._validate_dni(dni)
-        if dni_err:
-            errors.append(dni_err)
-
-        if errors:
-            return ServiceResult.validation_error("Error de validación", errors)
-
-        # unicidad
-        if self.dao.email_exists(email):
-            return ServiceResult.conflict("El correo ya está registrado")
-        if self.dao.dni_exists(dni):
-            return ServiceResult.conflict("El DNI ya está registrado")
+        if response.status_code >= 400:
+            message = self._extract_message(response)
+            raise ValidationError(f"Error en módulo de usuarios: {message}")
 
         try:
-            entrenador = self.dao.create(
-                nombre=data.get('nombre').strip(),
-                apellido=data.get('apellido').strip(),
-                email=email,
-                dni=dni,
-                clave=data.get('clave'),
-                foto_perfil=data.get('foto_perfil'),
-                rol='ENTRENADOR',
-                especialidad=data.get('especialidad').strip(),
-                club_asignado=data.get('club_asignado').strip()
+            return response.json()
+        except ValueError:
+            raise ValidationError("Respuesta inválida del módulo de usuarios")
+
+    def _extract_message(self, response) -> str:
+        try:
+            data = response.json()
+            return data.get("message") or str(data)
+        except Exception:
+            return response.text or "error"
+
+    def _search_by_identification(
+        self, identification: Optional[str], token: str
+    ) -> Optional[Dict[str, Any]]:
+        if not identification:
+            return None
+        try:
+            return self._call_user_module(
+                "get",
+                f"/api/person/search_identification/{identification}",
+                token,
+            )
+        except Exception:
+            return None
+
+    def _search_in_all_filter(
+        self, identification: str, token: str
+    ) -> Optional[Dict[str, Any]]:
+        try:
+            response = self._call_user_module("get", "/api/person/all_filter", token)
+            data = response.get("data")
+            if isinstance(data, list):
+                for person in data:
+                    if (
+                        isinstance(person, dict)
+                        and person.get("identification") == identification
+                    ):
+                        return person
+            return None
+        except Exception:
+            return None
+
+    def _extract_external(self, payload: Dict[str, Any]) -> Optional[str]:
+        # Intenta extraer de 'data' si existe (formato común de respuesta)
+        data = payload.get("data")
+        if isinstance(data, dict):
+            for key in (
+                "external",
+                "external_id",
+                "external_person",
+                "uuid",
+                "id",
+            ):
+                value = data.get(key)
+                if value:
+                    return str(value)
+
+        # Intenta extraer directamente del payload (formato de búsqueda según swagger)
+        if isinstance(payload, dict):
+            for key in (
+                "external",
+                "external_id",
+                "external_person",
+                "uuid",
+                "id",
+            ):
+                value = payload.get(key)
+                if value:
+                    return str(value)
+
+        return None
+
+    def _fetch_persona(
+        self, external: str, token: str, allow_fail: bool = False
+    ) -> Optional[Dict[str, Any]]:
+        try:
+            return self._call_user_module(
+                "get", f"/api/person/search/{external}", token
+            )
+        except Exception:
+            if allow_fail:
+                return None
+            raise
+
+    def _build_response(
+        self,
+        entrenador: Entrenador,
+        persona_payload: Optional[Dict[str, Any]],
+    ) -> Dict[str, Any]:
+        persona_data = (
+            persona_payload.get("data") if isinstance(persona_payload, dict) else None
+        )
+        return {
+            "entrenador": {
+                "id": entrenador.id,
+                "persona_external": entrenador.persona_external,
+                "especialidad": entrenador.especialidad,
+                "club_asignado": entrenador.club_asignado,
+            },
+            "persona": persona_data,
+        }
+
+    # ======================================================================
+    # CRUD operations
+    # ======================================================================
+    def create_entrenador(
+        self,
+        persona_data: Dict[str, Any],
+        entrenador_data: Dict[str, Any],
+        token: str,
+    ) -> Dict[str, Any]:
+        if not persona_data:
+            raise ValidationError("Datos de persona son obligatorios")
+
+        especialidad = entrenador_data.get("especialidad")
+        club_asignado = entrenador_data.get("club_asignado")
+        if not especialidad or not club_asignado:
+            raise ValidationError("especialidad y club_asignado son obligatorios")
+
+        # Asegurar email y contraseña para save-account
+        if not persona_data.get("email"):
+            raise ValidationError("Email es obligatorio")
+
+        if not persona_data.get("password"):
+            raise ValidationError("Password es obligatorio")
+
+        persona_response = None
+        persona_external = None
+
+        # Intentar crear con cuenta primero (más confiable en este entorno)
+        try:
+            # Usar save-account en lugar de save
+            persona_response = self._call_user_module(
+                "post", "/api/person/save-account", token, persona_data
+            )
+            # save-account retorna data vacía en éxito, así que DEBEMOS buscar
+            persona_external = self._extract_external(persona_response)
+
+            # Siempre buscar después de save-account porque podría no retornar el ID
+            if not persona_external and persona_data.get("identification"):
+                lookup_response = self._search_by_identification(
+                    persona_data.get("identification"), token
+                )
+                persona_external = (
+                    self._extract_external(lookup_response) if lookup_response else None
+                )
+
+        except ValidationError as exc:
+            message = str(exc)
+            # Si ya está registrada, intentar encontrarla
+            if (
+                "ya esta registrada" in message.lower()
+                or "already registered" in message.lower()
+            ):
+                persona_response = self._search_by_identification(
+                    persona_data.get("identification"), token
+                )
+                persona_external = (
+                    self._extract_external(persona_response)
+                    if persona_response
+                    else None
+                )
+            else:
+                # Si save-account falló por otras razones, intentar buscar por si acaso
+                # existe pero save-account falló por problemas de email/password.
+                if persona_data.get("identification"):
+                    lookup_response = self._search_by_identification(
+                        persona_data.get("identification"), token
+                    )
+                    if lookup_response:
+                        persona_external = self._extract_external(lookup_response)
+
+                if not persona_external:
+                    raise
+
+        if not persona_external:
+            # Fallback: intentar encontrar en la lista all_filter
+            fallback_person = self._search_in_all_filter(
+                persona_data.get("identification"), token
+            )
+            if fallback_person:
+                persona_external = self._extract_external(fallback_person)
+
+        if not persona_external:
+            raise ValidationError("El módulo de usuarios no retornó external_id")
+
+        if self.dao.exists(persona_external=persona_external):
+            raise ValidationError(
+                "Ya existe un entrenador con ese external"
             )
 
-            return ServiceResult.success(data=self._entrenador_to_dict(entrenador), message="Entrenador creado exitosamente")
+        entrenador = self.dao.create(
+            persona_external=persona_external,
+            especialidad=especialidad,
+            club_asignado=club_asignado,
+            eliminado=False,
+        )
 
-        except ValidationError as e:
-            return ServiceResult.validation_error("Error de validación al crear entrenador", [str(e)])
-        except IntegrityError as e:
-            return ServiceResult.error("Error de integridad al crear entrenador", [str(e)])
-        except Exception as e:
-            return ServiceResult.error("Error inesperado al crear entrenador", [str(e)])
+        persona_info = self._fetch_persona(persona_external, token, allow_fail=True)
+        return self._build_response(entrenador, persona_info)
 
-    def obtener_entrenador(self, pk: int) -> ServiceResult:
+    def update_entrenador(
+        self,
+        pk: int,
+        persona_data: Dict[str, Any],
+        entrenador_data: Dict[str, Any],
+        token: str,
+    ) -> Optional[Dict[str, Any]]:
         entrenador = self.dao.get_by_id(pk)
         if not entrenador:
-            return ServiceResult.not_found("Entrenador no encontrado")
-        return ServiceResult.success(data=self._entrenador_to_dict(entrenador), message="Entrenador encontrado")
+            return None
 
-    def listar_entrenadores(self, solo_activos: bool = True) -> ServiceResult:
-        if solo_activos:
-            entrenadores = self.dao.get_activos()
-        else:
-            entrenadores = self.dao.get_all()
+        if not persona_data:
+            raise ValidationError("Datos de persona son obligatorios")
 
-        data = [self._entrenador_to_dict(e) for e in entrenadores]
-        return ServiceResult.success(data=data, message=f"Se encontraron {len(data)} entrenadores")
+        persona_data = persona_data.copy()
+        persona_data.setdefault("external", entrenador.persona_external)
 
-    def actualizar_entrenador(self, pk: int, data: Dict[str, Any]) -> ServiceResult:
+        # 1. Llamar al endpoint de actualización
+        self._call_user_module("post", "/api/person/update", token, persona_data)
+
+        # 2. Buscar de nuevo para obtener el external_id potencialmente nuevo
+        # El endpoint de actualización retorna data vacía, así que debemos buscar por identificación
+        ident = persona_data.get("identification")
+        new_external = None
+
+        if ident:
+            lookup_response = self._search_by_identification(ident, token)
+            new_external = (
+                self._extract_external(lookup_response) if lookup_response else None
+            )
+
+        # Fallback si la búsqueda falló o no se proveyó identificación (poco probable)
+        if not new_external:
+            new_external = entrenador.persona_external
+
+        if new_external != entrenador.persona_external and self.dao.exists(
+            persona_external=new_external
+        ):
+            raise ValidationError("Ya existe otro entrenador con ese external")
+
+        # Actualizar campos del entrenador
+        update_data = {}
+        if "especialidad" in entrenador_data:
+            update_data["especialidad"] = entrenador_data["especialidad"]
+        if "club_asignado" in entrenador_data:
+            update_data["club_asignado"] = entrenador_data["club_asignado"]
+
+        if update_data:
+            self.dao.update(entrenador, **update_data)
+
+        # Si cambió el external, actualizarlo
+        if new_external != entrenador.persona_external:
+            self.dao.update(entrenador, persona_external=new_external)
+
+        # Refrescar el objeto
+        entrenador.refresh_from_db()
+
+        persona_info = self._fetch_persona(new_external, token, allow_fail=True)
+        return self._build_response(entrenador, persona_info)
+
+    def get_entrenador(self, pk: int, token: str) -> Optional[Dict[str, Any]]:
         entrenador = self.dao.get_by_id(pk)
         if not entrenador:
-            return ServiceResult.not_found("Entrenador no encontrado")
+            return None
 
-        errors: List[str] = []
-        update_data: Dict[str, Any] = {}
+        persona_info = self._fetch_persona(entrenador.persona_external, token, allow_fail=True)
+        return self._build_response(entrenador, persona_info)
 
-        for field in self.UPDATE_FIELDS:
-            if field in data:
-                update_data[field] = data[field]
+    def list_entrenadores(self, token: str) -> List[Dict[str, Any]]:
+        entrenadores = self.dao.get_activos()
+        result = []
+        for entrenador in entrenadores:
+            persona_info = self._fetch_persona(entrenador.persona_external, token, allow_fail=True)
+            result.append(self._build_response(entrenador, persona_info))
+        return result
 
-        if 'email' in update_data:
-            email = update_data['email'].lower().strip()
-            email_err = self._validate_email_institucional(email)
-            if email_err:
-                errors.append(email_err)
-            elif self.dao.email_exists(email, exclude_pk=pk):
-                errors.append('El correo ya está en uso')
-            else:
-                update_data['email'] = email
-
-        if 'semestre' in update_data:
-            # campo no aplicable a entrenador, ignorado por seguridad
-            update_data.pop('semestre', None)
-
-        if errors:
-            return ServiceResult.validation_error("Error de validación", errors)
-
-        try:
-            actualizado = self.dao.update(pk, **update_data)
-            if not actualizado:
-                return ServiceResult.not_found("Entrenador no encontrado para actualizar")
-            return ServiceResult.success(data=self._entrenador_to_dict(actualizado), message="Entrenador actualizado")
-        except ValidationError as e:
-            return ServiceResult.validation_error("Error de validación", [str(e)])
-        except Exception as e:
-            return ServiceResult.error("Error inesperado al actualizar entrenador", [str(e)])
-
-    def dar_de_baja(self, pk: int) -> ServiceResult:
+    def delete_entrenador(self, pk: int) -> bool:
         entrenador = self.dao.get_by_id(pk)
         if not entrenador:
-            return ServiceResult.not_found("Entrenador no encontrado")
-        if not entrenador.estado:
-            return ServiceResult.conflict("El entrenador ya está dado de baja")
-
-        success = self.dao.soft_delete(pk, field='estado')
-        if success:
-            return ServiceResult.success(message="Entrenador dado de baja")
-        return ServiceResult.error("No se pudo dar de baja al entrenador")
-
-    def reactivar_entrenador(self, pk: int) -> ServiceResult:
-        entrenador = self.dao.get_by_id(pk)
-        if not entrenador:
-            return ServiceResult.not_found("Entrenador no encontrado")
-        if entrenador.estado:
-            return ServiceResult.conflict("El entrenador ya está activo")
-
-        try:
-            actualizado = self.dao.update(pk, estado=True)
-            if actualizado:
-                return ServiceResult.success(message="Entrenador reactivado")
-            return ServiceResult.error("No se pudo reactivar el entrenador")
-        except Exception as e:
-            return ServiceResult.error("Error inesperado al reactivar entrenador", [str(e)])
-
-    def buscar_entrenadores(self, termino: str) -> ServiceResult:
-        resultados = self.dao.search_entrenadores(termino)
-        data = [self._entrenador_to_dict(e) for e in resultados]
-        return ServiceResult.success(data=data, message=f"Se encontraron {len(data)} entrenadores")
-
-    def _entrenador_to_dict(self, entrenador: Entrenador) -> Dict[str, Any]:
-        return {
-            'id': entrenador.pk,
-            'nombre': entrenador.nombre,
-            'apellido': entrenador.apellido,
-            'email': entrenador.email,
-            'dni': entrenador.dni,
-            'foto_perfil': entrenador.foto_perfil,
-            'rol': getattr(entrenador, 'rol', 'ENTRENADOR'),
-            'estado': entrenador.estado,
-            'fecha_registro': entrenador.fecha_registro.isoformat() if getattr(entrenador, 'fecha_registro', None) else None,
-            'especialidad': getattr(entrenador, 'especialidad', None),
-            'club_asignado': getattr(entrenador, 'club_asignado', None),
-        }
+            return False
+        self.dao.delete(entrenador)
+        return True

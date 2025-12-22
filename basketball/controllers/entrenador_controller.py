@@ -1,168 +1,106 @@
-"""
-Controlador para Entrenador
+"""Controlador para Entrenador."""
 
-TODO: Implementar controlador
-"""
-from rest_framework.views import APIView
+from rest_framework import status, viewsets
 from rest_framework.response import Response
-from rest_framework import status, serializers, permissions
-from rest_framework.decorators import api_view
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema
 
-from basketball.controllers.base_controller import BaseController
-from basketball.services.entrenador_service import EntrenadorService
-from basketball.services.base_service import ResultStatus
-
-
-class EntrenadorInputSerializer(serializers.Serializer):
-	nombre = serializers.CharField(max_length=100)
-	apellido = serializers.CharField(max_length=100)
-	email = serializers.EmailField()
-	dni = serializers.CharField(max_length=10)
-	clave = serializers.CharField(max_length=255)
-	especialidad = serializers.CharField(max_length=100)
-	club_asignado = serializers.CharField(max_length=100)
-	foto_perfil = serializers.CharField(max_length=255, required=False, allow_null=True)
+from ..permissions import IsAdmin
+from ..serializers import (
+    EntrenadorSerializer,
+    EntrenadorInputSerializer,
+    EntrenadorResponseSerializer,
+    get_user_module_token,
+)
+from ..services.entrenador_service import (
+    EntrenadorService,
+)
 
 
-class EntrenadorUpdateSerializer(serializers.Serializer):
-	nombre = serializers.CharField(max_length=100, required=False)
-	apellido = serializers.CharField(max_length=100, required=False)
-	email = serializers.EmailField(required=False)
-	especialidad = serializers.CharField(max_length=100, required=False)
-	club_asignado = serializers.CharField(max_length=100, required=False)
-	foto_perfil = serializers.CharField(max_length=255, required=False, allow_null=True)
+class EntrenadorController(viewsets.ViewSet):
+    """CRUD para entrenadores."""
 
+    permission_classes = [IsAdmin]
+    # serializer_class se usa por defecto, pero extend_schema lo sobreescribe
+    serializer_class = EntrenadorSerializer
+    service = EntrenadorService()
 
-class EntrenadorOutputSerializer(serializers.Serializer):
-	id = serializers.IntegerField()
-	nombre = serializers.CharField()
-	apellido = serializers.CharField()
-	email = serializers.EmailField()
-	dni = serializers.CharField()
-	foto_perfil = serializers.CharField(allow_null=True)
-	rol = serializers.CharField()
-	estado = serializers.BooleanField()
-	fecha_registro = serializers.CharField(allow_null=True)
-	especialidad = serializers.CharField()
-	club_asignado = serializers.CharField()
+    @extend_schema(responses={200: EntrenadorResponseSerializer(many=True)})
+    def list(self, request):
+        # Usar token de admin para consultar el módulo de usuarios
+        token = get_user_module_token()
+        try:
+            data = self.service.list_entrenadores(token)
+            return Response(data, status=status.HTTP_200_OK)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(responses={200: EntrenadorResponseSerializer})
+    def retrieve(self, request, pk=None):
+        token = get_user_module_token()
+        try:
+            data = self.service.get_entrenador(pk, token)
+            if not data:
+                return Response(
+                    {"error": "Entrenador no encontrado"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            return Response(data, status=status.HTTP_200_OK)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-class ServiceResultSerializer(serializers.Serializer):
-	status = serializers.CharField()
-	message = serializers.CharField()
-	data = serializers.JSONField(required=False)
-	errors = serializers.ListField(child=serializers.CharField(), required=False)
+    @extend_schema(
+        request=EntrenadorInputSerializer,
+        responses={201: EntrenadorResponseSerializer},
+    )
+    def create(self, request):
+        token = get_user_module_token()
+        payload = request.data.dict() if hasattr(request.data, "dict") else request.data
+        persona_data = payload.get("persona") or payload.get("persona_data")
+        entrenador_data = (
+            payload.get("entrenador") or payload.get("entrenador_data") or {}
+        )
+        try:
+            result = self.service.create_entrenador(
+                persona_data or {}, entrenador_data, token
+            )
+            return Response(result, status=status.HTTP_201_CREATED)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
+    @extend_schema(
+        request=EntrenadorInputSerializer,
+        responses={200: EntrenadorResponseSerializer},
+    )
+    def update(self, request, pk=None):
+        token = get_user_module_token()
+        payload = request.data.dict() if hasattr(request.data, "dict") else request.data
+        persona_data = payload.get("persona") or payload.get("persona_data")
+        entrenador_data = (
+            payload.get("entrenador") or payload.get("entrenador_data") or {}
+        )
+        try:
+            result = self.service.update_entrenador(
+                pk, persona_data or {}, entrenador_data, token
+            )
+            if not result:
+                return Response(
+                    {"error": "Entrenador no encontrado"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-class EntrenadorListController(BaseController):
-	"""Lista y crea entrenadores."""
-	permission_classes = [permissions.AllowAny]
-
-	def __init__(self, **kwargs):
-		super().__init__(**kwargs)
-		self.service = EntrenadorService()
-
-	@extend_schema(
-		tags=['Entrenadores'],
-		summary='Listar entrenadores',
-		parameters=[
-			OpenApiParameter(
-				name='solo_activos',
-				type=OpenApiTypes.BOOL,
-				location=OpenApiParameter.QUERY,
-				description='Si true, solo devuelve activos',
-				default=True
-			)
-		],
-		responses={200: ServiceResultSerializer}
-	)
-	def get(self, request):
-		solo_activos = request.query_params.get('solo_activos', 'true').lower() in ('1', 'true', 'yes')
-		result = self.service.listar_entrenadores(solo_activos=solo_activos)
-		return Response(result.to_dict(), status=status.HTTP_200_OK)
-
-	@extend_schema(
-		tags=['Entrenadores'],
-		summary='Crear entrenador',
-		request=EntrenadorInputSerializer,
-		responses={201: ServiceResultSerializer, 400: ServiceResultSerializer, 409: ServiceResultSerializer}
-	)
-	def post(self, request):
-		serializer = EntrenadorInputSerializer(data=request.data)
-		if not serializer.is_valid():
-			return Response(ServiceResult.validation_error("Error de validación", list(serializer.errors.values())).to_dict(), status=status.HTTP_400_BAD_REQUEST)
-
-		result = self.service.crear_entrenador(serializer.validated_data)
-		if result.is_success:
-			return Response(result.to_dict(), status=status.HTTP_201_CREATED)
-		if result.status == ResultStatus.VALIDATION_ERROR:
-			return Response(result.to_dict(), status=status.HTTP_400_BAD_REQUEST)
-		if result.status == ResultStatus.CONFLICT:
-			return Response(result.to_dict(), status=status.HTTP_409_CONFLICT)
-		return Response(result.to_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class EntrenadorDetailController(BaseController):
-	"""Operaciones sobre un entrenador especifico."""
-	permission_classes = [permissions.AllowAny]
-
-	def __init__(self, **kwargs):
-		super().__init__(**kwargs)
-		self.service = EntrenadorService()
-
-	@extend_schema(tags=['Entrenadores'], responses={200: ServiceResultSerializer, 404: ServiceResultSerializer})
-	def get(self, request, pk: int):
-		result = self.service.obtener_entrenador(pk)
-		if result.is_success:
-			return Response(result.to_dict(), status=status.HTTP_200_OK)
-		if result.status == ResultStatus.NOT_FOUND:
-			return Response(result.to_dict(), status=status.HTTP_404_NOT_FOUND)
-		return Response(result.to_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-	@extend_schema(tags=['Entrenadores'], request=EntrenadorUpdateSerializer, responses={200: ServiceResultSerializer, 400: ServiceResultSerializer, 404: ServiceResultSerializer})
-	def put(self, request, pk: int):
-		serializer = EntrenadorUpdateSerializer(data=request.data)
-		if not serializer.is_valid():
-			return Response(ServiceResult.validation_error("Error de validación", list(serializer.errors.values())).to_dict(), status=status.HTTP_400_BAD_REQUEST)
-
-		result = self.service.actualizar_entrenador(pk, serializer.validated_data)
-		if result.is_success:
-			return Response(result.to_dict(), status=status.HTTP_200_OK)
-		if result.status == ResultStatus.VALIDATION_ERROR:
-			return Response(result.to_dict(), status=status.HTTP_400_BAD_REQUEST)
-		if result.status == ResultStatus.NOT_FOUND:
-			return Response(result.to_dict(), status=status.HTTP_404_NOT_FOUND)
-		return Response(result.to_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-	@extend_schema(tags=['Entrenadores'], responses={200: ServiceResultSerializer, 404: ServiceResultSerializer})
-	def delete(self, request, pk: int):
-		result = self.service.dar_de_baja(pk)
-		if result.is_success:
-			return Response(result.to_dict(), status=status.HTTP_200_OK)
-		if result.status == ResultStatus.NOT_FOUND:
-			return Response(result.to_dict(), status=status.HTTP_404_NOT_FOUND)
-		if result.status == ResultStatus.CONFLICT:
-			return Response(result.to_dict(), status=status.HTTP_409_CONFLICT)
-		return Response(result.to_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-
-class EntrenadorReactivarController(BaseController):
-	permission_classes = [permissions.AllowAny]
-
-	def __init__(self, **kwargs):
-		super().__init__(**kwargs)
-		self.service = EntrenadorService()
-
-	@extend_schema(tags=['Entrenadores'], responses={200: ServiceResultSerializer, 404: ServiceResultSerializer, 409: ServiceResultSerializer})
-	def post(self, request, pk: int):
-		result = self.service.reactivar_entrenador(pk)
-		if result.is_success:
-			return Response(result.to_dict(), status=status.HTTP_200_OK)
-		if result.status == ResultStatus.NOT_FOUND:
-			return Response(result.to_dict(), status=status.HTTP_404_NOT_FOUND)
-		if result.status == ResultStatus.CONFLICT:
-			return Response(result.to_dict(), status=status.HTTP_409_CONFLICT)
-		return Response(result.to_dict(), status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    @extend_schema(responses={204: None})
+    def destroy(self, request, pk=None):
+        try:
+            success = self.service.delete_entrenador(pk)
+            if not success:
+                return Response(
+                    {"error": "Entrenador no encontrado"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            return Response(status=status.HTTP_204_NO_CONTENT)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 

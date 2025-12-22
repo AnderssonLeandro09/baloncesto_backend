@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: postgres:15-alpine
@@ -31,8 +29,6 @@ services:
       - .:/app
     ports:
       - "8023:8000"
-    env_file:
-      - .env
     environment:
       - USE_SQLITE=${USE_SQLITE:-False}
       - DEBUG=${DEBUG:-True}

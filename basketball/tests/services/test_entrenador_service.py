@@ -1,145 +1,145 @@
-"""
-Pruebas unitarias para el servicio EntrenadorService
-"""
+"""Tests del servicio de Entrenador usando mocks."""
 
-from django.test import TestCase
-from unittest.mock import Mock, patch
+from types import SimpleNamespace
+from unittest.mock import MagicMock
 
-from basketball.models import Entrenador
-from basketball.dao.model_daos import EntrenadorDAO
+from django.core.exceptions import ValidationError
+from django.test import SimpleTestCase
+
 from basketball.services.entrenador_service import EntrenadorService
-from basketball.services.base_service import ServiceResult, ResultStatus
 
 
-class EntrenadorServiceTests(TestCase):
-    """Pruebas para el servicio de Entrenador usando Mocks"""
-
+class EntrenadorServiceTests(SimpleTestCase):
     def setUp(self):
         self.service = EntrenadorService()
-        self.valid_data = {
-            'nombre': 'Sofia',
-            'apellido': 'Ramírez',
-            'email': 'sofia.ramirez@unl.edu.ec',
-            'clave': 'password123',
-            'dni': '4444444444',
-            'especialidad': 'Táctica',
-            'club_asignado': 'Club C'
-        }
+        self.service.dao = MagicMock()
+        self.service._call_user_module = MagicMock()
+        self.service._fetch_persona = MagicMock(
+            return_value={"data": {"first_name": "John"}}
+        )
 
-    @patch.object(EntrenadorDAO, 'email_exists')
-    @patch.object(EntrenadorDAO, 'dni_exists')
-    @patch.object(EntrenadorDAO, 'create')
-    def test_crear_entrenador_exitoso(self, mock_create, mock_dni_exists, mock_email_exists):
-        mock_email_exists.return_value = False
-        mock_dni_exists.return_value = False
-        mock_entrenador = Mock(spec=Entrenador)
-        mock_entrenador.pk = 1
-        mock_entrenador.nombre = 'Sofia'
-        mock_entrenador.apellido = 'Ramírez'
-        mock_entrenador.email = 'sofia.ramirez@unl.edu.ec'
-        mock_entrenador.dni = '4444444444'
-        mock_entrenador.especialidad = 'Táctica'
-        mock_entrenador.club_asignado = 'Club C'
-        mock_entrenador.estado = True
-        mock_entrenador.foto_perfil = None
-        mock_entrenador.rol = 'ENTRENADOR'
-        mock_entrenador.fecha_registro = None
-        mock_create.return_value = mock_entrenador
+    def test_create_requires_persona(self):
+        with self.assertRaises(ValidationError):
+            self.service.create_entrenador(
+                {}, {"especialidad": "Baloncesto"}, "token"
+            )
 
-        result = self.service.crear_entrenador(self.valid_data)
+    def test_create_requires_campos_entrenador(self):
+        with self.assertRaises(ValidationError):
+            self.service.create_entrenador({"first_name": "A"}, {}, "token")
 
-        self.assertTrue(result.is_success)
-        self.assertEqual(result.data['nombre'], 'Sofia')
+    def test_create_success(self):
+        # Mock save-account response (empty data)
+        self.service._call_user_module.side_effect = [
+            {"data": {}},  # save-account response
+            {"data": {"external": "abc"}},  # search response
+        ]
+        self.service.dao.exists.return_value = False
+        entrenador_obj = SimpleNamespace(
+            id=1,
+            persona_external="abc",
+            especialidad="Baloncesto",
+            club_asignado="Club A",
+            eliminado=False,
+        )
+        self.service.dao.create.return_value = entrenador_obj
 
-    def test_crear_entrenador_email_no_institucional(self):
-        self.valid_data['email'] = 'sofia@gmail.com'
+        result = self.service.create_entrenador(
+            {
+                "first_name": "A",
+                "identification": "123",
+                "email": "a@a.com",
+                "password": "123",
+            },
+            {"especialidad": "Baloncesto", "club_asignado": "Club A"},
+            "token",
+        )
 
-        result = self.service.crear_entrenador(self.valid_data)
+        self.assertEqual(result["entrenador"]["persona_external"], "abc")
+        self.service.dao.create.assert_called_with(
+            persona_external="abc",
+            especialidad="Baloncesto",
+            club_asignado="Club A",
+            eliminado=False,
+        )
 
-        self.assertFalse(result.is_success)
-        self.assertEqual(result.status, ResultStatus.VALIDATION_ERROR)
+    def test_update_not_found(self):
+        self.service.dao.get_by_id.return_value = None
+        result = self.service.update_entrenador(1, {"external": "x"}, {}, "token")
+        self.assertIsNone(result)
 
-    def test_crear_entrenador_dni_invalido(self):
-        self.valid_data['dni'] = '123'
+    def test_update_success_with_new_external(self):
+        entrenador_obj = SimpleNamespace(
+            id=1,
+            persona_external="old",
+            especialidad="Baloncesto",
+            club_asignado="Club A",
+            eliminado=False,
+        )
+        # Mock refresh_from_db to update persona_external and especialidad
+        def refresh_mock():
+            entrenador_obj.persona_external = "new"
+            entrenador_obj.especialidad = "Voleibol"
+        entrenador_obj.refresh_from_db = refresh_mock
+        
+        self.service.dao.get_by_id.return_value = entrenador_obj
 
-        result = self.service.crear_entrenador(self.valid_data)
+        # Mock update response (empty) then search response (new external)
+        self.service._call_user_module.side_effect = [
+            {"data": {}},  # update response
+            {"data": {"external": "new"}},  # search response
+        ]
 
-        self.assertFalse(result.is_success)
-        self.assertEqual(result.status, ResultStatus.VALIDATION_ERROR)
+        updated_obj = SimpleNamespace(
+            id=1,
+            persona_external="new",
+            especialidad="Voleibol",
+            club_asignado="Club A",
+            eliminado=False,
+        )
+        self.service.dao.update.return_value = updated_obj
+        self.service.dao.exists.return_value = False
 
-    @patch.object(EntrenadorDAO, 'email_exists')
-    def test_crear_entrenador_email_duplicado(self, mock_email_exists):
-        mock_email_exists.return_value = True
+        result = self.service.update_entrenador(
+            1,
+            {"external": "old", "first_name": "A", "identification": "123"},
+            {"especialidad": "Voleibol"},
+            "token",
+        )
 
-        result = self.service.crear_entrenador(self.valid_data)
+        self.assertEqual(result["entrenador"]["persona_external"], "new")
+        self.assertEqual(result["entrenador"]["especialidad"], "Voleibol")
 
-        self.assertFalse(result.is_success)
-        self.assertEqual(result.status, ResultStatus.CONFLICT)
+    def test_delete_marks_eliminado(self):
+        self.service.dao.update.return_value = True
+        self.assertTrue(self.service.delete_entrenador(1))
 
-    @patch.object(EntrenadorDAO, 'email_exists')
-    @patch.object(EntrenadorDAO, 'dni_exists')
-    def test_crear_entrenador_dni_duplicado(self, mock_dni_exists, mock_email_exists):
-        mock_email_exists.return_value = False
-        mock_dni_exists.return_value = True
+    def test_get_returns_combined(self):
+        entrenador_obj = SimpleNamespace(
+            id=1,
+            persona_external="abc",
+            especialidad="Baloncesto",
+            club_asignado="Club A",
+            eliminado=False,
+        )
+        self.service.dao.get_by_id.return_value = entrenador_obj
 
-        result = self.service.crear_entrenador(self.valid_data)
+        data = self.service.get_entrenador(1, "token")
 
-        self.assertFalse(result.is_success)
-        self.assertEqual(result.status, ResultStatus.CONFLICT)
+        self.assertEqual(data["entrenador"]["persona_external"], "abc")
+        self.service._fetch_persona.assert_called_once()
 
-    def test_crear_entrenador_campos_faltantes(self):
-        result = self.service.crear_entrenador({'nombre': 'SoloNombre'})
+    def test_list_uses_persona_fetch(self):
+        entrenador_obj = SimpleNamespace(
+            id=1,
+            persona_external="abc",
+            especialidad="Baloncesto",
+            club_asignado="Club A",
+            eliminado=False,
+        )
+        self.service.dao.get_activos.return_value = [entrenador_obj]
 
-        self.assertFalse(result.is_success)
-        self.assertEqual(result.status, ResultStatus.VALIDATION_ERROR)
+        items = self.service.list_entrenadores("token")
 
-    @patch.object(EntrenadorDAO, 'get_by_id')
-    def test_obtener_entrenador_existente(self, mock_get_by_id):
-        mock_entrenador = Mock(spec=Entrenador)
-        mock_entrenador.pk = 1
-        mock_entrenador.nombre = 'Sofia'
-        mock_entrenador.apellido = 'Ramírez'
-        mock_entrenador.email = 'sofia.ramirez@unl.edu.ec'
-        mock_entrenador.dni = '4444444444'
-        mock_entrenador.especialidad = 'Táctica'
-        mock_entrenador.club_asignado = 'Club C'
-        mock_entrenador.estado = True
-        mock_entrenador.foto_perfil = None
-        mock_entrenador.rol = 'ENTRENADOR'
-        mock_entrenador.fecha_registro = None
-        mock_get_by_id.return_value = mock_entrenador
-
-        result = self.service.obtener_entrenador(1)
-
-        self.assertTrue(result.is_success)
-        self.assertEqual(result.data['id'], 1)
-
-    @patch.object(EntrenadorDAO, 'get_by_id')
-    def test_obtener_entrenador_no_existente(self, mock_get_by_id):
-        mock_get_by_id.return_value = None
-
-        result = self.service.obtener_entrenador(99999)
-
-        self.assertFalse(result.is_success)
-        self.assertEqual(result.status, ResultStatus.NOT_FOUND)
-
-    @patch.object(EntrenadorDAO, 'get_activos')
-    def test_listar_entrenadores(self, mock_get_activos):
-        mock_entrenador = Mock(spec=Entrenador)
-        mock_entrenador.pk = 1
-        mock_entrenador.nombre = 'Sofia'
-        mock_entrenador.apellido = 'Ramírez'
-        mock_entrenador.email = 'sofia.ramirez@unl.edu.ec'
-        mock_entrenador.dni = '4444444444'
-        mock_entrenador.especialidad = 'Táctica'
-        mock_entrenador.club_asignado = 'Club C'
-        mock_entrenador.estado = True
-        mock_entrenador.foto_perfil = None
-        mock_entrenador.rol = 'ENTRENADOR'
-        mock_entrenador.fecha_registro = None
-        mock_get_activos.return_value = [mock_entrenador]
-
-        result = self.service.listar_entrenadores()
-
-        self.assertTrue(result.is_success)
-        self.assertEqual(len(result.data), 1)
+        self.assertEqual(len(items), 1)
+        self.service._fetch_persona.assert_called()

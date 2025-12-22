@@ -5,6 +5,12 @@ from .administrador import (  # noqa: F401
     AdministradorInputSerializer,
     AdministradorResponseSerializer,
 )
+from .entrenador import (  # noqa: F401
+    EntrenadorSerializer,
+    EntrenadorDataSerializer,
+    EntrenadorInputSerializer,
+    EntrenadorResponseSerializer,
+)
 from .estudiante_vinculacion import (  # noqa: F401
     EstudianteVinculacionSerializer,
     EstudianteVinculacionDataSerializer,
