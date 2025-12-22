@@ -1,7 +1,9 @@
 """Tests del controlador de EstudianteVinculacion usando mocks."""
 
+import jwt
 from unittest.mock import MagicMock
 
+from django.conf import settings
 from django.test import SimpleTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
@@ -23,6 +25,16 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
                 "delete": "destroy",
             }
         )
+        self.token = self._get_token("ADMIN")
+
+    def _get_token(self, role):
+        payload = {
+            "sub": "123",
+            "role": role,
+            "email": "test@test.com",
+            "name": "Test User",
+        }
+        return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
     def test_list_returns_data(self):
         mock_service = MagicMock()
@@ -31,8 +43,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
 
         request = self.factory.get(
             "/estudiantes-vinculacion/",
-            HTTP_X_ROLE="ADMIN",
-            HTTP_AUTHORIZATION="Bearer t",
+            HTTP_AUTHORIZATION=f"Bearer {self.token}",
         )
         response = self.view(request)
 
@@ -51,8 +62,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
                 "estudiante": {"carrera": "Ing", "semestre": "1"},
             },
             format="json",
-            HTTP_X_ROLE="ADMIN",
-            HTTP_AUTHORIZATION="Bearer t",
+            HTTP_AUTHORIZATION=f"Bearer {self.token}",
         )
         response = self.view(request)
 
@@ -68,8 +78,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
             "/estudiantes-vinculacion/",
             {"persona": {}, "estudiante": {}},
             format="json",
-            HTTP_X_ROLE="ADMIN",
-            HTTP_AUTHORIZATION="Bearer t",
+            HTTP_AUTHORIZATION=f"Bearer {self.token}",
         )
         response = self.view(request)
 
@@ -84,8 +93,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
 
         request = self.factory.get(
             "/estudiantes-vinculacion/9/",
-            HTTP_X_ROLE="ADMIN",
-            HTTP_AUTHORIZATION="Bearer t",
+            HTTP_AUTHORIZATION=f"Bearer {self.token}",
         )
         response = view(request, pk=9)
 
@@ -103,8 +111,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
             "/estudiantes-vinculacion/2/",
             {"persona": {"external": "x"}, "estudiante": {"semestre": "2"}},
             format="json",
-            HTTP_X_ROLE="ADMIN",
-            HTTP_AUTHORIZATION="Bearer t",
+            HTTP_AUTHORIZATION=f"Bearer {self.token}",
         )
         response = view(request, pk=2)
 
@@ -119,8 +126,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
 
         request = self.factory.delete(
             "/estudiantes-vinculacion/3/",
-            HTTP_X_ROLE="ADMIN",
-            HTTP_AUTHORIZATION="Bearer t",
+            HTTP_AUTHORIZATION=f"Bearer {self.token}",
         )
         response = view(request, pk=3)
 
