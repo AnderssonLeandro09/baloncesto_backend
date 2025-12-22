@@ -1,128 +1,84 @@
-"""
-Permisos personalizados para el módulo Basketball
+"""Permisos basados en rol usando JWT local."""
 
-Define permisos basados en roles y estados de usuario.
-"""
+import jwt
+import logging
+from typing import Optional
+from django.conf import settings
+from rest_framework import permissions
 
-from rest_framework.permissions import BasePermission, IsAuthenticated, AllowAny
+logger = logging.getLogger(__name__)
 
 
-class IsAdmin(BasePermission):
-    """
-    Permiso que solo permite acceso a usuarios con rol de administrador.
-    """
-    message = "Solo los administradores pueden realizar esta acción."
+def _normalize_role(value: Optional[str]) -> Optional[str]:
+    if not value:
+        return None
+    normalized = str(value).upper()
+    if "ADMIN" in normalized:
+        return "ADMIN"
+    if "DOCENTE" in normalized or "ENTRENADOR" in normalized:
+        return "ENTRENADOR"
+    if "ESTUDIANT" in normalized:
+        return "ESTUDIANTE_VINCULACION"
+    return normalized
+
+
+class BaseRolePermission(permissions.BasePermission):
+    """Permiso base que valida rol contra la lista `allowed_roles`."""
+
+    allowed_roles: list[str] = []
+
+    def _is_allowed(self, role_value: Optional[str]) -> bool:
+        role = _normalize_role(role_value)
+        return bool(role and role in self.allowed_roles)
+
+    def _from_bearer(self, request):
+        # Si ya pasó por JWTAuthentication, request.user tendrá el rol
+        if hasattr(request.user, "role"):
+            return request.user.role
+
+        # Fallback por si acaso
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            return None
+
+        token = auth_header.split(" ")[1]
+
+        try:
+            # Validamos usando NUESTRA SECRET_KEY local
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=["HS256"],
+                options={"verify_signature": True},
+            )
+            return payload.get("role")
+        except Exception as exc:
+            logger.debug("Token inválido o expirado: %s", exc)
+            return None
 
     def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        # Verificar si es superusuario o staff
-        return request.user.is_superuser or request.user.is_staff
-
-
-class IsEntrenador(BasePermission):
-    """
-    Permiso que solo permite acceso a usuarios con rol de entrenador.
-    """
-    message = "Solo los entrenadores pueden realizar esta acción."
-
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        # Verificar rol de entrenador (ajustar según tu modelo de usuario)
-        return hasattr(request.user, 'rol') and request.user.rol == 'ENTRENADOR'
-
-
-class IsEstudianteVinculacion(BasePermission):
-    """
-    Permiso que solo permite acceso a estudiantes de vinculación.
-    """
-    message = "Solo los estudiantes de vinculación pueden realizar esta acción."
-
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        return hasattr(request.user, 'rol') and request.user.rol == 'ESTUDIANTE_VINCULACION'
-
-
-class IsAdminOrReadOnly(BasePermission):
-    """
-    Permiso que permite lectura a todos los autenticados,
-    pero solo escritura a administradores.
-    """
-    message = "Solo los administradores pueden modificar estos datos."
-
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        
-        # Métodos seguros (lectura) permitidos para todos los autenticados
-        if request.method in ('GET', 'HEAD', 'OPTIONS'):
+        bearer_role = self._from_bearer(request)
+        if self._is_allowed(bearer_role):
             return True
-        
-        # Métodos de escritura solo para administradores
-        return request.user.is_superuser or request.user.is_staff
 
-
-class IsOwnerOrAdmin(BasePermission):
-    """
-    Permiso que permite acceso al propietario del objeto o a administradores.
-    Útil para que los usuarios solo puedan editar sus propios datos.
-    """
-    message = "Solo puedes modificar tus propios datos o ser administrador."
-
-    def has_object_permission(self, request, view, obj):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        
-        # Administradores tienen acceso total
-        if request.user.is_superuser or request.user.is_staff:
-            return True
-        
-        # Verificar si el usuario es el propietario
-        # Ajustar según tu modelo (puede ser user_id, usuario, etc.)
-        if hasattr(obj, 'user'):
-            return obj.user == request.user
-        if hasattr(obj, 'usuario'):
-            return obj.usuario.id == request.user.id
-        if hasattr(obj, 'user_id'):
-            return obj.user_id == request.user.id
-        
         return False
 
 
-class CanManageAtletas(BasePermission):
-    """
-    Permiso para gestionar atletas.
-    Administradores y entrenadores pueden gestionar atletas.
-    """
-    message = "Solo administradores y entrenadores pueden gestionar atletas."
-
-    def has_permission(self, request, view):
-        if not request.user or not request.user.is_authenticated:
-            return False
-        
-        # Administradores tienen acceso total
-        if request.user.is_superuser or request.user.is_staff:
-            return True
-        
-        # Entrenadores pueden gestionar atletas
-        if hasattr(request.user, 'rol') and request.user.rol == 'ENTRENADOR':
-            return True
-        
-        return False
+class IsAdmin(BaseRolePermission):
+    allowed_roles = ["ADMIN"]
 
 
-# =============================================================================
-# Permisos compuestos (combinaciones)
-# =============================================================================
+class IsEntrenador(BaseRolePermission):
+    allowed_roles = ["ENTRENADOR"]
 
-class IsAuthenticatedOrReadOnly(BasePermission):
-    """
-    Permite lectura sin autenticación, pero requiere autenticación para escritura.
-    Útil para endpoints públicos de consulta.
-    """
-    def has_permission(self, request, view):
-        if request.method in ('GET', 'HEAD', 'OPTIONS'):
-            return True
-        return request.user and request.user.is_authenticated
+
+class IsEstudianteVinculacion(BaseRolePermission):
+    allowed_roles = ["ESTUDIANTE_VINCULACION"]
+
+
+class IsAdminOrEntrenador(BaseRolePermission):
+    allowed_roles = ["ADMIN", "ENTRENADOR"]
+
+
+class IsAdminOrEntrenadorOrEstudiante(BaseRolePermission):
+    allowed_roles = ["ADMIN", "ENTRENADOR", "ESTUDIANTE_VINCULACION"]
