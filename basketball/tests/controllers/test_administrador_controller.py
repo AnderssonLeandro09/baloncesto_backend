@@ -9,43 +9,49 @@ from django.test import SimpleTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
 
-from basketball.controllers.administrador_controller import AdministradorController
+from basketball.controllers.administrador_controller import (
+    AdministradorController,
+)
 
 
 class AdministradorControllerTests(SimpleTestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         # Configurar la vista para las acciones estándar
-        self.view_list_create = AdministradorController.as_view({
-            'get': 'list',
-            'post': 'create'
-        })
-        self.view_detail = AdministradorController.as_view({
-            'get': 'retrieve',
-            'put': 'update',
-            'delete': 'destroy'
-        })
-        self.token = self._get_token('ADMIN')
-        self.system_token = 'system-token'
+        self.view_list_create = AdministradorController.as_view(
+            {"get": "list", "post": "create"}
+        )
+        self.view_detail = AdministradorController.as_view(
+            {"get": "retrieve", "put": "update", "delete": "destroy"}
+        )
+        self.token = self._get_token("ADMIN")
+        self.system_token = "system-token"
 
     def _get_token(self, role):
-        payload = {'sub': '123', 'role': role, 'email': 'test@test.com', 'name': 'Test User'}
-        return jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+        payload = {
+            "sub": "123",
+            "role": role,
+            "email": "test@test.com",
+            "name": "Test User",
+        }
+        return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
 
-    @patch('basketball.controllers.administrador_controller.get_user_module_token')
+    @patch("basketball.controllers.administrador_controller.get_user_module_token")
     def test_list_returns_data(self, mock_get_token):
         mock_get_token.return_value = self.system_token
         mock_service = MagicMock()
         # El servicio ahora retorna una lista de diccionarios
         mock_service.get_all_administradores.return_value = [
-            {'administrador': {'id': 1}, 'persona': {'name': 'John'}}
+            {"administrador": {"id": 1}, "persona": {"name": "John"}}
         ]
-        
+
         original_service = AdministradorController.service
         AdministradorController.service = mock_service
-        
+
         try:
-            request = self.factory.get('/administradores/', HTTP_AUTHORIZATION=f'Bearer {self.token}')
+            request = self.factory.get(
+                "/administradores/", HTTP_AUTHORIZATION=f"Bearer {self.token}"
+            )
             response = self.view_list_create(request)
 
             self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -55,112 +61,121 @@ class AdministradorControllerTests(SimpleTestCase):
         finally:
             AdministradorController.service = original_service
 
-    @patch('basketball.controllers.administrador_controller.get_user_module_token')
+    @patch("basketball.controllers.administrador_controller.get_user_module_token")
     def test_create_success(self, mock_get_token):
         mock_get_token.return_value = self.system_token
         mock_service = MagicMock()
-        expected_response = {'administrador': {'id': 2}, 'persona': {'name': 'Jane'}}
+        expected_response = {
+            "administrador": {"id": 2},
+            "persona": {"name": "Jane"},
+        }
         mock_service.create_administrador.return_value = expected_response
-        
+
         original_service = AdministradorController.service
         AdministradorController.service = mock_service
 
         payload = {
-            'persona': {'first_name': 'Jane', 'email': 'j@j.com'},
-            'administrador': {'cargo': 'Admin'}
+            "persona": {"first_name": "Jane", "email": "j@j.com"},
+            "administrador": {"cargo": "Admin"},
         }
 
         try:
             request = self.factory.post(
-                '/administradores/', 
-                payload, 
-                format='json', 
-                HTTP_AUTHORIZATION=f'Bearer {self.token}'
+                "/administradores/",
+                payload,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {self.token}",
             )
             response = self.view_list_create(request)
 
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
             self.assertEqual(response.data, expected_response)
             mock_service.create_administrador.assert_called_with(
-                payload['persona'], 
-                payload['administrador'], 
-                self.system_token
+                payload["persona"], payload["administrador"], self.system_token
             )
         finally:
             AdministradorController.service = original_service
 
-    @patch('basketball.controllers.administrador_controller.get_user_module_token')
+    @patch("basketball.controllers.administrador_controller.get_user_module_token")
     def test_create_handles_error(self, mock_get_token):
         mock_get_token.return_value = self.system_token
         mock_service = MagicMock()
-        mock_service.create_administrador.side_effect = ValidationError('bad')
-        
+        mock_service.create_administrador.side_effect = ValidationError("bad")
+
         original_service = AdministradorController.service
         AdministradorController.service = mock_service
 
         try:
             request = self.factory.post(
-                '/administradores/', 
-                {}, 
-                format='json', 
-                HTTP_AUTHORIZATION=f'Bearer {self.token}'
+                "/administradores/",
+                {},
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {self.token}",
             )
             response = self.view_list_create(request)
 
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-            self.assertIn('error', response.data)
+            self.assertIn("error", response.data)
         finally:
             AdministradorController.service = original_service
 
-    @patch('basketball.controllers.administrador_controller.get_user_module_token')
+    @patch("basketball.controllers.administrador_controller.get_user_module_token")
     def test_retrieve_not_found(self, mock_get_token):
         mock_get_token.return_value = self.system_token
         mock_service = MagicMock()
         mock_service.get_administrador_by_id.return_value = None
-        
+
         original_service = AdministradorController.service
         AdministradorController.service = mock_service
 
         try:
-            request = self.factory.get('/administradores/99/', HTTP_AUTHORIZATION=f'Bearer {self.token}')
+            request = self.factory.get(
+                "/administradores/99/",
+                HTTP_AUTHORIZATION=f"Bearer {self.token}",
+            )
             response = self.view_detail(request, pk=99)
 
             self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-            mock_service.get_administrador_by_id.assert_called_with(99, self.system_token)
+            mock_service.get_administrador_by_id.assert_called_with(
+                99, self.system_token
+            )
         finally:
             AdministradorController.service = original_service
 
-    @patch('basketball.controllers.administrador_controller.get_user_module_token')
+    @patch("basketball.controllers.administrador_controller.get_user_module_token")
     def test_update_success(self, mock_get_token):
         mock_get_token.return_value = self.system_token
         mock_service = MagicMock()
-        expected_response = {'administrador': {'id': 3, 'cargo': 'Ops'}, 'persona': {'name': 'Jim'}}
+        expected_response = {
+            "administrador": {"id": 3, "cargo": "Ops"},
+            "persona": {"name": "Jim"},
+        }
         mock_service.update_administrador.return_value = expected_response
-        
+
         original_service = AdministradorController.service
         AdministradorController.service = mock_service
 
         payload = {
-            'persona': {'first_name': 'Jim'},
-            'administrador': {'cargo': 'Ops'}
+            "persona": {"first_name": "Jim"},
+            "administrador": {"cargo": "Ops"},
         }
 
         try:
             request = self.factory.put(
-                '/administradores/3/', 
-                payload, 
-                format='json', 
-                HTTP_AUTHORIZATION=f'Bearer {self.token}'
+                "/administradores/3/",
+                payload,
+                format="json",
+                HTTP_AUTHORIZATION=f"Bearer {self.token}",
             )
             response = self.view_detail(request, pk=3)
 
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(response.data, expected_response)
             mock_service.update_administrador.assert_called_with(
-                3, 
-                payload['persona'], 
-                payload['administrador'], 
-                self.system_token
+                3,
+                payload["persona"],
+                payload["administrador"],
+                self.system_token,
             )
         finally:
             AdministradorController.service = original_service
@@ -168,12 +183,15 @@ class AdministradorControllerTests(SimpleTestCase):
     def test_destroy_success(self):
         mock_service = MagicMock()
         mock_service.delete_administrador.return_value = True
-        
+
         original_service = AdministradorController.service
         AdministradorController.service = mock_service
 
         try:
-            request = self.factory.delete('/administradores/3/', HTTP_AUTHORIZATION=f'Bearer {self.token}')
+            request = self.factory.delete(
+                "/administradores/3/",
+                HTTP_AUTHORIZATION=f"Bearer {self.token}",
+            )
             response = self.view_detail(request, pk=3)
 
             self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
