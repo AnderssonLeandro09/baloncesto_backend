@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 class DatabaseConnection:
     """
     Clase para gestionar la conexión a la base de datos PostgreSQL.
-    Proporciona métodos utilitarios para verificar y gestionar conexiones.
+    Proporciona métodos utilitarios para verificar y gestionar conexiones db.
     """
     
     @staticmethod
