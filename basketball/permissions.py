@@ -13,12 +13,12 @@ def _normalize_role(value: Optional[str]) -> Optional[str]:
     if not value:
         return None
     normalized = str(value).upper()
-    if 'ADMIN' in normalized:
-        return 'ADMIN'
-    if 'DOCENTE' in normalized or 'ENTRENADOR' in normalized:
-        return 'ENTRENADOR'
-    if 'ESTUDIANT' in normalized:
-        return 'ESTUDIANTE_VINCULACION'
+    if "ADMIN" in normalized:
+        return "ADMIN"
+    if "DOCENTE" in normalized or "ENTRENADOR" in normalized:
+        return "ENTRENADOR"
+    if "ESTUDIANT" in normalized:
+        return "ESTUDIANTE_VINCULACION"
     return normalized
 
 
@@ -33,25 +33,25 @@ class BaseRolePermission(permissions.BasePermission):
 
     def _from_bearer(self, request):
         # Si ya pasó por JWTAuthentication, request.user tendrá el rol
-        if hasattr(request.user, 'role'):
+        if hasattr(request.user, "role"):
             return request.user.role
-            
+
         # Fallback por si acaso
-        auth_header = request.headers.get('Authorization')
-        if not auth_header or not auth_header.startswith('Bearer '):
+        auth_header = request.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
             return None
 
-        token = auth_header.split(' ')[1]
-        
+        token = auth_header.split(" ")[1]
+
         try:
             # Validamos usando NUESTRA SECRET_KEY local
             payload = jwt.decode(
                 token,
                 settings.SECRET_KEY,
-                algorithms=['HS256'],
-                options={'verify_signature': True},
+                algorithms=["HS256"],
+                options={"verify_signature": True},
             )
-            return payload.get('role')
+            return payload.get("role")
         except Exception as exc:
             logger.debug("Token inválido o expirado: %s", exc)
             return None
@@ -65,20 +65,20 @@ class BaseRolePermission(permissions.BasePermission):
 
 
 class IsAdmin(BaseRolePermission):
-    allowed_roles = ['ADMIN']
+    allowed_roles = ["ADMIN"]
 
 
 class IsEntrenador(BaseRolePermission):
-    allowed_roles = ['ENTRENADOR']
+    allowed_roles = ["ENTRENADOR"]
 
 
 class IsEstudianteVinculacion(BaseRolePermission):
-    allowed_roles = ['ESTUDIANTE_VINCULACION']
+    allowed_roles = ["ESTUDIANTE_VINCULACION"]
 
 
 class IsAdminOrEntrenador(BaseRolePermission):
-    allowed_roles = ['ADMIN', 'ENTRENADOR']
+    allowed_roles = ["ADMIN", "ENTRENADOR"]
 
 
 class IsAdminOrEntrenadorOrEstudiante(BaseRolePermission):
-    allowed_roles = ['ADMIN', 'ENTRENADOR', 'ESTUDIANTE_VINCULACION']
+    allowed_roles = ["ADMIN", "ENTRENADOR", "ESTUDIANTE_VINCULACION"]
