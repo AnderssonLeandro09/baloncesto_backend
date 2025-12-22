@@ -6,6 +6,7 @@ from .controllers.administrador_controller import AdministradorController
 from .controllers.estudiante_vinculacion_controller import (
     EstudianteVinculacionController,
 )
+from .controllers.prueba_antropometrica_controller import PruebaAntropometricaController
 from .controllers.auth_controller import AuthController
 
 app_name = "basketball"
@@ -16,6 +17,11 @@ router.register(
     r"estudiantes-vinculacion",
     EstudianteVinculacionController,
     basename="estudiante_vinculacion",
+)
+router.register(
+    r"pruebas-antropometricas",
+    PruebaAntropometricaController,
+    basename="prueba_antropometrica",
 )
 # Registramos el AuthController, aunque solo usaremos la acción 'login'
 router.register(r"auth", AuthController, basename="auth")
