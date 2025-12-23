@@ -81,6 +81,7 @@ class GrupoAtleta(models.Model):
         auto_now_add=True, verbose_name="Fecha de creación"
     )
     estado = models.BooleanField(default=True, verbose_name="Estado")
+    eliminado = models.BooleanField(default=False, verbose_name="Eliminado")
 
     # Relación con Entrenador (implementa) - Cardinalidad 1 Entrenador tiene 1..* Grupos
     # La FK se define como string porque Entrenador se define después

@@ -14,6 +14,8 @@ from .serializar import (  # noqa: F401
     EstudianteVinculacionDataSerializer,
     EstudianteVinculacionInputSerializer,
     EstudianteVinculacionResponseSerializer,
+    GrupoAtletaSerializer,
+    GrupoAtletaResponseSerializer,
     LoginSerializer,
 )
 

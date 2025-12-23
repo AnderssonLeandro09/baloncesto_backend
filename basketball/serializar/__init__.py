@@ -11,4 +11,8 @@ from .estudiante_vinculacion import (  # noqa: F401
     EstudianteVinculacionInputSerializer,
     EstudianteVinculacionResponseSerializer,
 )
+from .grupo_atleta import (  # noqa: F401
+    GrupoAtletaSerializer,
+    GrupoAtletaResponseSerializer,
+)
 from .auth import LoginSerializer  # noqa: F401

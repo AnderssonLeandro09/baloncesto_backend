@@ -6,6 +6,7 @@ from .controllers.administrador_controller import AdministradorController
 from .controllers.estudiante_vinculacion_controller import (
     EstudianteVinculacionController,
 )
+from .controllers.grupo_atleta_controller import GrupoAtletaController
 from .controllers.auth_controller import AuthController
 
 app_name = "basketball"
@@ -17,6 +18,7 @@ router.register(
     EstudianteVinculacionController,
     basename="estudiante_vinculacion",
 )
+router.register(r"grupos-atletas", GrupoAtletaController, basename="grupo_atleta")
 # Registramos el AuthController, aunque solo usaremos la acción 'login'
 router.register(r"auth", AuthController, basename="auth")
 
