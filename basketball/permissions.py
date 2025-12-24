@@ -82,3 +82,7 @@ class IsAdminOrEntrenador(BaseRolePermission):
 
 class IsAdminOrEntrenadorOrEstudiante(BaseRolePermission):
     allowed_roles = ["ADMIN", "ENTRENADOR", "ESTUDIANTE_VINCULACION"]
+
+
+class IsEntrenadorOrEstudiante(BaseRolePermission):
+    allowed_roles = ["ENTRENADOR", "ESTUDIANTE_VINCULACION"]
