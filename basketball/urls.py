@@ -7,6 +7,7 @@ from .controllers.estudiante_vinculacion_controller import (
     EstudianteVinculacionController,
 )
 from .controllers.auth_controller import AuthController
+from .controllers.inscripcion_controller import InscripcionController
 
 app_name = "basketball"
 
@@ -19,6 +20,7 @@ router.register(
 )
 # Registramos el AuthController, aunque solo usaremos la acción 'login'
 router.register(r"auth", AuthController, basename="auth")
+router.register(r"inscripciones", InscripcionController, basename="inscripcion")
 
 urlpatterns = [
     path("", include(router.urls)),

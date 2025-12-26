@@ -158,30 +158,57 @@ class EstudianteVinculacion(models.Model):
 class Atleta(models.Model):
     """Modelo para Atletas"""
 
-    nombre_atleta = models.CharField(max_length=100, verbose_name="Nombre")
-    apellido_atleta = models.CharField(max_length=100, verbose_name="Apellido")
-    dni = models.CharField(max_length=20, unique=True, verbose_name="DNI")
-    fecha_nacimiento = models.DateField(verbose_name="Fecha de nacimiento")
+    persona_external = models.CharField(
+        max_length=100,
+        unique=True,
+        null=True,
+        verbose_name="External ID Persona",
+        help_text="UUID externo de la persona en el módulo de usuarios",
+    )
+    # Datos Personales
+    fecha_nacimiento = models.DateField(null=True, verbose_name="Fecha de nacimiento")
     edad = models.IntegerField(
         validators=[MinValueValidator(0), MaxValueValidator(100)],
         verbose_name="Edad",
     )
-    sexo = models.CharField(max_length=1, choices=Sexo.choices, verbose_name="Sexo")
-    email = models.EmailField(blank=True, null=True, verbose_name="Email")
+    sexo = models.CharField(max_length=20, verbose_name="Sexo")
     telefono = models.CharField(
         max_length=20, blank=True, null=True, verbose_name="Teléfono"
     )
+
+    # Información de Salud
     tipo_sangre = models.CharField(
-        max_length=10, blank=True, null=True, verbose_name="Tipo de sangre"
+        max_length=10, blank=True, null=True, verbose_name="Tipo de sangre (RH)"
     )
-    datos_representante = models.TextField(
-        blank=True, null=True, verbose_name="Datos del representante"
+    alergias = models.TextField(blank=True, null=True, verbose_name="Alergias")
+    enfermedades = models.TextField(blank=True, null=True, verbose_name="Enfermedades")
+    medicamentos = models.TextField(blank=True, null=True, verbose_name="Medicamentos")
+    lesiones = models.TextField(blank=True, null=True, verbose_name="Lesiones")
+
+    # Datos del Representante
+    nombre_representante = models.CharField(
+        max_length=100, blank=True, null=True, verbose_name="Nombre representante"
+    )
+    cedula_representante = models.CharField(
+        max_length=20, blank=True, null=True, verbose_name="Cédula representante"
+    )
+    parentesco_representante = models.CharField(
+        max_length=50, blank=True, null=True, verbose_name="Parentesco representante"
     )
     telefono_representante = models.CharField(
         max_length=20,
         blank=True,
         null=True,
         verbose_name="Teléfono representante",
+    )
+    correo_representante = models.EmailField(
+        blank=True, null=True, verbose_name="Correo representante"
+    )
+    direccion_representante = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name="Dirección representante"
+    )
+    ocupacion_representante = models.CharField(
+        max_length=100, blank=True, null=True, verbose_name="Ocupación representante"
     )
 
     # Relación con GrupoAtleta (pertenece) - Cardinalidad ManyToMany (1..* a 1..*)
@@ -193,10 +220,10 @@ class Atleta(models.Model):
         db_table = "atleta"
         verbose_name = "Atleta"
         verbose_name_plural = "Atletas"
-        ordering = ["apellido_atleta", "nombre_atleta"]
+        ordering = ["persona_external"]
 
     def __str__(self):
-        return f"{self.nombre_atleta} {self.apellido_atleta}"
+        return f"Atleta: {self.persona_external}"
 
 
 # =============================================================================
