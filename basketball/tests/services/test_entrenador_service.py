@@ -20,9 +20,7 @@ class EntrenadorServiceTests(SimpleTestCase):
 
     def test_create_requires_persona(self):
         with self.assertRaises(ValidationError):
-            self.service.create_entrenador(
-                {}, {"especialidad": "Baloncesto"}, "token"
-            )
+            self.service.create_entrenador({}, {"especialidad": "Baloncesto"}, "token")
 
     def test_create_requires_campos_entrenador(self):
         with self.assertRaises(ValidationError):
@@ -76,12 +74,14 @@ class EntrenadorServiceTests(SimpleTestCase):
             club_asignado="Club A",
             eliminado=False,
         )
+
         # Mock refresh_from_db to update persona_external and especialidad
         def refresh_mock():
             entrenador_obj.persona_external = "new"
             entrenador_obj.especialidad = "Voleibol"
+
         entrenador_obj.refresh_from_db = refresh_mock
-        
+
         self.service.dao.get_by_id.return_value = entrenador_obj
 
         # Mock update response (empty) then search response (new external)

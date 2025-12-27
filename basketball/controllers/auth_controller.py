@@ -118,11 +118,12 @@ class AuthController(viewsets.ViewSet):
 
         # 4. Generar Nuestro JWT Local
         # Usamos la SECRET_KEY de Django para firmar
+        name_value = f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip()  # noqa: E501
         token_payload = {
             "sub": external_id,  # Subject: ID del usuario
             "role": role,  # Nuestro rol calculado
             "email": email,
-            "name": f"{user_data.get('first_name', '')} {user_data.get('last_name', '')}".strip(),
+            "name": name_value,
             "exp": datetime.datetime.utcnow()
             + datetime.timedelta(days=1),  # Expira en 1 día
             "iat": datetime.datetime.utcnow(),

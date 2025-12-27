@@ -6,7 +6,7 @@ Configuración para el ambiente de desarrollo del módulo de Basketball.
 
 import os
 from pathlib import Path
-from datetime import timedelta
+
 
 # Intentar cargar dotenv si está disponible
 try:
@@ -107,7 +107,8 @@ else:
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
     {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "NAME": "django.contrib.auth.password_validation."
+        "UserAttributeSimilarityValidator",
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
@@ -160,14 +161,16 @@ REST_FRAMEWORK = {
 # drf-spectacular Configuration for Swagger/OpenAPI
 SPECTACULAR_SETTINGS = {
     "TITLE": "Basketball API",
-    "DESCRIPTION": "API para el módulo de Basketball - Gestión de atletas, entrenadores y estudiantes de vinculación",
+    "DESCRIPTION": "API para el módulo de Basketball - Gestión de atletas, "
+    "entrenadores y estudiantes de vinculación",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "COMPONENT_SPLIT_REQUEST": True,
     "TAGS": [
         {
             "name": "Auth",
-            "description": "Autenticación delegada al módulo de usuarios (Bearer token externo)",
+            "description": "Autenticación delegada al módulo de usuarios "
+            "(Bearer token externo)",
         },
         {
             "name": "Estudiantes de Vinculación",
@@ -182,7 +185,8 @@ SPECTACULAR_SETTINGS = {
                 "type": "http",
                 "scheme": "bearer",
                 "bearerFormat": "JWT",
-                "description": "Token emitido por el módulo de usuarios (Bearer <token>)",
+                "description": "Token emitido por el módulo de usuarios "
+                "(Bearer <token>)",
             }
         }
     },
@@ -196,7 +200,8 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG
 # Orígenes permitidos en producción (agregar los dominios de tu frontend)
 CORS_ALLOWED_ORIGINS = os.getenv(
     "CORS_ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173,http://localhost:8096",
+    "http://localhost:3000,http://localhost:5173,"
+    "http://127.0.0.1:3000,http://127.0.0.1:5173,http://localhost:8096",
 ).split(",")
 
 # Permitir credenciales (cookies, authorization headers)

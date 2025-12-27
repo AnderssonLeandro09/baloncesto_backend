@@ -103,4 +103,3 @@ class EntrenadorController(viewsets.ViewSet):
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-

@@ -11,9 +11,7 @@ class EntrenadorDAO(GenericDAO[Entrenador]):
 
     model = Entrenador
 
-    def get_by_persona_external(
-        self, persona_external: str
-    ) -> Optional[Entrenador]:
+    def get_by_persona_external(self, persona_external: str) -> Optional[Entrenador]:
         return self.get_first(persona_external=persona_external, eliminado=False)
 
     def get_activos(self) -> QuerySet[Entrenador]:

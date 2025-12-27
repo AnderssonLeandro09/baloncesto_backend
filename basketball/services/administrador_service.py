@@ -173,8 +173,9 @@ class AdministradorService:
         if not persona_data:
             raise ValidationError("Datos de persona son obligatorios")
 
-        cargo = administrador_data.get("cargo")
-        # cargo es opcional en el modelo, pero si se requiere validación extra, agregar aquí.
+        cargo = administrador_data.get("cargo")  # noqa: E501
+        # cargo es opcional en el modelo, pero si se requiere
+        # validación extra, agregar aquí.
 
         # Validar que email y contraseña estén presentes
         if not persona_data.get("email"):
@@ -197,16 +198,19 @@ class AdministradorService:
                 lookup_response = self._search_by_identification(
                     persona_data.get("identification"), token
                 )
-                persona_external = (
-                    self._extract_external(lookup_response) if lookup_response else None
-                )
+                if lookup_response:
+                    persona_external = self._extract_external(lookup_response)
+                else:
+                    persona_external = None
 
         except ValidationError as exc:
             # Intentar recuperar si la persona ya existe, independientemente del error
-            # Esto cubre casos donde el mensaje de error no es estándar o es un error de BD (ej. Duplicate entry)
+            # Esto cubre casos donde el mensaje de error no es estándar
+            # o es un error de BD
+            # (ej. Duplicate entry)
             if persona_data.get("identification"):
-                lookup_response = self._search_by_identification(
-                    persona_data.get("identification"), token
+                lookup_response = self._search_by_identification(  # noqa: E501
+                    persona_data.get("identification"), token  # noqa: E501
                 )
                 if lookup_response:
                     persona_external = self._extract_external(lookup_response)

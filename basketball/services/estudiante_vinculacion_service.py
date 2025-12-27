@@ -282,15 +282,17 @@ class EstudianteVinculacionService:
         self._call_user_module("post", "/api/person/update", token, persona_data)
 
         # 2. Buscar de nuevo para obtener el external_id potencialmente nuevo
-        # El endpoint de actualización retorna data vacía, así que debemos buscar por identificación
+        # El endpoint de actualización retorna data vacía, así que debemos
+        # buscar por identificación
         ident = persona_data.get("identification")
         new_external = None
 
         if ident:
             lookup_response = self._search_by_identification(ident, token)
-            new_external = (
-                self._extract_external(lookup_response) if lookup_response else None
-            )
+            if lookup_response:
+                new_external = self._extract_external(lookup_response)
+            else:
+                new_external = None
 
         # Fallback si la búsqueda falló o no se proveyó identificación (poco probable)
         if not new_external:

@@ -22,19 +22,19 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
 
         # Agregar claims personalizados al token
-        token['username'] = user.username
-        token['email'] = user.email
-        token['is_staff'] = user.is_staff
-        token['is_superuser'] = user.is_superuser
-        
+        token["username"] = user.username
+        token["email"] = user.email
+        token["is_staff"] = user.is_staff
+        token["is_superuser"] = user.is_superuser
+
         # Si el usuario tiene nombre completo
-        if hasattr(user, 'first_name') and hasattr(user, 'last_name'):
-            token['full_name'] = f"{user.first_name} {user.last_name}".strip()
-        
+        if hasattr(user, "first_name") and hasattr(user, "last_name"):
+            token["full_name"] = f"{user.first_name} {user.last_name}".strip()
+
         # Si el usuario tiene un rol personalizado
-        if hasattr(user, 'rol'):
-            token['rol'] = user.rol
-        
+        if hasattr(user, "rol"):
+            token["rol"] = user.rol
+
         return token
 
     def validate(self, attrs):
@@ -42,22 +42,22 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         Valida las credenciales y agrega información adicional a la respuesta.
         """
         data = super().validate(attrs)
-        
+
         # Agregar información del usuario a la respuesta
-        data['user'] = {
-            'id': self.user.id,
-            'username': self.user.username,
-            'email': self.user.email,
-            'first_name': self.user.first_name,
-            'last_name': self.user.last_name,
-            'is_staff': self.user.is_staff,
-            'is_superuser': self.user.is_superuser,
+        data["user"] = {
+            "id": self.user.id,
+            "username": self.user.username,
+            "email": self.user.email,
+            "first_name": self.user.first_name,
+            "last_name": self.user.last_name,
+            "is_staff": self.user.is_staff,
+            "is_superuser": self.user.is_superuser,
         }
-        
+
         # Agregar rol si existe
-        if hasattr(self.user, 'rol'):
-            data['user']['rol'] = self.user.rol
-        
+        if hasattr(self.user, "rol"):
+            data["user"]["rol"] = self.user.rol
+
         return data
 
 
@@ -65,4 +65,5 @@ class CustomTokenObtainPairView(TokenObtainPairView):
     """
     Vista personalizada para obtener tokens JWT con información adicional.
     """
+
     serializer_class = CustomTokenObtainPairSerializer

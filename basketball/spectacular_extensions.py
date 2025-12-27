@@ -6,9 +6,12 @@ class JWTAuthenticationScheme(OpenApiAuthenticationExtension):
     name = "BearerAuth"
 
     def get_security_definition(self, auto_schema):
+        # fmt: off
         return {
             "type": "http",
             "scheme": "bearer",
             "bearerFormat": "JWT",
-            "description": "Ingrese el token JWT (sin el prefijo Bearer, o con él si es necesario)",
+            "description": "Ingrese el token JWT (sin el prefijo Bearer, "
+            "o con él si es necesario)",
         }
+        # fmt: on

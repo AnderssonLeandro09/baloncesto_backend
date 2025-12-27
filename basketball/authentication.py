@@ -28,11 +28,14 @@ class JWTAuthentication(authentication.BaseAuthentication):
             raise AuthenticationFailed("Token sin ID de usuario")
 
         # Crear un objeto usuario simple (o buscar en BD si fuera User de Django)
-        # Como no usamos el modelo User de Django por defecto, retornamos un objeto simple
+        # Como no usamos el modelo User de Django por defecto,
+        # retornamos un objeto simple
         # o None para el usuario y None para el auth.
         # DRF espera (user, auth).
 
+        # fmt: off
         return (AuthenticatedUser(user_id, role, payload), token)
+        # fmt: on
 
 
 class AuthenticatedUser:

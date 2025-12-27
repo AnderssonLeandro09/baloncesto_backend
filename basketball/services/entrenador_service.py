@@ -246,9 +246,7 @@ class EntrenadorService:
             raise ValidationError("El módulo de usuarios no retornó external_id")
 
         if self.dao.exists(persona_external=persona_external):
-            raise ValidationError(
-                "Ya existe un entrenador con ese external"
-            )
+            raise ValidationError("Ya existe un entrenador con ese external")
 
         entrenador = self.dao.create(
             persona_external=persona_external,
@@ -281,15 +279,17 @@ class EntrenadorService:
         self._call_user_module("post", "/api/person/update", token, persona_data)
 
         # 2. Buscar de nuevo para obtener el external_id potencialmente nuevo
-        # El endpoint de actualización retorna data vacía, así que debemos buscar por identificación
+        # El endpoint de actualización retorna data vacía, así que debemos
+        # buscar por identificación
         ident = persona_data.get("identification")
         new_external = None
 
         if ident:
             lookup_response = self._search_by_identification(ident, token)
-            new_external = (
-                self._extract_external(lookup_response) if lookup_response else None
-            )
+            if lookup_response:
+                new_external = self._extract_external(lookup_response)
+            else:
+                new_external = None
 
         # Fallback si la búsqueda falló o no se proveyó identificación (poco probable)
         if not new_external:
@@ -325,14 +325,18 @@ class EntrenadorService:
         if not entrenador:
             return None
 
-        persona_info = self._fetch_persona(entrenador.persona_external, token, allow_fail=True)
+        persona_info = self._fetch_persona(
+            entrenador.persona_external, token, allow_fail=True
+        )
         return self._build_response(entrenador, persona_info)
 
     def list_entrenadores(self, token: str) -> List[Dict[str, Any]]:
         entrenadores = self.dao.get_activos()
         result = []
         for entrenador in entrenadores:
-            persona_info = self._fetch_persona(entrenador.persona_external, token, allow_fail=True)
+            persona_info = self._fetch_persona(
+                entrenador.persona_external, token, allow_fail=True
+            )
             result.append(self._build_response(entrenador, persona_info))
         return result
 
