@@ -8,23 +8,38 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('basketball', '0007_remove_pruebaantropometrica_indice_cornico_and_more'),
+        ("basketball", "0007_remove_pruebaantropometrica_indice_cornico_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='pruebaantropometrica',
-            name='altura_sentado',
-            field=models.DecimalField(decimal_places=2, max_digits=5, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Altura sentado (cm)'),
+            model_name="pruebaantropometrica",
+            name="altura_sentado",
+            field=models.DecimalField(
+                decimal_places=2,
+                max_digits=5,
+                validators=[django.core.validators.MinValueValidator(Decimal("0.00"))],
+                verbose_name="Altura sentado (cm)",
+            ),
         ),
         migrations.AlterField(
-            model_name='pruebaantropometrica',
-            name='envergadura',
-            field=models.DecimalField(decimal_places=2, max_digits=5, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Envergadura (cm)'),
+            model_name="pruebaantropometrica",
+            name="envergadura",
+            field=models.DecimalField(
+                decimal_places=2,
+                max_digits=5,
+                validators=[django.core.validators.MinValueValidator(Decimal("0.00"))],
+                verbose_name="Envergadura (cm)",
+            ),
         ),
         migrations.AlterField(
-            model_name='pruebaantropometrica',
-            name='estatura',
-            field=models.DecimalField(decimal_places=2, max_digits=5, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Estatura (cm)'),
+            model_name="pruebaantropometrica",
+            name="estatura",
+            field=models.DecimalField(
+                decimal_places=2,
+                max_digits=5,
+                validators=[django.core.validators.MinValueValidator(Decimal("0.00"))],
+                verbose_name="Estatura (cm)",
+            ),
         ),
     ]

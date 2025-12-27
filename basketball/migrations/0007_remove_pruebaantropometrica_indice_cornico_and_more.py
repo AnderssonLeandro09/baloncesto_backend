@@ -9,62 +9,122 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('basketball', '0006_alter_entrenador_options'),
+        ("basketball", "0006_alter_entrenador_options"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='pruebaantropometrica',
-            name='indice_cornico',
+            model_name="pruebaantropometrica",
+            name="indice_cornico",
         ),
         migrations.AddField(
-            model_name='pruebaantropometrica',
-            name='indice_cormico',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True, verbose_name='Índice córmico'),
+            model_name="pruebaantropometrica",
+            name="indice_cormico",
+            field=models.DecimalField(
+                blank=True,
+                decimal_places=2,
+                max_digits=5,
+                null=True,
+                verbose_name="Índice córmico",
+            ),
         ),
         migrations.AddField(
-            model_name='pruebaantropometrica',
-            name='peso',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Peso (kg)'),
+            model_name="pruebaantropometrica",
+            name="peso",
+            field=models.DecimalField(
+                blank=True,
+                decimal_places=2,
+                max_digits=5,
+                null=True,
+                validators=[django.core.validators.MinValueValidator(Decimal("0.00"))],
+                verbose_name="Peso (kg)",
+            ),
         ),
         migrations.AddField(
-            model_name='pruebaantropometrica',
-            name='registrado_por_entrenador',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='pruebas_antropometricas_registradas', to='basketball.entrenador', verbose_name='Registrado por Entrenador'),
+            model_name="pruebaantropometrica",
+            name="registrado_por_entrenador",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="pruebas_antropometricas_registradas",
+                to="basketball.entrenador",
+                verbose_name="Registrado por Entrenador",
+            ),
         ),
         migrations.AddField(
-            model_name='pruebaantropometrica',
-            name='registrado_por_estudiante',
-            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='pruebas_antropometricas_registradas', to='basketball.estudiantevinculacion', verbose_name='Registrado por Estudiante Vinculación'),
+            model_name="pruebaantropometrica",
+            name="registrado_por_estudiante",
+            field=models.ForeignKey(
+                blank=True,
+                null=True,
+                on_delete=django.db.models.deletion.SET_NULL,
+                related_name="pruebas_antropometricas_registradas",
+                to="basketball.estudiantevinculacion",
+                verbose_name="Registrado por Estudiante Vinculación",
+            ),
         ),
         migrations.AddField(
-            model_name='pruebaantropometrica',
-            name='rol_registrador',
-            field=models.CharField(blank=True, choices=[('ENTRENADOR', 'Entrenador'), ('ESTUDIANTE_VINCULACION', 'Estudiante de Vinculación')], max_length=25, null=True, verbose_name='Rol del Registrador'),
+            model_name="pruebaantropometrica",
+            name="rol_registrador",
+            field=models.CharField(
+                blank=True,
+                choices=[
+                    ("ENTRENADOR", "Entrenador"),
+                    ("ESTUDIANTE_VINCULACION", "Estudiante de Vinculación"),
+                ],
+                max_length=25,
+                null=True,
+                verbose_name="Rol del Registrador",
+            ),
         ),
         migrations.AlterField(
-            model_name='pruebaantropometrica',
-            name='altura_sentado',
-            field=models.DecimalField(decimal_places=2, max_digits=5, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Altura sentado (m)'),
+            model_name="pruebaantropometrica",
+            name="altura_sentado",
+            field=models.DecimalField(
+                decimal_places=2,
+                max_digits=5,
+                validators=[django.core.validators.MinValueValidator(Decimal("0.00"))],
+                verbose_name="Altura sentado (m)",
+            ),
         ),
         migrations.AlterField(
-            model_name='pruebaantropometrica',
-            name='envergadura',
-            field=models.DecimalField(decimal_places=2, max_digits=5, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Envergadura (m)'),
+            model_name="pruebaantropometrica",
+            name="envergadura",
+            field=models.DecimalField(
+                decimal_places=2,
+                max_digits=5,
+                validators=[django.core.validators.MinValueValidator(Decimal("0.00"))],
+                verbose_name="Envergadura (m)",
+            ),
         ),
         migrations.AlterField(
-            model_name='pruebaantropometrica',
-            name='estatura',
-            field=models.DecimalField(decimal_places=2, max_digits=5, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Estatura (m)'),
+            model_name="pruebaantropometrica",
+            name="estatura",
+            field=models.DecimalField(
+                decimal_places=2,
+                max_digits=5,
+                validators=[django.core.validators.MinValueValidator(Decimal("0.00"))],
+                verbose_name="Estatura (m)",
+            ),
         ),
         migrations.AlterField(
-            model_name='pruebaantropometrica',
-            name='fecha_registro',
-            field=models.DateTimeField(auto_now_add=True, verbose_name='Fecha de registro'),
+            model_name="pruebaantropometrica",
+            name="fecha_registro",
+            field=models.DateTimeField(
+                auto_now_add=True, verbose_name="Fecha de registro"
+            ),
         ),
         migrations.AlterField(
-            model_name='pruebaantropometrica',
-            name='indice_masa_corporal',
-            field=models.DecimalField(blank=True, decimal_places=2, max_digits=5, null=True, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Índice de masa corporal'),
+            model_name="pruebaantropometrica",
+            name="indice_masa_corporal",
+            field=models.DecimalField(
+                blank=True,
+                decimal_places=2,
+                max_digits=5,
+                null=True,
+                validators=[django.core.validators.MinValueValidator(Decimal("0.00"))],
+                verbose_name="Índice de masa corporal",
+            ),
         ),
     ]

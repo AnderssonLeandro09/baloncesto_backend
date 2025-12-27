@@ -27,9 +27,13 @@ class PruebaAntropometricaDAO(GenericDAO[PruebaAntropometrica]):
         Returns:
             QuerySet[PruebaAntropometrica]: Pruebas del atleta
         """
-        return self.model.objects.filter(atleta_id=atleta_id, estado=True).order_by('-fecha_registro')
+        return self.model.objects.filter(atleta_id=atleta_id, estado=True).order_by(
+            "-fecha_registro"
+        )
 
-    def get_by_registrador(self, registrador_id: int, rol: str) -> QuerySet[PruebaAntropometrica]:
+    def get_by_registrador(
+        self, registrador_id: int, rol: str
+    ) -> QuerySet[PruebaAntropometrica]:
         """
         Obtiene pruebas registradas por un usuario específico.
 
@@ -40,10 +44,14 @@ class PruebaAntropometricaDAO(GenericDAO[PruebaAntropometrica]):
         Returns:
             QuerySet[PruebaAntropometrica]: Pruebas registradas
         """
-        if rol == 'ENTRENADOR':
-            return self.model.objects.filter(registrado_por_entrenador_id=registrador_id, estado=True)
-        elif rol == 'ESTUDIANTE_VINCULACION':
-            return self.model.objects.filter(registrado_por_estudiante_id=registrador_id, estado=True)
+        if rol == "ENTRENADOR":
+            return self.model.objects.filter(
+                registrado_por_entrenador_id=registrador_id, estado=True
+            )
+        elif rol == "ESTUDIANTE_VINCULACION":
+            return self.model.objects.filter(
+                registrado_por_estudiante_id=registrador_id, estado=True
+            )
         return self.model.objects.none()
 
     def get_activas(self) -> QuerySet[PruebaAntropometrica]:

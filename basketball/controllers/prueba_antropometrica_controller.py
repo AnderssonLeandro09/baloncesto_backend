@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 class PruebaAntropometricaPermission(BaseRolePermission):
     """Permiso para registrar pruebas antropométricas"""
+
     allowed_roles = ["ENTRENADOR", "ESTUDIANTE_VINCULACION"]
 
 
@@ -29,6 +30,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
     """
     Controlador para operaciones CRUD de Pruebas Antropométricas
     """
+
     permission_classes = [PruebaAntropometricaPermission]
     service = PruebaAntropometricaService()
 
@@ -54,7 +56,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             logger.error(f"Error al crear prueba antropométrica: {e}")
             return Response(
                 {"error": "Error interno del servidor"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(responses={200: PruebaAntropometricaResponseDTO(many=True)})
@@ -70,7 +72,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             logger.error(f"Error al listar pruebas: {e}")
             return Response(
                 {"error": "Error interno del servidor"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(responses={200: PruebaAntropometricaResponseDTO})
@@ -82,25 +84,23 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             prueba = self.service.obtener_por_id(int(pk))
             if not prueba:
                 return Response(
-                    {"error": "Prueba no encontrada"},
-                    status=status.HTTP_404_NOT_FOUND
+                    {"error": "Prueba no encontrada"}, status=status.HTTP_404_NOT_FOUND
                 )
             serializer = PruebaAntropometricaResponseDTO(prueba)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ValueError:
             return Response(
-                {"error": "ID inválido"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "ID inválido"}, status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
             logger.error(f"Error al obtener prueba {pk}: {e}")
             return Response(
                 {"error": "Error interno del servidor"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(responses={200: PruebaAntropometricaResponseDTO(many=True)})
-    @action(detail=False, methods=['get'], url_path=r'atleta/(?P<atleta_id>\d+)')
+    @action(detail=False, methods=["get"], url_path=r"atleta/(?P<atleta_id>\d+)")
     def por_atleta(self, request, atleta_id=None):
         """
         Obtiene todas las pruebas de un atleta
@@ -111,18 +111,17 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ValueError:
             return Response(
-                {"error": "ID de atleta inválido"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "ID de atleta inválido"}, status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
             logger.error(f"Error al obtener pruebas del atleta {atleta_id}: {e}")
             return Response(
                 {"error": "Error interno del servidor"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(responses={200: PruebaAntropometricaGraficaDTO(many=True)})
-    @action(detail=False, methods=['get'], url_path=r'grafica/(?P<atleta_id>\d+)')
+    @action(detail=False, methods=["get"], url_path=r"grafica/(?P<atleta_id>\d+)")
     def grafica(self, request, atleta_id=None):
         """
         Obtiene datos para gráficas de un atleta
@@ -133,18 +132,19 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             return Response(serializer.data, status=status.HTTP_200_OK)
         except ValueError:
             return Response(
-                {"error": "ID de atleta inválido"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "ID de atleta inválido"}, status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
-            logger.error(f"Error al obtener datos de gráfica para atleta {atleta_id}: {e}")
+            logger.error(
+                f"Error al obtener datos de gráfica para atleta {atleta_id}: {e}"
+            )
             return Response(
                 {"error": "Error interno del servidor"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(responses={200: dict})
-    @action(detail=True, methods=['patch'], url_path='desactivar')
+    @action(detail=True, methods=["patch"], url_path="desactivar")
     def desactivar(self, request, pk=None):
         """
         Desactiva una prueba (no la elimina)
@@ -154,21 +154,19 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             if success:
                 return Response(
                     {"message": "Prueba desactivada correctamente"},
-                    status=status.HTTP_200_OK
+                    status=status.HTTP_200_OK,
                 )
             else:
                 return Response(
-                    {"error": "Prueba no encontrada"},
-                    status=status.HTTP_404_NOT_FOUND
+                    {"error": "Prueba no encontrada"}, status=status.HTTP_404_NOT_FOUND
                 )
         except ValueError:
             return Response(
-                {"error": "ID inválido"},
-                status=status.HTTP_400_BAD_REQUEST
+                {"error": "ID inválido"}, status=status.HTTP_400_BAD_REQUEST
             )
         except Exception as e:
             logger.error(f"Error al desactivar prueba {pk}: {e}")
             return Response(
                 {"error": "Error interno del servidor"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
