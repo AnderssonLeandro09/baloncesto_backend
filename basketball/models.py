@@ -86,9 +86,12 @@ class GrupoAtleta(models.Model):
     # La FK se define como string porque Entrenador se define después
     entrenador = models.ForeignKey(
         "Entrenador",
+        to_field="persona_external",
         on_delete=models.PROTECT,
         related_name="grupos",
         verbose_name="Entrenador",
+        null=True,
+        blank=True,
     )
 
     class Meta:
