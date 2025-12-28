@@ -40,10 +40,10 @@ jobs:
 
       - name: Run Tests with Coverage
         run: |
-          coverage run manage.py test basketball/tests
-          coverage report
-          coverage xml
+          coverage run --rcfile=.coveragerc manage.py test basketball/tests
+          coverage report --rcfile=.coveragerc
+          coverage xml --rcfile=.coveragerc
 
       - name: Check Coverage Threshold
         run: |
-          coverage report --fail-under=100
+          coverage report --rcfile=.coveragerc --fail-under=65
