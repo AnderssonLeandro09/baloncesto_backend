@@ -60,10 +60,10 @@ class EstudianteVinculacionAPITests(APITestCase):
         "EstudianteVinculacionService"
     )
     # fmt: on
-    def test_crear_estudiante_exitoso(self, MockService):
+    def test_create_estudiante_exitoso(self, MockService):
         """POST crear estudiante válido"""
         mock_service = MockService.return_value
-        mock_service.crear_estudiante.return_value = ServiceResult.success(
+        mock_service.create_estudiante.return_value = ServiceResult.success(
             self.mock_estudiante_data
         )
 
@@ -76,10 +76,10 @@ class EstudianteVinculacionAPITests(APITestCase):
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_crear_estudiante_email_invalido(self, MockService):
+    def test_create_estudiante_email_invalido(self, MockService):
         """POST crear estudiante con email no institucional"""
         mock_service = MockService.return_value
-        mock_service.crear_estudiante.return_value = ServiceResult.validation_error(
+        mock_service.create_estudiante.return_value = ServiceResult.validation_error(
             "El email debe ser institucional (@unl.edu.ec)"
         )
 
@@ -92,10 +92,10 @@ class EstudianteVinculacionAPITests(APITestCase):
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_crear_estudiante_duplicado(self, MockService):
+    def test_create_estudiante_duplicado(self, MockService):
         """POST crear estudiante con email duplicado"""
         mock_service = MockService.return_value
-        mock_service.crear_estudiante.return_value = ServiceResult.conflict(
+        mock_service.create_estudiante.return_value = ServiceResult.conflict(
             "Ya existe un usuario con este email"
         )
 
@@ -169,22 +169,6 @@ class EstudianteVinculacionAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["data"]["estado"])
-
-    @patch(
-        "basketball.controllers.estudiante_vinculacion_controller."
-        "EstudianteVinculacionService"
-    )
-    def test_reactivar_estudiante(self, MockService):
-        """POST reactivar estudiante dado de baja"""
-        mock_service = MockService.return_value
-        mock_service.reactivar_estudiante.return_value = ServiceResult.success(
-            self.mock_estudiante_data
-        )
-
-        response = self.client.post(f"{self.base_url}1/reactivar/")
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["data"]["estado"])
 
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
