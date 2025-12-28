@@ -26,16 +26,23 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
             }
         )
         payload = {"role": "ADMIN", "sub": "test_user"}
-        self.token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+        self.token = jwt.encode(
+            payload,
+            settings.SECRET_KEY,
+            algorithm="HS256",
+        )
         self.auth_header = f"Bearer {self.token}"
 
     def test_list_returns_data(self):
         mock_service = MagicMock()
-        mock_service.list_estudiantes.return_value = [{"estudiante": {"id": 1}}]
+        mock_service.list_estudiantes.return_value = [
+            {"estudiante": {"id": 1}},
+        ]
         self.view.cls.service = mock_service
 
         request = self.factory.get(
-            "/estudiantes-vinculacion/", HTTP_AUTHORIZATION=self.auth_header
+            "/estudiantes-vinculacion/",
+            HTTP_AUTHORIZATION=self.auth_header,
         )
         response = self.view(request)
 
@@ -53,9 +60,8 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
                 "persona": {
                     "first_name": "A",
                     "email": "test@unl.edu.ec",
-                    "password": "password123"
+                    "password": "password123",
                 },
-                "persona": {"first_name": "A"},
                 "estudiante": {"carrera": "Ing", "semestre": "1"},
             },
             format="json",
