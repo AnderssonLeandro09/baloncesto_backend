@@ -55,7 +55,9 @@ class EstudianteVinculacionServiceTests(TestCase):
         mock_estudiante.fecha_registro = None
         mock_create.return_value = mock_estudiante
 
-        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
+        result = self.service.create_estudiante(
+            self.persona_data, self.estudiante_data, self.token
+        )
 
         self.assertTrue(result.is_success)
         self.assertEqual(result.data["nombre"], "Carlos")
@@ -64,7 +66,9 @@ class EstudianteVinculacionServiceTests(TestCase):
         """Error al crear con email no institucional"""
         self.persona_data["email"] = "carlos@gmail.com"
 
-        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
+        result = self.service.create_estudiante(
+            self.persona_data, self.estudiante_data, self.token
+        )
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.VALIDATION_ERROR)
@@ -73,7 +77,9 @@ class EstudianteVinculacionServiceTests(TestCase):
         """Error al crear con DNI inválido (muy corto)"""
         self.persona_data["dni"] = "123"
 
-        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
+        result = self.service.create_estudiante(
+            self.persona_data, self.estudiante_data, self.token
+        )
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.VALIDATION_ERROR)
@@ -83,7 +89,9 @@ class EstudianteVinculacionServiceTests(TestCase):
         """Error al crear con email duplicado"""
         mock_email_exists.return_value = True
 
-        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
+        result = self.service.create_estudiante(
+            self.persona_data, self.estudiante_data, self.token
+        )
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.CONFLICT)
@@ -95,7 +103,9 @@ class EstudianteVinculacionServiceTests(TestCase):
         mock_email_exists.return_value = False
         mock_dni_exists.return_value = True
 
-        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
+        result = self.service.create_estudiante(
+            self.persona_data, self.estudiante_data, self.token
+        )
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.CONFLICT)
@@ -111,7 +121,9 @@ class EstudianteVinculacionServiceTests(TestCase):
         """Error al crear con semestre inválido"""
         self.estudiante_data["semestre"] = "15"
 
-        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
+        result = self.service.create_estudiante(
+            self.persona_data, self.estudiante_data, self.token
+        )
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.VALIDATION_ERROR)
@@ -236,7 +248,9 @@ class EstudianteVinculacionServiceTests(TestCase):
         mock_get_by_id.return_value = mock_estudiante
         mock_update.return_value = mock_estudiante
 
-        result = self.service.update_estudiante(1, {"nombre": "Carlos Alberto"}, self.token)
+        result = self.service.update_estudiante(
+            1, {"nombre": "Carlos Alberto"}, self.token
+        )
 
         self.assertTrue(result.is_success)
         self.assertEqual(result.data["nombre"], "Carlos Alberto")
@@ -300,7 +314,9 @@ class EstudianteVinculacionServiceTests(TestCase):
         mock_create.return_value = mock_estudiante
 
         self.persona_data["email"] = "CARLOS.LOPEZ@UNL.EDU.EC"
-        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
+        result = self.service.create_estudiante(
+            self.persona_data, self.estudiante_data, self.token
+        )
 
         self.assertTrue(result.is_success)
         # Verificar que el email se pasó en minúsculas al DAO

@@ -38,8 +38,11 @@ class EstudianteVinculacionAPITests(APITestCase):
             "foto_perfil": None,
         }
 
-    @patch('basketball.controllers.estudiante_vinculacion_controller.get_user_module_token', return_value='mock_token')
-    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token",
+        return_value="mock_token",
+    )
+    @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
@@ -73,46 +76,67 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["nombre"], "Ana")
 
-    @patch('basketball.controllers.estudiante_vinculacion_controller.get_user_module_token', return_value='mock_token')
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token",
+        return_value="mock_token",
+    )
     @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_create_estudiante_email_invalido(self, MockService, mock_permission, mock_token):
+    def test_create_estudiante_email_invalido(
+        self, MockService, mock_permission, mock_token
+    ):
         """POST crear estudiante con email no institucional"""
         mock_service = MockService.return_value
         from django.core.exceptions import ValidationError
-        mock_service.create_estudiante.side_effect = ValidationError("El email debe ser institucional (@unl.edu.ec)")
+
+        mock_service.create_estudiante.side_effect = ValidationError(
+            "El email debe ser institucional (@unl.edu.ec)"
+        )
 
         self.valid_data["email"] = "ana@gmail.com"
         response = self.client.post(self.base_url, self.valid_data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    @patch('basketball.controllers.estudiante_vinculacion_controller.get_user_module_token', return_value='mock_token')
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token",
+        return_value="mock_token",
+    )
     @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_create_estudiante_duplicado(self, MockService, mock_permission, mock_token):
+    def test_create_estudiante_duplicado(
+        self, MockService, mock_permission, mock_token
+    ):
         """POST crear estudiante con email duplicado"""
         mock_service = MockService.return_value
         from django.core.exceptions import ValidationError
-        mock_service.create_estudiante.side_effect = ValidationError("Ya existe un usuario con este email")
+
+        mock_service.create_estudiante.side_effect = ValidationError(
+            "Ya existe un usuario con este email"
+        )
 
         response = self.client.post(self.base_url, self.valid_data, format="json")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    @patch('basketball.controllers.estudiante_vinculacion_controller.get_user_module_token', return_value='mock_token')
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token",
+        return_value="mock_token",
+    )
     @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_obtener_estudiante_existente(self, MockService, mock_permission, mock_token):
+    def test_obtener_estudiante_existente(
+        self, MockService, mock_permission, mock_token
+    ):
         """GET obtener estudiante por ID"""
         mock_service = MockService.return_value
         mock_service.get_estudiante.return_value = self.mock_estudiante_data
@@ -122,13 +146,18 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], 1)
 
-    @patch('basketball.controllers.estudiante_vinculacion_controller.get_user_module_token', return_value='mock_token')
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token",
+        return_value="mock_token",
+    )
     @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_obtener_estudiante_no_existente(self, MockService, mock_permission, mock_token):
+    def test_obtener_estudiante_no_existente(
+        self, MockService, mock_permission, mock_token
+    ):
         """GET estudiante no existente devuelve 404"""
         mock_service = MockService.return_value
         mock_service.get_estudiante.return_value = None
@@ -137,13 +166,18 @@ class EstudianteVinculacionAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    @patch('basketball.controllers.estudiante_vinculacion_controller.get_user_module_token', return_value='mock_token')
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token",
+        return_value="mock_token",
+    )
     @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_actualizar_estudiante_exitoso(self, MockService, mock_permission, mock_token):
+    def test_actualizar_estudiante_exitoso(
+        self, MockService, mock_permission, mock_token
+    ):
         """PUT actualizar estudiante"""
         mock_service = MockService.return_value
         updated_data = self.mock_estudiante_data.copy()
@@ -157,7 +191,10 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["nombre"], "Ana María")
 
-    @patch('basketball.controllers.estudiante_vinculacion_controller.get_user_module_token', return_value='mock_token')
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token",
+        return_value="mock_token",
+    )
     @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
@@ -174,7 +211,10 @@ class EstudianteVinculacionAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
 
-    @patch('basketball.controllers.estudiante_vinculacion_controller.get_user_module_token', return_value='mock_token')
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token",
+        return_value="mock_token",
+    )
     @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
@@ -190,13 +230,18 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 0)
 
-    @patch('basketball.controllers.estudiante_vinculacion_controller.get_user_module_token', return_value='mock_token')
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token",
+        return_value="mock_token",
+    )
     @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_listar_incluyendo_inactivos(self, MockService, mock_permission, mock_token):
+    def test_listar_incluyendo_inactivos(
+        self, MockService, mock_permission, mock_token
+    ):
         """GET listar incluyendo inactivos"""
         mock_service = MockService.return_value
         inactive_data = self.mock_estudiante_data.copy()

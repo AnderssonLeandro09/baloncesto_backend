@@ -1,6 +1,7 @@
 [tool.black]
 exclude = '''
 /(
-    migrations
+    migrations|
+    \.venv
 )/
 '''

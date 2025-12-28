@@ -25,7 +25,7 @@ class EstudianteVinculacionController(viewsets.ViewSet):
 
     @property
     def service(self):
-        if not hasattr(self, '_service'):
+        if not hasattr(self, "_service"):
             self._service = EstudianteVinculacionService()
         return self._service
 
