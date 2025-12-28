@@ -18,6 +18,7 @@ from ..permissions import IsAdmin
 
 logger = logging.getLogger(__name__)
 
+
 # Controlador para la gestión de Administradores
 class AdministradorController(viewsets.ViewSet):
     permission_classes = [IsAdmin]
