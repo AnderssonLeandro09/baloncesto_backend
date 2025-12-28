@@ -74,7 +74,7 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["data"]["nombre"], "Ana")
 
-    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
+    @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
@@ -91,7 +91,7 @@ class EstudianteVinculacionAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
-    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
+    @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
@@ -107,7 +107,7 @@ class EstudianteVinculacionAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
 
-    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
+    @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
@@ -124,7 +124,7 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["id"], 1)
 
-    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
+    @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
@@ -140,7 +140,7 @@ class EstudianteVinculacionAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
+    @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
@@ -161,7 +161,7 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["nombre"], "Ana María")
 
-    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
+    @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
@@ -178,7 +178,7 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["data"]["estado"])
 
-    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
+    @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
@@ -193,7 +193,7 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["data"]), 0)
 
-    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
+    @patch("basketball.permissions.IsAdmin.has_permission", return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
