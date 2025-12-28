@@ -18,15 +18,18 @@ class EstudianteVinculacionServiceTests(TestCase):
 
     def setUp(self):
         self.service = EstudianteVinculacionService()
-        self.valid_data = {
+        self.persona_data = {
             "nombre": "Carlos",
             "apellido": "López",
             "email": "carlos.lopez@unl.edu.ec",
-            "clave": "password123",
+            "password": "password123",
             "dni": "3333333333",
+        }
+        self.estudiante_data = {
             "carrera": "Derecho",
             "semestre": "8",
         }
+        self.token = "mock_token"
 
     @patch.object(EstudianteVinculacionDAO, "email_exists")
     @patch.object(EstudianteVinculacionDAO, "dni_exists")
@@ -52,25 +55,25 @@ class EstudianteVinculacionServiceTests(TestCase):
         mock_estudiante.fecha_registro = None
         mock_create.return_value = mock_estudiante
 
-        result = self.service.create_estudiante(self.valid_data)
+        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
 
         self.assertTrue(result.is_success)
         self.assertEqual(result.data["nombre"], "Carlos")
 
     def test_create_estudiante_email_no_institucional(self):
         """Error al crear con email no institucional"""
-        self.valid_data["email"] = "carlos@gmail.com"
+        self.persona_data["email"] = "carlos@gmail.com"
 
-        result = self.service.create_estudiante(self.valid_data)
+        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.VALIDATION_ERROR)
 
     def test_create_estudiante_dni_invalido(self):
         """Error al crear con DNI inválido (muy corto)"""
-        self.valid_data["dni"] = "123"
+        self.persona_data["dni"] = "123"
 
-        result = self.service.create_estudiante(self.valid_data)
+        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.VALIDATION_ERROR)
@@ -80,7 +83,7 @@ class EstudianteVinculacionServiceTests(TestCase):
         """Error al crear con email duplicado"""
         mock_email_exists.return_value = True
 
-        result = self.service.create_estudiante(self.valid_data)
+        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.CONFLICT)
@@ -92,29 +95,30 @@ class EstudianteVinculacionServiceTests(TestCase):
         mock_email_exists.return_value = False
         mock_dni_exists.return_value = True
 
-        result = self.service.create_estudiante(self.valid_data)
+        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.CONFLICT)
 
     def test_create_estudiante_campos_faltantes(self):
         """Error al crear sin campos requeridos"""
-        result = self.service.create_estudiante({"nombre": "Juan"})
+        result = self.service.create_estudiante({"nombre": "Juan"}, {}, self.token)
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.VALIDATION_ERROR)
 
     def test_create_estudiante_semestre_invalido(self):
         """Error al crear con semestre inválido"""
-        self.valid_data["semestre"] = "15"
+        self.estudiante_data["semestre"] = "15"
 
-        result = self.service.create_estudiante(self.valid_data)
+        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.VALIDATION_ERROR)
 
+    @patch.object(EstudianteVinculacionService, "_fetch_persona")
     @patch.object(EstudianteVinculacionDAO, "get_by_id")
-    def test_get_estudiante_existente(self, mock_get_by_id):
+    def test_get_estudiante_existente(self, mock_get_by_id, mock_fetch_persona):
         """Obtener estudiante existente"""
         mock_estudiante = Mock(spec=EstudianteVinculacion)
         mock_estudiante.pk = 1
@@ -130,10 +134,17 @@ class EstudianteVinculacionServiceTests(TestCase):
         mock_estudiante.rol = "ESTUDIANTE_VINCULACION"
         mock_estudiante.fecha_registro = None
         mock_get_by_id.return_value = mock_estudiante
+        mock_fetch_persona.return_value = {
+            "nombre": "Carlos",
+            "apellido": "López",
+            "email": "carlos.lopez@unl.edu.ec",
+            "dni": "3333333333",
+        }
 
-        result = self.service.get_estudiante(1)
+        result = self.service.get_estudiante(1, self.token)
 
-        self.assertTrue(result.is_success)
+        self.assertIsNotNone(result)
+        self.assertEqual(result["id"], 1)
         self.assertEqual(result.data["id"], 1)
 
     @patch.object(EstudianteVinculacionDAO, "get_by_id")
@@ -141,13 +152,13 @@ class EstudianteVinculacionServiceTests(TestCase):
         """Obtener estudiante no existente retorna NOT_FOUND"""
         mock_get_by_id.return_value = None
 
-        result = self.service.get_estudiante(99999)
+        result = self.service.get_estudiante(99999, self.token)
 
-        self.assertFalse(result.is_success)
-        self.assertEqual(result.status, ResultStatus.NOT_FOUND)
+        self.assertIsNone(result)
 
-    @patch.object(EstudianteVinculacionDAO, "get_activos")
-    def test_list_estudiantes(self, mock_get_activos):
+    @patch.object(EstudianteVinculacionService, "_fetch_persona")
+    @patch.object(EstudianteVinculacionDAO, "get_by_filter")
+    def test_list_estudiantes(self, mock_get_by_filter, mock_fetch_persona):
         """Listar todos los estudiantes activos"""
         mock_estudiante = Mock(spec=EstudianteVinculacion)
         mock_estudiante.pk = 1
@@ -162,11 +173,18 @@ class EstudianteVinculacionServiceTests(TestCase):
         mock_estudiante.foto_perfil = None
         mock_estudiante.rol = "ESTUDIANTE_VINCULACION"
         mock_estudiante.fecha_registro = None
-        mock_get_activos.return_value = [mock_estudiante]
+        mock_get_by_filter.return_value = [mock_estudiante]
+        mock_fetch_persona.return_value = {
+            "nombre": "Carlos",
+            "apellido": "López",
+            "email": "carlos.lopez@unl.edu.ec",
+            "dni": "3333333333",
+        }
 
-        result = self.service.list_estudiantes()
+        result = self.service.list_estudiantes(self.token)
 
-        self.assertTrue(result.is_success)
+        self.assertIsInstance(result, list)
+        self.assertEqual(len(result), 1)
         self.assertEqual(len(result.data), 1)
 
     @patch.object(EstudianteVinculacionDAO, "get_all")
@@ -192,11 +210,11 @@ class EstudianteVinculacionServiceTests(TestCase):
         mock_get_activos.return_value = []
         mock_get_all.return_value = [mock_estudiante]
 
-        result_activos = self.service.list_estudiantes(solo_activos=True)
-        self.assertEqual(len(result_activos.data), 0)
+        result_activos = self.service.list_estudiantes(self.token)
+        self.assertEqual(len(result_activos), 0)
 
-        result_todos = self.service.list_estudiantes(solo_activos=False)
-        self.assertEqual(len(result_todos.data), 1)
+        result_todos = self.service.list_estudiantes(self.token)
+        self.assertEqual(len(result_todos), 1)
 
     @patch.object(EstudianteVinculacionDAO, "get_by_id")
     @patch.object(EstudianteVinculacionDAO, "update")
@@ -218,7 +236,7 @@ class EstudianteVinculacionServiceTests(TestCase):
         mock_get_by_id.return_value = mock_estudiante
         mock_update.return_value = mock_estudiante
 
-        result = self.service.update_estudiante(1, {"nombre": "Carlos Alberto"})
+        result = self.service.update_estudiante(1, {"nombre": "Carlos Alberto"}, self.token)
 
         self.assertTrue(result.is_success)
         self.assertEqual(result.data["nombre"], "Carlos Alberto")
@@ -228,26 +246,25 @@ class EstudianteVinculacionServiceTests(TestCase):
         """Error al actualizar estudiante no existente"""
         mock_get_by_id.return_value = None
 
-        result = self.service.update_estudiante(99999, {"nombre": "Test"})
+        result = self.service.update_estudiante(99999, {"nombre": "Test"}, self.token)
 
         self.assertFalse(result.is_success)
         self.assertEqual(result.status, ResultStatus.NOT_FOUND)
 
     @patch.object(EstudianteVinculacionDAO, "get_by_id")
-    @patch.object(EstudianteVinculacionDAO, "soft_delete")
-    def test_delete_estudiante_exitoso(self, mock_soft_delete, mock_get_by_id):
+    @patch.object(EstudianteVinculacionDAO, "update")
+    def test_delete_estudiante_exitoso(self, mock_update, mock_get_by_id):
         """Dar de baja estudiante activo"""
         mock_estudiante = Mock(spec=EstudianteVinculacion)
         mock_estudiante.pk = 1
         mock_estudiante.id = 1
         mock_estudiante.estado = True  # Estudiante activo
         mock_get_by_id.return_value = mock_estudiante
-        mock_soft_delete.return_value = True
+        mock_update.return_value = mock_estudiante
 
         result = self.service.delete_estudiante(1)
 
-        self.assertTrue(result.is_success)
-        self.assertFalse(result.data["estado"])
+        self.assertTrue(result)
 
     @patch.object(EstudianteVinculacionDAO, "get_by_id")
     def test_delete_estudiante_no_existente(self, mock_get_by_id):
@@ -256,8 +273,7 @@ class EstudianteVinculacionServiceTests(TestCase):
 
         result = self.service.delete_estudiante(99999)
 
-        self.assertFalse(result.is_success)
-        self.assertEqual(result.status, ResultStatus.NOT_FOUND)
+        self.assertFalse(result)
 
     @patch.object(EstudianteVinculacionDAO, "email_exists")
     @patch.object(EstudianteVinculacionDAO, "dni_exists")
@@ -283,8 +299,8 @@ class EstudianteVinculacionServiceTests(TestCase):
         mock_estudiante.fecha_registro = None
         mock_create.return_value = mock_estudiante
 
-        self.valid_data["email"] = "CARLOS.LOPEZ@UNL.EDU.EC"
-        result = self.service.create_estudiante(self.valid_data)
+        self.persona_data["email"] = "CARLOS.LOPEZ@UNL.EDU.EC"
+        result = self.service.create_estudiante(self.persona_data, self.estudiante_data, self.token)
 
         self.assertTrue(result.is_success)
         # Verificar que el email se pasó en minúsculas al DAO
