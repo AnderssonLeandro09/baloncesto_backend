@@ -55,6 +55,7 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
                     "email": "test@unl.edu.ec",
                     "password": "password123"
                 },
+                "persona": {"first_name": "A"},
                 "estudiante": {"carrera": "Ing", "semestre": "1"},
             },
             format="json",
