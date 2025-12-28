@@ -1,13 +1,14 @@
 from django.test import TestCase
 from unittest.mock import patch, Mock
 from basketball.models import EstudianteVinculacion
-# Ajusta estas importaciones según la estructura real de tu proyecto si difieren
 from basketball.dao.estudiante_vinculacion_dao import EstudianteVinculacionDAO
-from basketball.services.estudiante_vinculacion_service import EstudianteVinculacionService
-from basketball.utils.result import ResultStatus  # O donde tengas definido ResultStatus
+from basketball.services.estudiante_vinculacion_service import (
+    EstudianteVinculacionService,
+)
+from basketball.utils.result import ResultStatus
+
 
 class TestEstudianteVinculacionService(TestCase):
-    
     def setUp(self):
         # Inicializamos el servicio y los datos base para usar en los tests
         self.service = EstudianteVinculacionService()
@@ -18,7 +19,7 @@ class TestEstudianteVinculacionService(TestCase):
             "dni": "3333333333",
             "carrera": "Derecho",
             "semestre": "8",
-            "rol": "ESTUDIANTE_VINCULACION"
+            "rol": "ESTUDIANTE_VINCULACION",
         }
 
     @patch.object(EstudianteVinculacionDAO, "email_exists")
