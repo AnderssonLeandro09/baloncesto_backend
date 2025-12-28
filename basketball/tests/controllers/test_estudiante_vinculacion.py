@@ -39,12 +39,13 @@ class EstudianteVinculacionAPITests(APITestCase):
         }
 
     # fmt: off
+    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
     # fmt: on
-    def test_listar_estudiantes_vacio(self, MockService):
+    def test_listar_estudiantes_vacio(self, MockService, mock_permission):
         """GET lista vacía de estudiantes"""
         mock_service = MockService.return_value
         mock_service.listar_estudiantes.return_value = ServiceResult.success([])
@@ -55,12 +56,13 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(len(response.data["data"]), 0)
 
     # fmt: off
+    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
     # fmt: on
-    def test_create_estudiante_exitoso(self, MockService):
+    def test_create_estudiante_exitoso(self, MockService, mock_permission):
         """POST crear estudiante válido"""
         mock_service = MockService.return_value
         mock_service.create_estudiante.return_value = ServiceResult.success(
@@ -72,11 +74,12 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["data"]["nombre"], "Ana")
 
+    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_create_estudiante_email_invalido(self, MockService):
+    def test_create_estudiante_email_invalido(self, MockService, mock_permission):
         """POST crear estudiante con email no institucional"""
         mock_service = MockService.return_value
         mock_service.create_estudiante.return_value = ServiceResult.validation_error(
@@ -88,11 +91,12 @@ class EstudianteVinculacionAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_create_estudiante_duplicado(self, MockService):
+    def test_create_estudiante_duplicado(self, MockService, mock_permission):
         """POST crear estudiante con email duplicado"""
         mock_service = MockService.return_value
         mock_service.create_estudiante.return_value = ServiceResult.conflict(
@@ -103,11 +107,12 @@ class EstudianteVinculacionAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
 
+    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_obtener_estudiante_existente(self, MockService):
+    def test_obtener_estudiante_existente(self, MockService, mock_permission):
         """GET obtener estudiante por ID"""
         mock_service = MockService.return_value
         mock_service.obtener_estudiante.return_value = ServiceResult.success(
@@ -119,11 +124,12 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["id"], 1)
 
+    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_obtener_estudiante_no_existente(self, MockService):
+    def test_obtener_estudiante_no_existente(self, MockService, mock_permission):
         """GET estudiante no existente devuelve 404"""
         mock_service = MockService.return_value
         mock_service.obtener_estudiante.return_value = ServiceResult.not_found(
@@ -134,11 +140,12 @@ class EstudianteVinculacionAPITests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
+    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_actualizar_estudiante_exitoso(self, MockService):
+    def test_actualizar_estudiante_exitoso(self, MockService, mock_permission):
         """PUT actualizar estudiante"""
         mock_service = MockService.return_value
         updated_data = self.mock_estudiante_data.copy()
@@ -154,11 +161,12 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["data"]["nombre"], "Ana María")
 
+    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_dar_de_baja_estudiante(self, MockService):
+    def test_dar_de_baja_estudiante(self, MockService, mock_permission):
         """DELETE dar de baja estudiante"""
         mock_service = MockService.return_value
         deleted_data = self.mock_estudiante_data.copy()
@@ -170,11 +178,12 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["data"]["estado"])
 
+    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_listar_solo_activos(self, MockService):
+    def test_listar_solo_activos(self, MockService, mock_permission):
         """GET listar solo estudiantes activos"""
         mock_service = MockService.return_value
         mock_service.listar_estudiantes.return_value = ServiceResult.success([])
@@ -184,11 +193,12 @@ class EstudianteVinculacionAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["data"]), 0)
 
+    @patch('basketball.permissions.IsAdmin.has_permission', return_value=True)
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller."
         "EstudianteVinculacionService"
     )
-    def test_listar_incluyendo_inactivos(self, MockService):
+    def test_listar_incluyendo_inactivos(self, MockService, mock_permission):
         """GET listar incluyendo inactivos"""
         mock_service = MockService.return_value
         inactive_data = self.mock_estudiante_data.copy()
