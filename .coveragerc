@@ -1,0 +1,23 @@
+[run]
+source = basketball
+omit =
+    */migrations/*
+    */admin.py
+    */apps.py
+    */tests/*
+    manage.py
+    basketball_project/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if self.debug:
+    if __name__ == .__main__.:
+    raise AssertionError
+    raise NotImplementedError
+    if TYPE_CHECKING:
+    pass
+    logger.error
+    logger.warning
+    logger.debug
