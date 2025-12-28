@@ -1,0 +1,49 @@
+name: Staging Prueba Integration & Quality CI
+
+on:
+  pull_request:
+    branches:
+      - stagin_prueba
+    types: [opened, synchronize, reopened]
+
+jobs:
+  quality-and-integration:
+    if: github.head_ref == 'develop_prueba'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install bandit
+
+      - name: Run Security Audit (Bandit)
+        run: bandit -r . -x ./.venv,./tests,./basketball/tests
+
+      - name: Run Formatter Check (Black)
+        run: black --check .
+
+      - name: Run Linter (Flake8)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run Tests with Coverage
+        run: |
+          coverage run manage.py test basketball/tests
+          coverage report
+          coverage xml
+
+      - name: Check Coverage Threshold
+        run: |
+          coverage report --fail-under=100
