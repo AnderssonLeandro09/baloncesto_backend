@@ -1,0 +1,30 @@
+# Django Framework
+Django==4.2.7
+
+# PostgreSQL Database
+psycopg2-binary==2.9.9
+
+# Environment Variables
+python-dotenv==1.0.0
+
+# Django REST Framework (para APIs)
+djangorestframework==3.14.0
+drf-spectacular==0.27.2
+
+# CORS Headers
+django-cors-headers==4.3.1
+PyJWT==2.8.0
+
+# Testing
+pytest==7.4.3
+pytest-django==4.7.0
+
+# Code Quality
+flake8==6.1.0
+black==23.11.0
+
+# Coverage
+coverage==7.3.2
+
+# HTTP Client
+requests==2.31.0

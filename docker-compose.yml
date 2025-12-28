@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: basketball_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      POSTGRES_DB: basketball_db
+      POSTGRES_USER: basketball_user
+      POSTGRES_PASSWORD: basketball_pass_2024
+    ports:
+      - "55432:5432"
+    networks:
+      - basketball_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U basketball_user -d basketball_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    container_name: basketball_web
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app
+    ports:
+      - "8023:8000"
+    env_file:
+      - .env
+    environment:
+      - USE_SQLITE=${USE_SQLITE:-False}
+      - DEBUG=${DEBUG:-True}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_NAME=${DB_NAME:-basketball_db}
+      - DB_USER=${DB_USER:-basketball_user}
+      - DB_PASSWORD=${DB_PASSWORD:-basketball_pass_2024}
+      - DB_PORT=${DB_PORT:-5432}
+      - USER_MODULE_URL=${USER_MODULE_URL:-http://host.docker.internal:8096}
+      - USER_MODULE_ADMIN_EMAIL=${USER_MODULE_ADMIN_EMAIL:-admin@admin.com}
+      - USER_MODULE_ADMIN_PASSWORD=${USER_MODULE_ADMIN_PASSWORD:-admin123}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - basketball_network
+
+networks:
+  basketball_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
