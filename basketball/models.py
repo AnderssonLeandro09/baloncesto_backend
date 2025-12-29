@@ -117,6 +117,7 @@ class Entrenador(models.Model):
     )
     especialidad = models.CharField(max_length=100, verbose_name="Especialidad")
     club_asignado = models.CharField(max_length=100, verbose_name="Club asignado")
+    eliminado = models.BooleanField(default=False, verbose_name="Eliminado")
 
     class Meta:
         db_table = "entrenador"
