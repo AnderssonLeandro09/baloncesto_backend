@@ -1,4 +1,4 @@
-"""Servicio de negocio para Estudiante de Vinculación."""
+"""Servicio de negocio para Entrenador."""
 
 import logging
 from typing import Any, Dict, List, Optional
@@ -8,17 +8,17 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from rest_framework.exceptions import PermissionDenied
 
-from ..dao.estudiante_vinculacion_dao import EstudianteVinculacionDAO
-from ..models import EstudianteVinculacion
+from ..dao.entrenador_dao import EntrenadorDAO
+from ..models import Entrenador
 
 logger = logging.getLogger(__name__)
 
 
-class EstudianteVinculacionService:
-    """Lógica de negocio para estudiantes de vinculación."""
+class EntrenadorService:
+    """Lógica de negocio para entrenadores."""
 
     def __init__(self):
-        self.dao = EstudianteVinculacionDAO()
+        self.dao = EntrenadorDAO()
         self.user_module_url = settings.USER_MODULE_URL.rstrip("/")
 
     # ======================================================================
@@ -102,29 +102,15 @@ class EstudianteVinculacionService:
             return None
 
     def _extract_external(self, payload: Dict[str, Any]) -> Optional[str]:
-        # Intenta extraer de 'data' si existe (formato común de respuesta)
         data = payload.get("data")
         if isinstance(data, dict):
-            for key in (
-                "external",
-                "external_id",
-                "external_person",
-                "uuid",
-                "id",
-            ):
+            for key in ("external", "external_id", "external_person", "uuid", "id"):
                 value = data.get(key)
                 if value:
                     return str(value)
 
-        # Intenta extraer directamente del payload (formato de búsqueda según swagger)
         if isinstance(payload, dict):
-            for key in (
-                "external",
-                "external_id",
-                "external_person",
-                "uuid",
-                "id",
-            ):
+            for key in ("external", "external_id", "external_person", "uuid", "id"):
                 value = payload.get(key)
                 if value:
                     return str(value)
@@ -145,19 +131,19 @@ class EstudianteVinculacionService:
 
     def _build_response(
         self,
-        estudiante: EstudianteVinculacion,
+        entrenador: Entrenador,
         persona_payload: Optional[Dict[str, Any]],
     ) -> Dict[str, Any]:
         persona_data = (
             persona_payload.get("data") if isinstance(persona_payload, dict) else None
         )
         return {
-            "estudiante": {
-                "id": estudiante.id,
-                "persona_external": estudiante.persona_external,
-                "carrera": estudiante.carrera,
-                "semestre": estudiante.semestre,
-                "eliminado": estudiante.eliminado,
+            "entrenador": {
+                "id": entrenador.id,
+                "persona_external": entrenador.persona_external,
+                "especialidad": entrenador.especialidad,
+                "club_asignado": entrenador.club_asignado,
+                "eliminado": entrenador.eliminado,
             },
             "persona": persona_data,
         }
@@ -165,26 +151,23 @@ class EstudianteVinculacionService:
     # ======================================================================
     # CRUD operations
     # ======================================================================
-    def create_estudiante(
+    def create_entrenador(
         self,
         persona_data: Dict[str, Any],
-        estudiante_data: Dict[str, Any],
+        entrenador_data: Dict[str, Any],
         token: str,
     ) -> Dict[str, Any]:
         if not persona_data:
             raise ValidationError("Datos de persona son obligatorios")
 
-        carrera = estudiante_data.get("carrera")
-        semestre = estudiante_data.get("semestre")
-        if not carrera or not semestre:
-            raise ValidationError("carrera y semestre son obligatorios")
+        especialidad = entrenador_data.get("especialidad")
+        club_asignado = entrenador_data.get("club_asignado")
+        if not especialidad or not club_asignado:
+            raise ValidationError("especialidad y club_asignado son obligatorios")
 
         email = persona_data.get("email")
         if not email:
             raise ValidationError("Email es obligatorio")
-
-        if not email.endswith("@unl.edu.ec"):
-            raise ValidationError("El correo debe ser institucional (@unl.edu.ec)")
 
         if not persona_data.get("password"):
             raise ValidationError("Password es obligatorio")
@@ -192,16 +175,12 @@ class EstudianteVinculacionService:
         persona_response = None
         persona_external = None
 
-        # Intentar crear con cuenta primero (más confiable en este entorno)
         try:
-            # Usar save-account en lugar de save
             persona_response = self._call_user_module(
                 "post", "/api/person/save-account", token, persona_data
             )
-            # save-account retorna data vacía en éxito, así que DEBEMOS buscar
             persona_external = self._extract_external(persona_response)
 
-            # Siempre buscar después de save-account porque podría no retornar el ID
             if not persona_external and persona_data.get("identification"):
                 lookup_response = self._search_by_identification(
                     persona_data.get("identification"), token
@@ -211,85 +190,58 @@ class EstudianteVinculacionService:
                 )
 
         except ValidationError as exc:
-            message = str(exc)
-            # Si ya está registrada, intentar encontrarla
-            if (
-                "ya esta registrada" in message.lower()
-                or "already registered" in message.lower()
-            ):
-                persona_response = self._search_by_identification(
+            if persona_data.get("identification"):
+                lookup_response = self._search_by_identification(
                     persona_data.get("identification"), token
                 )
-                persona_external = (
-                    self._extract_external(persona_response)
-                    if persona_response
-                    else None
+                if lookup_response:
+                    persona_external = self._extract_external(lookup_response)
+
+            if not persona_external:
+                fallback_person = self._search_in_all_filter(
+                    persona_data.get("identification"), token
                 )
-            else:
-                # Si save-account falló por otras razones, intentar buscar por si acaso
-                # existe pero save-account falló por problemas de email/password.
-                if persona_data.get("identification"):
-                    lookup_response = self._search_by_identification(
-                        persona_data.get("identification"), token
-                    )
-                    if lookup_response:
-                        persona_external = self._extract_external(lookup_response)
+                if fallback_person:
+                    persona_external = self._extract_external(fallback_person)
 
-                if not persona_external:
-                    raise
-
-        if not persona_external:
-            # Fallback: intentar encontrar en la lista all_filter
-            fallback_person = self._search_in_all_filter(
-                persona_data.get("identification"), token
-            )
-            if fallback_person:
-                persona_external = self._extract_external(fallback_person)
+            if not persona_external:
+                raise exc
 
         if not persona_external:
             raise ValidationError("El módulo de usuarios no retornó external_id")
 
         if self.dao.exists(persona_external=persona_external, eliminado=False):
-            raise ValidationError(
-                "Ya existe un estudiante de vinculación con ese external"
-            )
+            raise ValidationError("Ya existe un entrenador con ese external")
 
-        estudiante = self.dao.create(
+        entrenador = self.dao.create(
             persona_external=persona_external,
-            carrera=carrera,
-            semestre=semestre,
+            especialidad=especialidad,
+            club_asignado=club_asignado,
             eliminado=False,
         )
 
         persona_info = self._fetch_persona(persona_external, token, allow_fail=True)
-        return self._build_response(estudiante, persona_info)
+        return self._build_response(entrenador, persona_info)
 
-    def update_estudiante(
+    def update_entrenador(
         self,
         pk: int,
         persona_data: Dict[str, Any],
-        estudiante_data: Dict[str, Any],
+        entrenador_data: Dict[str, Any],
         token: str,
     ) -> Optional[Dict[str, Any]]:
-        estudiante = self.dao.get_by_id(pk)
-        if not estudiante or estudiante.eliminado:
+        entrenador = self.dao.get_by_id(pk)
+        if not entrenador or entrenador.eliminado:
             return None
 
         if not persona_data:
             raise ValidationError("Datos de persona son obligatorios")
 
-        email = persona_data.get("email")
-        if email and not email.endswith("@unl.edu.ec"):
-            raise ValidationError("El correo debe ser institucional (@unl.edu.ec)")
-
         persona_data = persona_data.copy()
-        persona_data.setdefault("external", estudiante.persona_external)
+        persona_data.setdefault("external", entrenador.persona_external)
 
-        # 1. Llamar al endpoint de actualización
         self._call_user_module("post", "/api/person/update", token, persona_data)
 
-        # 2. Buscar de nuevo para obtener el external_id potencialmente nuevo
-        # El endpoint de actualización retorna data vacía, así que debemos buscar por identificación
         ident = persona_data.get("identification")
         new_external = None
 
@@ -299,25 +251,24 @@ class EstudianteVinculacionService:
                 self._extract_external(lookup_response) if lookup_response else None
             )
 
-        # Fallback si la búsqueda falló o no se proveyó identificación (poco probable)
         if not new_external:
-            new_external = estudiante.persona_external
+            new_external = entrenador.persona_external
 
-        if new_external != estudiante.persona_external and self.dao.exists(
+        if new_external != entrenador.persona_external and self.dao.exists(
             persona_external=new_external, eliminado=False
         ):
             raise ValidationError(
-                "El external_id retornado ya está en uso por otro estudiante"
+                "El external_id retornado ya está en uso por otro entrenador"
             )
 
-        carrera = estudiante_data.get("carrera", estudiante.carrera)
-        semestre = estudiante_data.get("semestre", estudiante.semestre)
+        especialidad = entrenador_data.get("especialidad", entrenador.especialidad)
+        club_asignado = entrenador_data.get("club_asignado", entrenador.club_asignado)
 
         updated = self.dao.update(
             pk,
             persona_external=new_external,
-            carrera=carrera,
-            semestre=semestre,
+            especialidad=especialidad,
+            club_asignado=club_asignado,
             eliminado=False,
         )
 
@@ -327,25 +278,25 @@ class EstudianteVinculacionService:
         persona_info = self._fetch_persona(new_external, token, allow_fail=True)
         return self._build_response(updated, persona_info)
 
-    def delete_estudiante(self, pk: int) -> bool:
+    def delete_entrenador(self, pk: int) -> bool:
         updated = self.dao.update(pk, eliminado=True)
         return updated is not None
 
-    def get_estudiante(self, pk: int, token: str) -> Optional[Dict[str, Any]]:
-        estudiante = self.dao.get_by_id(pk)
-        if not estudiante or estudiante.eliminado:
+    def get_entrenador(self, pk: int, token: str) -> Optional[Dict[str, Any]]:
+        entrenador = self.dao.get_by_id(pk)
+        if not entrenador or entrenador.eliminado:
             return None
         persona_info = self._fetch_persona(
-            estudiante.persona_external, token, allow_fail=True
+            entrenador.persona_external, token, allow_fail=True
         )
-        return self._build_response(estudiante, persona_info)
+        return self._build_response(entrenador, persona_info)
 
-    def list_estudiantes(self, token: str) -> List[Dict[str, Any]]:
-        estudiantes = self.dao.get_by_filter(eliminado=False)
+    def list_entrenadores(self, token: str) -> List[Dict[str, Any]]:
+        entrenadores = self.dao.get_by_filter(eliminado=False)
         resultados: List[Dict[str, Any]] = []
-        for estudiante in estudiantes:
+        for entrenador in entrenadores:
             persona_info = self._fetch_persona(
-                estudiante.persona_external, token, allow_fail=True
+                entrenador.persona_external, token, allow_fail=True
             )
-            resultados.append(self._build_response(estudiante, persona_info))
+            resultados.append(self._build_response(entrenador, persona_info))
         return resultados
