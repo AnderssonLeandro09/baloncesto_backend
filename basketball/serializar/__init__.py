@@ -18,3 +18,11 @@ from .entrenador import (  # noqa: F401
     EntrenadorResponseSerializer,
 )
 from .auth import LoginSerializer  # noqa: F401
+from .inscripcion import InscripcionSerializer  # noqa: F401
+from .atleta import (  # noqa: F401
+    AtletaSerializer,
+    AtletaDataSerializer,
+    InscripcionDataSerializer,
+    AtletaInscripcionInputSerializer,
+    AtletaInscripcionResponseSerializer,
+)
