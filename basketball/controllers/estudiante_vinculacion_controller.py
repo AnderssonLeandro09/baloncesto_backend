@@ -19,7 +19,6 @@ class EstudianteVinculacionController(viewsets.ViewSet):
     permission_classes = [IsAdmin]
     # serializer_class se usa por defecto, pero extend_schema lo sobreescribe
     serializer_class = EstudianteVinculacionSerializer
-    service = EstudianteVinculacionService()
 
     @extend_schema(responses={200: EstudianteVinculacionResponseSerializer(many=True)})
     def list(self, request):

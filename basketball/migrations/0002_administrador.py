@@ -42,7 +42,6 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 ("estado", models.BooleanField(default=True, verbose_name="Estado")),
-
             ],
             options={
                 "db_table": "administrador",
