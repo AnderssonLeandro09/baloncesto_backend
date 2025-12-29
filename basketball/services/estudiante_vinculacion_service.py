@@ -179,7 +179,13 @@ class EstudianteVinculacionService:
         if not carrera or not semestre:
             raise ValidationError("carrera y semestre son obligatorios")
 
-        # Asegurar email y contraseña para save-account
+        email = persona_data.get("email")
+        if not email:
+            raise ValidationError("Email es obligatorio")
+
+        if not email.endswith("@unl.edu.ec"):
+            raise ValidationError("El correo debe ser institucional (@unl.edu.ec)")
+
         if not persona_data.get("email"):
             raise ValidationError("Email es obligatorio")
 
@@ -274,6 +280,10 @@ class EstudianteVinculacionService:
 
         if not persona_data:
             raise ValidationError("Datos de persona son obligatorios")
+
+        email = persona_data.get("email")
+        if email and not email.endswith("@unl.edu.ec"):
+            raise ValidationError("El correo debe ser institucional (@unl.edu.ec)")
 
         persona_data = persona_data.copy()
         persona_data.setdefault("external", estudiante.persona_external)
