@@ -14,11 +14,8 @@ class Migration(migrations.Migration):
             name="tipo_inscripcion",
             field=models.CharField(
                 choices=[
-                    ("FEDERADO", "Federado"),
-                    ("NO_FEDERADO", "No Federado"),
-                    ("INVITADO", "Invitado"),
-                    ("ORDINARIA", "Ordinaria"),
-                    ("EXTRAORDINARIA", "Extraordinaria"),
+                    ("MENOR_EDAD", "Menor de edad (con representante)"),
+                    ("MAYOR_EDAD", "Mayor de edad"),
                 ],
                 max_length=20,
                 verbose_name="Tipo de inscripción",

@@ -227,7 +227,7 @@ class InscripcionService:
             inscripcion_params = {
                 "atleta": atleta,
                 "fecha_inscripcion": date.today(),
-                "tipo_inscripcion": "ORDINARIA",
+                "tipo_inscripcion": "MAYOR_EDAD",
                 "habilitada": True,
             }
             inscripcion_params.update(inscripcion_data)

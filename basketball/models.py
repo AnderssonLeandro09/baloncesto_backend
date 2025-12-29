@@ -10,13 +10,10 @@ from decimal import Decimal
 
 
 class TipoInscripcion(models.TextChoices):
-    """Enum para tipos de inscripción"""
+    """Enum para tipos de inscripción según edad del atleta"""
 
-    FEDERADO = "FEDERADO", "Federado"
-    NO_FEDERADO = "NO_FEDERADO", "No Federado"
-    INVITADO = "INVITADO", "Invitado"
-    ORDINARIA = "ORDINARIA", "Ordinaria"
-    EXTRAORDINARIA = "EXTRAORDINARIA", "Extraordinaria"
+    MENOR_EDAD = "MENOR_EDAD", "Menor de edad (con representante)"
+    MAYOR_EDAD = "MAYOR_EDAD", "Mayor de edad"
 
 
 class TipoPrueba(models.TextChoices):

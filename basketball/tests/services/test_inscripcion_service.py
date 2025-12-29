@@ -77,7 +77,7 @@ class InscripcionServiceTests(SimpleTestCase):
             id=1,
             atleta=atleta_obj,
             fecha_inscripcion=date.today(),
-            tipo_inscripcion="ORDINARIA",
+            tipo_inscripcion="MAYOR_EDAD",
             fecha_creacion=date.today(),
             habilitada=True,
         )
