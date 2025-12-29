@@ -20,7 +20,9 @@ class PruebaFisicaInputSerializer(serializers.Serializer):
     tipo_prueba = serializers.ChoiceField(choices=TipoPrueba.choices, required=True)
     resultado = serializers.DecimalField(max_digits=10, decimal_places=2, required=True)
     unidad_medida = serializers.CharField(max_length=20, required=True)
-    observaciones = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    observaciones = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
     estado = serializers.BooleanField(default=True)
 
 

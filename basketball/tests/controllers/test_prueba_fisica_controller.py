@@ -18,12 +18,8 @@ class PruebaFisicaControllerTests(SimpleTestCase):
         self.view_detail = PruebaFisicaController.as_view(
             {"get": "retrieve", "put": "update"}
         )
-        self.view_toggle = PruebaFisicaController.as_view(
-            {"patch": "toggle_estado"}
-        )
-        self.view_by_atleta = PruebaFisicaController.as_view(
-            {"get": "by_atleta"}
-        )
+        self.view_toggle = PruebaFisicaController.as_view({"patch": "toggle_estado"})
+        self.view_by_atleta = PruebaFisicaController.as_view({"get": "by_atleta"})
         self.token_entrenador = self._get_token("ENTRENADOR")
         self.token_estudiante = self._get_token("ESTUDIANTE_VINCULACION")
         self.token_invalid = self._get_token("OTRO_ROL")
@@ -40,13 +36,14 @@ class PruebaFisicaControllerTests(SimpleTestCase):
     def test_list_pruebas_success(self):
         mock_service = MagicMock()
         mock_service.get_all_pruebas_fisicas.return_value = []
-        
+
         original_service = PruebaFisicaController.service
         PruebaFisicaController.service = mock_service
 
         try:
             request = self.factory.get(
-                "/pruebas-fisicas/", HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}"
+                "/pruebas-fisicas/",
+                HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
             )
             response = self.view_list_create(request)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -64,9 +61,9 @@ class PruebaFisicaControllerTests(SimpleTestCase):
         mock_prueba.unidad_medida = "kg"
         mock_prueba.observaciones = "Ok"
         mock_prueba.estado = True
-        
+
         mock_service.create_prueba_fisica.return_value = mock_prueba
-        
+
         original_service = PruebaFisicaController.service
         PruebaFisicaController.service = mock_service
 
@@ -76,7 +73,7 @@ class PruebaFisicaControllerTests(SimpleTestCase):
             "tipo_prueba": "FUERZA",
             "resultado": 50.0,
             "unidad_medida": "kg",
-            "observaciones": "Ok"
+            "observaciones": "Ok",
         }
 
         try:
@@ -110,14 +107,14 @@ class PruebaFisicaControllerTests(SimpleTestCase):
         mock_prueba.observaciones = "Ok"
         mock_prueba.estado = False
         mock_service.toggle_estado.return_value = mock_prueba
-        
+
         original_service = PruebaFisicaController.service
         PruebaFisicaController.service = mock_service
 
         try:
             request = self.factory.patch(
-                "/pruebas-fisicas/1/toggle-estado/", 
-                HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}"
+                "/pruebas-fisicas/1/toggle-estado/",
+                HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
             )
             response = self.view_toggle(request, pk=1)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -128,14 +125,14 @@ class PruebaFisicaControllerTests(SimpleTestCase):
     def test_get_by_atleta_success(self):
         mock_service = MagicMock()
         mock_service.get_pruebas_by_atleta.return_value = []
-        
+
         original_service = PruebaFisicaController.service
         PruebaFisicaController.service = mock_service
 
         try:
             request = self.factory.get(
-                "/pruebas-fisicas/atleta/1/", 
-                HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}"
+                "/pruebas-fisicas/atleta/1/",
+                HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
             )
             response = self.view_by_atleta(request, atleta_id=1)
             self.assertEqual(response.status_code, status.HTTP_200_OK)

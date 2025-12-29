@@ -22,7 +22,7 @@ class PruebaFisicaService:
             atleta_id = data.pop("atleta_id", None)
             if not atleta_id:
                 raise ValidationError("El ID del atleta es requerido")
-            
+
             data["atleta_id"] = atleta_id
             return self.dao.create(**data)
         except Exception as e:
@@ -36,7 +36,7 @@ class PruebaFisicaService:
             # pero si viene el id lo manejamos.
             if "atleta_id" in data:
                 data["atleta_id"] = data.pop("atleta_id")
-            
+
             prueba = self.dao.update(prueba_id, **data)
             if not prueba:
                 raise ValidationError("Prueba física no encontrada")
@@ -62,5 +62,5 @@ class PruebaFisicaService:
         prueba = self.dao.get_by_id(prueba_id)
         if not prueba:
             raise ValidationError("Prueba física no encontrada")
-        
+
         return self.dao.update(prueba_id, estado=not prueba.estado)
