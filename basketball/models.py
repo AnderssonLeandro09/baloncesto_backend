@@ -246,35 +246,12 @@ class PruebaAntropometrica(models.Model):
         related_name="pruebas_antropometricas",
         verbose_name="Atleta",
     )
-    # Registrado por Entrenador o Estudiante de Vinculación
-    registrado_por_entrenador = models.ForeignKey(
-        "Entrenador",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="pruebas_antropometricas_registradas",
-        verbose_name="Registrado por Entrenador",
-    )
-    registrado_por_estudiante = models.ForeignKey(
-        "EstudianteVinculacion",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="pruebas_antropometricas_registradas",
-        verbose_name="Registrado por Estudiante Vinculación",
-    )
-    rol_registrador = models.CharField(
-        max_length=25,
-        choices=[
-            ("ENTRENADOR", "Entrenador"),
-            ("ESTUDIANTE_VINCULACION", "Estudiante de Vinculación"),
-        ],
-        verbose_name="Rol del Registrador",
-        null=True,  # Temporal para migración
-        blank=True,
-    )
-    fecha_registro = models.DateTimeField(
-        auto_now_add=True, verbose_name="Fecha de registro"
+    fecha_registro = models.DateField(verbose_name="Fecha de registro")
+    indice_masa_corporal = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.00"))],
+        verbose_name="Índice de masa corporal",
     )
     estatura = models.DecimalField(
         max_digits=5,
@@ -294,28 +271,12 @@ class PruebaAntropometrica(models.Model):
         validators=[MinValueValidator(Decimal("0.00"))],
         verbose_name="Envergadura (cm)",
     )
-    peso = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.00"))],
-        verbose_name="Peso (kg)",
-        null=True,  # Temporal para migración
-        blank=True,
-    )
-    indice_masa_corporal = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.00"))],
-        verbose_name="Índice de masa corporal",
-        null=True,  # Temporal para migración
-        blank=True,
-    )
-    indice_cormico = models.DecimalField(
+    indice_cornico = models.DecimalField(
         max_digits=5,
         decimal_places=2,
         null=True,
         blank=True,
-        verbose_name="Índice córmico",
+        verbose_name="Índice córnico",
     )
     observaciones = models.TextField(
         blank=True, null=True, verbose_name="Observaciones"
