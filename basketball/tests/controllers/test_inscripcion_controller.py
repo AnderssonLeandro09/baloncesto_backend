@@ -1,17 +1,16 @@
 """Tests del controlador de Inscripcion usando mocks."""
 
+from unittest.mock import MagicMock
 import jwt
 from django.conf import settings
-from unittest.mock import MagicMock
 
-from django.test import SimpleTestCase
 from rest_framework import status
-from rest_framework.test import APIRequestFactory
+from rest_framework.test import APITestCase, APIRequestFactory
 
 from basketball.controllers.inscripcion_controller import InscripcionController
 
 
-class InscripcionControllerTests(SimpleTestCase):
+class InscripcionControllerTests(APITestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         self.view = InscripcionController.as_view(
@@ -43,8 +42,8 @@ class InscripcionControllerTests(SimpleTestCase):
     def test_create_inscripcion_success(self):
         mock_service = MagicMock()
         mock_service.create_atleta_inscripcion.return_value = {
-            "atleta": {"id": 1}, 
-            "inscripcion": {"id": 1}
+            "atleta": {"id": 1},
+            "inscripcion": {"id": 1},
         }
         self.view.cls.service = mock_service
 
@@ -53,7 +52,7 @@ class InscripcionControllerTests(SimpleTestCase):
             {
                 "persona": {"email": "test@test.com", "password": "123"},
                 "atleta": {"edad": 10},
-                "inscripcion": {}
+                "inscripcion": {},
             },
             format="json",
             HTTP_AUTHORIZATION=self.auth_header,
@@ -79,17 +78,19 @@ class InscripcionControllerTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_deshabilitar_inscripcion(self):
-        view = InscripcionController.as_view({"post": "deshabilitar"})
+    def test_cambiar_estado_inscripcion(self):
+        view = InscripcionController.as_view({"post": "cambiar_estado"})
         mock_service = MagicMock()
-        mock_service.deshabilitar_inscripcion.return_value = MagicMock(habilitada=False)
+        mock_service.cambiar_estado_inscripcion.return_value = MagicMock(
+            habilitada=False
+        )
         view.cls.service = mock_service
 
         request = self.factory.post(
-            "/inscripciones/1/deshabilitar/", 
-            HTTP_AUTHORIZATION=self.auth_header
+            "/inscripciones/1/cambiar-estado/", HTTP_AUTHORIZATION=self.auth_header
         )
         response = view(request, pk=1)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["habilitada"])
+        self.assertIn("mensaje", response.data)

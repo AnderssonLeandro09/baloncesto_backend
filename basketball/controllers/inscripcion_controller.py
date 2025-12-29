@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from django.core.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema
 
-from ..services.atleta_service import AtletaService
+from ..services.inscripcion_service import InscripcionService
 from ..serializers import (
     InscripcionSerializer,
     AtletaInscripcionInputSerializer,
@@ -16,13 +16,15 @@ from ..permissions import IsEntrenadorOrEstudianteVinculacion
 
 logger = logging.getLogger(__name__)
 
+
 class InscripcionController(viewsets.ViewSet):
     """
     Controlador para gestionar las Inscripciones de los atletas.
     """
+
     permission_classes = [IsEntrenadorOrEstudianteVinculacion]
     serializer_class = InscripcionSerializer
-    service = AtletaService()
+    service = InscripcionService()
 
     @extend_schema(responses={200: AtletaInscripcionResponseSerializer(many=True)})
     def list(self, request):
@@ -36,8 +38,8 @@ class InscripcionController(viewsets.ViewSet):
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
-        request=AtletaInscripcionInputSerializer, 
-        responses={201: AtletaInscripcionResponseSerializer}
+        request=AtletaInscripcionInputSerializer,
+        responses={201: AtletaInscripcionResponseSerializer},
     )
     def create(self, request):
         """Crea un atleta y su inscripción directamente."""
@@ -46,7 +48,7 @@ class InscripcionController(viewsets.ViewSet):
         persona_data = payload.get("persona")
         atleta_data = payload.get("atleta")
         inscripcion_data = payload.get("inscripcion")
-        
+
         try:
             result = self.service.create_atleta_inscripcion(
                 persona_data, atleta_data, inscripcion_data, token
@@ -63,7 +65,10 @@ class InscripcionController(viewsets.ViewSet):
         try:
             data = self.service.get_inscripcion_completa(pk, token)
             if not data:
-                return Response({"error": "Inscripción no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"error": "Inscripción no encontrada"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             return Response(data, status=status.HTTP_200_OK)
         except Exception as exc:
             logger.error(f"Error en retrieve inscripcion: {exc}")
@@ -71,7 +76,7 @@ class InscripcionController(viewsets.ViewSet):
 
     @extend_schema(
         request=AtletaInscripcionInputSerializer,
-        responses={200: AtletaInscripcionResponseSerializer}
+        responses={200: AtletaInscripcionResponseSerializer},
     )
     def update(self, request, pk=None):
         """Actualiza los datos de la persona, atleta e inscripción."""
@@ -86,25 +91,39 @@ class InscripcionController(viewsets.ViewSet):
                 pk, persona_data, atleta_data, inscripcion_data, token
             )
             if not result:
-                return Response({"error": "Inscripción no encontrada"}, status=status.HTTP_404_NOT_FOUND)
+                return Response(
+                    {"error": "Inscripción no encontrada"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
             return Response(result, status=status.HTTP_200_OK)
         except Exception as exc:
             logger.error(f"Error en update inscripcion: {exc}")
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(detail=True, methods=['post'], url_path='deshabilitar')
-    @extend_schema(request=None, responses={200: InscripcionSerializer})
-    def deshabilitar(self, request, pk=None):
+    @action(detail=True, methods=["post"], url_path="cambiar-estado")
+    @extend_schema(request=None)
+    def cambiar_estado(self, request, pk=None):
         """
-        Deshabilita una inscripción (habilitada = False).
+        Alterna el estado de habilitación de una inscripción (Toggle).
+        No requiere cuerpo en la petición.
         """
         try:
-            inscripcion = self.service.deshabilitar_inscripcion(pk)
+            inscripcion = self.service.cambiar_estado_inscripcion(pk)
             if not inscripcion:
-                return Response({"error": "Inscripción no encontrada"}, status=status.HTTP_404_NOT_FOUND)
-            
-            serializer = InscripcionSerializer(inscripcion)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+                return Response(
+                    {"error": "Inscripción no encontrada"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            mensaje = (
+                "Inscripción habilitada correctamente"
+                if inscripcion.habilitada
+                else "Inscripción deshabilitada correctamente"
+            )
+            return Response(
+                {"habilitada": inscripcion.habilitada, "mensaje": mensaje},
+                status=status.HTTP_200_OK,
+            )
         except Exception as exc:
-            logger.error(f"Error en deshabilitar inscripcion: {exc}")
+            logger.error(f"Error en cambiar_estado inscripcion: {exc}")
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

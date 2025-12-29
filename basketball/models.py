@@ -15,6 +15,8 @@ class TipoInscripcion(models.TextChoices):
     FEDERADO = "FEDERADO", "Federado"
     NO_FEDERADO = "NO_FEDERADO", "No Federado"
     INVITADO = "INVITADO", "Invitado"
+    ORDINARIA = "ORDINARIA", "Ordinaria"
+    EXTRAORDINARIA = "EXTRAORDINARIA", "Extraordinaria"
 
 
 class TipoPrueba(models.TextChoices):
