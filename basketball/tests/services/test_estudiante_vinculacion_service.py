@@ -109,6 +109,7 @@ class EstudianteVinculacionServiceTests(SimpleTestCase):
     def test_list_uses_persona_fetch(self):
         estudiante_obj = SimpleNamespace(
             id=1, persona_external="abc", carrera="Ing", semestre="1", eliminado=False
+
         )
         self.service.dao.get_by_filter.return_value = [estudiante_obj]
 

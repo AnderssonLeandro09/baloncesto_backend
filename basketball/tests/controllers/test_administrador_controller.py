@@ -9,7 +9,9 @@ from django.test import SimpleTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
 
-from basketball.controllers.administrador_controller import AdministradorController
+from basketball.controllers.administrador_controller import (
+    AdministradorController,
+)
 
 
 class AdministradorControllerTests(SimpleTestCase):

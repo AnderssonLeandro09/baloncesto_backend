@@ -4,6 +4,18 @@ import requests
 from django.conf import settings
 
 # Importar todos los serializadores desde el archivo de barril
+from .serializar import (  # noqa: F401
+    PersonaSerializer,
+    AdministradorSerializer,
+    AdministradorDataSerializer,
+    AdministradorInputSerializer,
+    AdministradorResponseSerializer,
+    EstudianteVinculacionSerializer,
+    EstudianteVinculacionDataSerializer,
+    EstudianteVinculacionInputSerializer,
+    EstudianteVinculacionResponseSerializer,
+    LoginSerializer,
+)
 
 # Cache global para tokens y datos de persona
 _user_module_token = None

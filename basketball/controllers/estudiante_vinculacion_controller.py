@@ -11,7 +11,6 @@ from ..serializers import (
     EstudianteVinculacionResponseSerializer,
     get_user_module_token,
 )
-from ..services.estudiante_vinculacion_service import EstudianteVinculacionService
 
 
 class EstudianteVinculacionController(viewsets.ViewSet):

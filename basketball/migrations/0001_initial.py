@@ -7,7 +7,6 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     initial = True
 
     dependencies = []
@@ -212,6 +211,7 @@ class Migration(migrations.Migration):
                     "email",
                     models.EmailField(
                         blank=True, max_length=254, null=True, verbose_name="Email"
+
                     ),
                 ),
                 (
