@@ -146,7 +146,6 @@ class Migration(migrations.Migration):
                 related_name="grupos",
                 to="basketball.entrenador",
                 verbose_name="Entrenador",
-                null=True,  # Temporal para permitir la migración
             ),
             preserve_default=False,
         ),
