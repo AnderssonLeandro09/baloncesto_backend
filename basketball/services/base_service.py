@@ -5,4 +5,3 @@ TODO: Implementar lógica de servicios
 """
 
 # TODO: Implementar BaseService y ServiceResult
-pass

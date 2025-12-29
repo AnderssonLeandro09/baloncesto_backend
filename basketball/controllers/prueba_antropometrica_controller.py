@@ -5,4 +5,3 @@ TODO: Implementar controlador
 """
 
 # TODO: Implementar PruebaAntropometricaController
-pass

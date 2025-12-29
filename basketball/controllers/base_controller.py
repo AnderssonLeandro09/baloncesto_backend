@@ -5,4 +5,3 @@ TODO: Implementar lógica de controladores
 """
 
 # TODO: Implementar BaseController
-pass

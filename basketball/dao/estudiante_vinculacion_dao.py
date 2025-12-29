@@ -11,7 +11,9 @@ class EstudianteVinculacionDAO(GenericDAO[EstudianteVinculacion]):
 
     model = EstudianteVinculacion
 
-    def get_by_persona_external(self, persona_external: str) -> Optional[EstudianteVinculacion]:
+    def get_by_persona_external(
+        self, persona_external: str
+    ) -> Optional[EstudianteVinculacion]:
         return self.get_first(persona_external=persona_external, eliminado=False)
 
     def get_activos(self) -> QuerySet[EstudianteVinculacion]:

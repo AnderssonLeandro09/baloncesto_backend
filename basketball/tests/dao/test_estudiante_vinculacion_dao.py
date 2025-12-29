@@ -11,16 +11,16 @@ class EstudianteVinculacionDAOTests(SimpleTestCase):
     def setUp(self):
         self.dao = EstudianteVinculacionDAO()
 
-    @patch('basketball.dao.estudiante_vinculacion_dao.EstudianteVinculacion.objects')
+    @patch("basketball.dao.estudiante_vinculacion_dao.EstudianteVinculacion.objects")
     def test_get_by_persona_external(self, mock_objects):
-        mock_objects.filter.return_value.first.return_value = 'estudiante'
+        mock_objects.filter.return_value.first.return_value = "estudiante"
 
-        result = self.dao.get_by_persona_external('ext')
+        result = self.dao.get_by_persona_external("ext")
 
-        mock_objects.filter.assert_called_with(persona_external='ext', eliminado=False)
-        self.assertEqual(result, 'estudiante')
+        mock_objects.filter.assert_called_with(persona_external="ext", eliminado=False)
+        self.assertEqual(result, "estudiante")
 
-    @patch('basketball.dao.estudiante_vinculacion_dao.EstudianteVinculacion.objects')
+    @patch("basketball.dao.estudiante_vinculacion_dao.EstudianteVinculacion.objects")
     def test_get_activos(self, mock_objects):
         qs = MagicMock()
         mock_objects.filter.return_value = qs

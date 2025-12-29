@@ -1,0 +1,7 @@
+[flake8]
+# Set line length to 88 to match Black
+max-line-length = 88
+# Ignore specific errors that conflict with Black
+extend-ignore = E203
+# Exclude auto-generated files (migrations) and virtual environments
+exclude = .git,__pycache__,docs/source/conf.py,old,build,dist,*/migrations/*,venv

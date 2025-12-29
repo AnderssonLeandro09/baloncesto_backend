@@ -11,4 +11,3 @@ TODO: Implementar servicios para cada modelo
 # TODO: Implementar PruebaFisicaService
 # TODO: Implementar EntrenadorService
 # TODO: Implementar EstudianteVinculacionService
-pass

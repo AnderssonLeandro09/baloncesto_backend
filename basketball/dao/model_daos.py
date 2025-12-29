@@ -12,4 +12,3 @@ TODO: Implementar DAOs específicos heredando de GenericDAO
 # TODO: Implementar EntrenadorDAO
 # TODO: Implementar EstudianteVinculacionDAO
 # TODO: Implementar UsuarioDAO
-pass
