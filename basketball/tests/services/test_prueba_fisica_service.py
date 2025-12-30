@@ -10,9 +10,7 @@ class PruebaFisicaServiceTest(TestCase):
     def setUp(self):
         self.service = PruebaFisicaService()
         self.atleta = Atleta.objects.create(
-            nombre_atleta="Maria",
-            apellido_atleta="Lopez",
-            dni="0987654321",
+            persona_external="uuid-maria-lopez",
             fecha_nacimiento=date(2012, 5, 20),
             edad=13,
             sexo=Sexo.FEMENINO,

@@ -10,9 +10,7 @@ class PruebaFisicaDAOTest(TestCase):
     def setUp(self):
         self.dao = PruebaFisicaDAO()
         self.atleta = Atleta.objects.create(
-            nombre_atleta="Juan",
-            apellido_atleta="Perez",
-            dni="1234567890",
+            persona_external="uuid-juan-perez",
             fecha_nacimiento=date(2010, 1, 1),
             edad=15,
             sexo=Sexo.MASCULINO,
