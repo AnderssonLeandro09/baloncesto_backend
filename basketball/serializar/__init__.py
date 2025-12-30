@@ -26,3 +26,8 @@ from .atleta import (  # noqa: F401
     AtletaInscripcionInputSerializer,
     AtletaInscripcionResponseSerializer,
 )
+from .prueba_fisica import (  # noqa: F401
+    PruebaFisicaSerializer,
+    PruebaFisicaInputSerializer,
+    PruebaFisicaResponseSerializer,
+)

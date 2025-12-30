@@ -19,11 +19,8 @@ class TipoInscripcion(models.TextChoices):
 class TipoPrueba(models.TextChoices):
     """Enum para tipos de prueba física"""
 
-    VELOCIDAD = "VELOCIDAD", "Velocidad"
-    RESISTENCIA = "RESISTENCIA", "Resistencia"
     FUERZA = "FUERZA", "Fuerza"
-    FLEXIBILIDAD = "FLEXIBILIDAD", "Flexibilidad"
-    COORDINACION = "COORDINACION", "Coordinación"
+    VELOCIDAD = "VELOCIDAD", "Velocidad"
     AGILIDAD = "AGILIDAD", "Agilidad"
 
 
