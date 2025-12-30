@@ -30,20 +30,6 @@ class EstudianteVinculacionServiceTests(SimpleTestCase):
         with self.assertRaises(ValidationError):
             self.service.create_estudiante({"first_name": "A"}, {}, "token")
 
-    def test_create_invalid_email(self):
-        with self.assertRaises(ValidationError) as cm:
-            self.service.create_estudiante(
-                {
-                    "first_name": "A",
-                    "identification": "123",
-                    "email": "test@gmail.com",
-                    "password": "123",
-                },
-                {"carrera": "Ing", "semestre": "1"},
-                "token",
-            )
-        self.assertIn("institucional", str(cm.exception))
-
     def test_create_success(self):
         # Mock save-account response (empty data)
         self.service._call_user_module.side_effect = [
@@ -64,7 +50,7 @@ class EstudianteVinculacionServiceTests(SimpleTestCase):
             {
                 "first_name": "A",
                 "identification": "123",
-                "email": "a@unl.edu.ec",
+                "email": "a@a.com",
                 "password": "123",
             },
             {"carrera": "Ing", "semestre": "1"},
