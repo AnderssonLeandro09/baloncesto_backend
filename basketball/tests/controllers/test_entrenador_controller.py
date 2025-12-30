@@ -1,4 +1,4 @@
-"""Tests del controlador de EstudianteVinculacion usando mocks."""
+"""Tests del controlador de Entrenador usando mocks."""
 
 import jwt
 from django.conf import settings
@@ -8,15 +8,13 @@ from django.test import SimpleTestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
 
-from basketball.controllers.estudiante_vinculacion_controller import (
-    EstudianteVinculacionController,
-)
+from basketball.controllers.entrenador_controller import EntrenadorController
 
 
-class EstudianteVinculacionControllerTests(SimpleTestCase):
+class EntrenadorControllerTests(SimpleTestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
-        self.view = EstudianteVinculacionController.as_view(
+        self.view = EntrenadorController.as_view(
             {
                 "get": "list",
                 "post": "create",
@@ -35,13 +33,13 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
 
     def test_list_returns_data(self):
         mock_service = MagicMock()
-        mock_service.list_estudiantes.return_value = [
-            {"estudiante": {"id": 1}},
+        mock_service.list_entrenadores.return_value = [
+            {"entrenador": {"id": 1}},
         ]
         self.view.cls.service = mock_service
 
         request = self.factory.get(
-            "/estudiantes-vinculacion/",
+            "/entrenadores/",
             HTTP_AUTHORIZATION=self.auth_header,
         )
         response = self.view(request)
@@ -51,18 +49,18 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
 
     def test_create_success(self):
         mock_service = MagicMock()
-        mock_service.create_estudiante.return_value = {"estudiante": {"id": 1}}
+        mock_service.create_entrenador.return_value = {"entrenador": {"id": 1}}
         self.view.cls.service = mock_service
 
         request = self.factory.post(
-            "/estudiantes-vinculacion/",
+            "/entrenadores/",
             {
                 "persona": {
                     "first_name": "A",
                     "email": "test@unl.edu.ec",
                     "password": "password123",
                 },
-                "estudiante": {"carrera": "Ing", "semestre": "1"},
+                "entrenador": {"especialidad": "Táctica", "club_asignado": "Club A"},
             },
             format="json",
             HTTP_AUTHORIZATION=self.auth_header,
@@ -70,16 +68,16 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn("estudiante", response.data)
+        self.assertIn("entrenador", response.data)
 
     def test_create_handles_error(self):
         mock_service = MagicMock()
-        mock_service.create_estudiante.side_effect = Exception("bad")
+        mock_service.create_entrenador.side_effect = Exception("bad")
         self.view.cls.service = mock_service
 
         request = self.factory.post(
-            "/estudiantes-vinculacion/",
-            {"persona": {}, "estudiante": {}},
+            "/entrenadores/",
+            {"persona": {}, "entrenador": {}},
             format="json",
             HTTP_AUTHORIZATION=self.auth_header,
         )
@@ -89,46 +87,60 @@ class EstudianteVinculacionControllerTests(SimpleTestCase):
         self.assertIn("error", response.data)
 
     def test_retrieve_not_found(self):
-        view = EstudianteVinculacionController.as_view({"get": "retrieve"})
+        view = EntrenadorController.as_view({"get": "retrieve"})
         mock_service = MagicMock()
-        mock_service.get_estudiante.return_value = None
+        mock_service.get_entrenador.return_value = None
         view.cls.service = mock_service
 
         request = self.factory.get(
-            "/estudiantes-vinculacion/9/", HTTP_AUTHORIZATION=self.auth_header
+            "/entrenadores/9/", HTTP_AUTHORIZATION=self.auth_header
         )
         response = view(request, pk=9)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_update_success(self):
-        view = EstudianteVinculacionController.as_view({"put": "update"})
+        view = EntrenadorController.as_view({"put": "update"})
         mock_service = MagicMock()
-        mock_service.update_estudiante.return_value = {
-            "estudiante": {"id": 2, "semestre": "2"}
+        mock_service.update_entrenador.return_value = {
+            "entrenador": {"id": 2, "especialidad": "Físico"}
         }
         view.cls.service = mock_service
 
         request = self.factory.put(
-            "/estudiantes-vinculacion/2/",
-            {"persona": {"external": "x"}, "estudiante": {"semestre": "2"}},
+            "/entrenadores/2/",
+            {"persona": {"external": "x"}, "entrenador": {"especialidad": "Físico"}},
             format="json",
             HTTP_AUTHORIZATION=self.auth_header,
         )
         response = view(request, pk=2)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["estudiante"]["semestre"], "2")
+        self.assertEqual(response.data["entrenador"]["especialidad"], "Físico")
 
     def test_destroy_success(self):
-        view = EstudianteVinculacionController.as_view({"delete": "destroy"})
+        view = EntrenadorController.as_view({"delete": "destroy"})
         mock_service = MagicMock()
-        mock_service.delete_estudiante.return_value = True
+        mock_service.delete_entrenador.return_value = True
         view.cls.service = mock_service
 
         request = self.factory.delete(
-            "/estudiantes-vinculacion/3/", HTTP_AUTHORIZATION=self.auth_header
+            "/entrenadores/3/", HTTP_AUTHORIZATION=self.auth_header
         )
         response = view(request, pk=3)
 
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+
+    def test_forbidden_for_non_admin(self):
+        # Create token with different role
+        payload = {"role": "USER", "sub": "test_user"}
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+        auth_header = f"Bearer {token}"
+
+        request = self.factory.get(
+            "/entrenadores/",
+            HTTP_AUTHORIZATION=auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
