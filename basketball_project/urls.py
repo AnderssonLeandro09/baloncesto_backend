@@ -3,6 +3,7 @@ URL configuration for basketball_project project.
 
 URLs del proyecto Basketball
 """
+
 from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import (

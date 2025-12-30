@@ -1,4 +1,5 @@
 from django.db import migrations, models
+import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
@@ -7,6 +8,7 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        # Primero eliminar la FK de grupo_atleta hacia entrenador
         migrations.RemoveField(
             model_name="grupoatleta",
             name="entrenador",
@@ -135,14 +137,16 @@ class Migration(migrations.Migration):
                 "ordering": ["-fecha_registro"],
             },
         ),
+        # Volver a agregar la FK de grupo_atleta hacia el nuevo Entrenador
         migrations.AddField(
             model_name="grupoatleta",
             name="entrenador",
             field=models.ForeignKey(
-                on_delete=models.PROTECT,
+                on_delete=django.db.models.deletion.PROTECT,
                 related_name="grupos",
                 to="basketball.entrenador",
                 verbose_name="Entrenador",
             ),
+            preserve_default=False,
         ),
     ]
