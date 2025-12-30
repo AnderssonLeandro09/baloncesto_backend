@@ -9,6 +9,7 @@ from .controllers.estudiante_vinculacion_controller import (
 from .controllers.entrenador_controller import EntrenadorController
 from .controllers.auth_controller import AuthController
 from .controllers.inscripcion_controller import InscripcionController
+from .controllers.prueba_fisica_controller import PruebaFisicaController
 
 app_name = "basketball"
 
@@ -23,6 +24,7 @@ router.register(r"entrenadores", EntrenadorController, basename="entrenador")
 # Registramos el AuthController, aunque solo usaremos la acción 'login'
 router.register(r"auth", AuthController, basename="auth")
 router.register(r"inscripciones", InscripcionController, basename="inscripcion")
+router.register(r"pruebas-fisicas", PruebaFisicaController, basename="prueba_fisica")
 
 urlpatterns = [
     path("", include(router.urls)),

@@ -25,6 +25,9 @@ from .serializar import (  # noqa: F401
     InscripcionDataSerializer,
     AtletaInscripcionInputSerializer,
     AtletaInscripcionResponseSerializer,
+    PruebaFisicaSerializer,
+    PruebaFisicaInputSerializer,
+    PruebaFisicaResponseSerializer,
 )
 
 # Cache global para tokens y datos de persona
