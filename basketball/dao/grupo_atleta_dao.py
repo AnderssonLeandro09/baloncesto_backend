@@ -10,10 +10,12 @@ class GrupoAtletaDAO(GenericDAO[GrupoAtleta]):
     """DAO para operaciones CRUD de GrupoAtleta."""
 
     model = GrupoAtleta
+    
+    MAX_GRUPOS_POR_ENTRENADOR = 1000
 
     def get_activos(self) -> QuerySet[GrupoAtleta]:
         """Retorna todos los grupos que no han sido eliminados."""
-        return self.get_by_filter(eliminado=False)
+        return self.get_by_filter(eliminado=False).order_by('-fecha_creacion')[:self.MAX_GRUPOS_POR_ENTRENADOR]
 
     def get_by_id_activo(self, grupo_id: int) -> Optional[GrupoAtleta]:
         """Retorna un grupo por ID si no ha sido eliminado."""
@@ -21,4 +23,7 @@ class GrupoAtletaDAO(GenericDAO[GrupoAtleta]):
 
     def get_by_entrenador(self, entrenador_id: int) -> QuerySet[GrupoAtleta]:
         """Retorna los grupos asignados a un entrenador específico."""
-        return self.get_by_filter(entrenador_id=entrenador_id, eliminado=False)
+        return self.get_by_filter(
+            entrenador_id=entrenador_id, 
+            eliminado=False
+        ).order_by('-fecha_creacion')[:self.MAX_GRUPOS_POR_ENTRENADOR]

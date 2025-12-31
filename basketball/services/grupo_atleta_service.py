@@ -15,84 +15,152 @@ class GrupoAtletaService:
 
     def __init__(self):
         self.dao = GrupoAtletaDAO()
+    
+    def get_entrenador_from_user(self, user) -> Optional[Entrenador]:
+        """Obtiene el entrenador basado en el usuario autenticado.
+        
+        Args:
+            user: Usuario autenticado con persona_external (user.pk)
+        
+        Returns:
+            Entrenador o None si no existe
+        
+        Raises:
+            ValidationError si no se encuentra el entrenador
+        """
+        if not user or not hasattr(user, 'pk'):
+            raise ValidationError("Usuario no autenticado")
+        
+        persona_external = user.pk
+        
+        try:
+            entrenador = Entrenador.objects.get(persona_external=persona_external, eliminado=False)
+            return entrenador
+        except Entrenador.DoesNotExist:
+            raise ValidationError(f"No se encontró un entrenador para el usuario {persona_external}")
+        except Exception as exc:
+            logger.error(f"Error al buscar entrenador: {exc}")
+            raise ValidationError("Error al obtener información del entrenador")
 
-    def create_grupo(self, data: Dict[str, Any]) -> GrupoAtleta:
-        """Crea un nuevo grupo de atletas y asigna atletas si se proporcionan."""
+    def create_grupo(self, data: Dict[str, Any], user=None) -> GrupoAtleta:
+        """Crea un nuevo grupo de atletas y asigna atletas si se proporcionan.
+        
+        Args:
+            data: Datos del grupo (ya validados por el serializer)
+            user: Usuario autenticado (se usará para obtener entrenador)
+        
+        Returns:
+            GrupoAtleta creado
+        """
         with transaction.atomic():
-            self._validate_rango_edad(
-                data.get("rango_edad_minima"), data.get("rango_edad_maxima")
-            )
+            # Hacer copia defensiva para evitar mutación del dict original
+            data = dict(data)
             
-            entrenador_id = data.get("entrenador")
-            if not entrenador_id:
-                raise ValidationError("El entrenador es obligatorio")
-                
-            if not Entrenador.objects.filter(id=entrenador_id).exists():
-                raise ValidationError("El entrenador especificado no existe")
+            # Asignar entrenador automáticamente desde el usuario autenticado
+            if user:
+                entrenador = self.get_entrenador_from_user(user)
+                data["entrenador_id"] = entrenador.id
+            else:
+                raise ValidationError("Usuario autenticado requerido")
+            
+            # Remover campos que no deben venir del frontend
+            data.pop("entrenador", None)
+            data.pop("estado", None)
+            data.pop("eliminado", None)
+            data.pop("id", None)
 
+            # Extraer atletas antes de crear el grupo
             atleta_ids = data.pop("atletas", [])
-            
-            # Ajustar para usar entrenador_id en lugar de la instancia
-            if "entrenador" in data:
-                data["entrenador_id"] = data.pop("entrenador")
 
+            # Crear el grupo con estado activo por defecto
+            data.setdefault("estado", True)
             grupo = self.dao.create(**data)
 
+            # Asignar atletas si se proporcionaron
             if atleta_ids:
                 self._assign_atletas(grupo, atleta_ids)
 
             return grupo
 
-    def update_grupo(self, pk: int, data: Dict[str, Any]) -> Optional[GrupoAtleta]:
-        """Actualiza un grupo existente y sus atletas."""
+    def update_grupo(self, pk: int, data: Dict[str, Any], user=None) -> Optional[GrupoAtleta]:
+        """Actualiza un grupo existente y sus atletas.
+        
+        Args:
+            pk: ID del grupo a actualizar
+            data: Datos a actualizar (ya validados por el serializer)
+            user: Usuario autenticado (se valida que sea el dueño del grupo)
+        
+        Returns:
+            GrupoAtleta actualizado o None si no existe
+        """
         with transaction.atomic():
+            # Hacer copia defensiva para evitar mutación del dict original
+            data = dict(data)
+            
+            # Validar que pk sea entero positivo
+            try:
+                pk = int(pk)
+                if pk <= 0:
+                    raise ValidationError("ID inválido")
+            except (ValueError, TypeError):
+                raise ValidationError("ID debe ser un número válido")
+            
             grupo = self.dao.get_by_id_activo(pk)
             if not grupo:
                 return None
-
-            min_edad = data.get("rango_edad_minima", grupo.rango_edad_minima)
-            max_edad = data.get("rango_edad_maxima", grupo.rango_edad_maxima)
-            self._validate_rango_edad(min_edad, max_edad)
-
-            entrenador_id = data.get("entrenador")
-            if entrenador_id and not Entrenador.objects.filter(id=entrenador_id).exists():
-                raise ValidationError("El entrenador especificado no existe")
-
-            atleta_ids = data.pop("atletas", None)
             
-            # Ajustar para usar entrenador_id en lugar de la instancia
-            if "entrenador" in data:
-                data["entrenador_id"] = data.pop("entrenador")
+            # Validar ownership (siempre requerido)
+            if not user:
+                raise ValidationError("Usuario autenticado requerido")
+            
+            entrenador = self.get_entrenador_from_user(user)
+            if grupo.entrenador_id != entrenador.id:
+                raise ValidationError("No tienes permiso para actualizar este grupo")
+            
+            # Remover campos que no deben modificarse
+            data.pop("entrenador", None)
+            data.pop("entrenador_id", None)
+            data.pop("estado", None)
+            data.pop("eliminado", None)
+            data.pop("id", None)
+            data.pop("fecha_creacion", None)
 
-            updated_grupo = self.dao.update(pk, **data)
+            # Extraer atletas antes de actualizar
+            atleta_ids = data.pop("atletas", None)
 
+            # Actualizar el grupo solo si hay datos válidos
+            if data:
+                updated_grupo = self.dao.update(pk, **data)
+            else:
+                updated_grupo = grupo
+
+            # Actualizar atletas si se proporcionaron
             if atleta_ids is not None:
                 self._assign_atletas(updated_grupo, atleta_ids)
 
             return updated_grupo
 
     def _assign_atletas(self, grupo: GrupoAtleta, atleta_ids: List[int]):
-        """Asocia una lista de atletas al grupo, validando que existan."""
-        # SECURITY: Limitar cantidad de atletas para prevenir DoS
-        if len(atleta_ids) > 100:
-            raise ValidationError("No se pueden asignar más de 100 atletas a un grupo")
+        """Asocia una lista de atletas al grupo, validando lógica de negocio.
         
-        # SECURITY: Validar que todos los IDs sean positivos
-        if any(aid <= 0 for aid in atleta_ids):
-            raise ValidationError("Los IDs de atletas deben ser números positivos")
+        Args:
+            grupo: Grupo al que se asignarán los atletas
+            atleta_ids: Lista de IDs de atletas (ya validados por el serializer)
+        """
+        # Los atletas ya vienen validados por el serializer (tipo, rango, duplicados)
+        # Solo se valida lógica de negocio
         
         atletas = Atleta.objects.filter(id__in=atleta_ids)
+        
+        # Validar que todos los atletas existan
         if len(atletas) != len(atleta_ids):
-            found_ids = set(atletas.values_list("id", flat=True))
-            missing_ids = set(atleta_ids) - found_ids
-            raise ValidationError(f"Los siguientes IDs de atletas no existen: {list(missing_ids)}")
+            raise ValidationError("Algunos atletas no existen")
         
         # Validar que los atletas cumplan con el rango de edad del grupo
         for atleta in atletas:
             if atleta.edad < grupo.rango_edad_minima or atleta.edad > grupo.rango_edad_maxima:
                 raise ValidationError(
-                    f"El atleta con ID {atleta.id} (edad: {atleta.edad}) "
-                    f"no cumple con el rango de edad del grupo ({grupo.rango_edad_minima}-{grupo.rango_edad_maxima})"
+                    f"Algunos atletas no cumplen con el rango de edad del grupo"
                 )
 
         grupo.atletas.set(atletas)
@@ -100,11 +168,36 @@ class GrupoAtletaService:
     def list_atletas_elegibles(self, grupo_id: Optional[int] = None, min_edad: Optional[int] = None, max_edad: Optional[int] = None) -> List[Atleta]:
         """Lista atletas que cumplen con el rango de edad de un grupo o rango específico."""
         if grupo_id:
+            # Validar tipo de dato
+            try:
+                grupo_id = int(grupo_id)
+                if grupo_id <= 0:
+                    raise ValidationError("ID de grupo inválido")
+            except (ValueError, TypeError):
+                raise ValidationError("ID de grupo debe ser un número válido")
+            
             grupo = self.dao.get_by_id_activo(grupo_id)
             if not grupo:
                 raise ValidationError("Grupo no encontrado")
             min_edad = grupo.rango_edad_minima
             max_edad = grupo.rango_edad_maxima
+        
+        # Validar tipos y rangos
+        if min_edad is not None:
+            try:
+                min_edad = int(min_edad)
+                if min_edad < 0 or min_edad > 150:
+                    raise ValidationError("Edad mínima debe estar entre 0 y 150")
+            except (ValueError, TypeError):
+                raise ValidationError("Edad mínima debe ser un número válido")
+        
+        if max_edad is not None:
+            try:
+                max_edad = int(max_edad)
+                if max_edad < 0 or max_edad > 150:
+                    raise ValidationError("Edad máxima debe estar entre 0 y 150")
+            except (ValueError, TypeError):
+                raise ValidationError("Edad máxima debe ser un número válido")
         
         if min_edad is None or max_edad is None:
             raise ValidationError("Se requiere un grupo_id o un rango de edad (min_edad, max_edad)")
@@ -119,35 +212,77 @@ class GrupoAtletaService:
             
         return list(queryset)
 
-    def delete_grupo(self, pk: int) -> bool:
-        """Realiza una baja lógica del grupo."""
+    def delete_grupo(self, pk: int, user=None) -> bool:
+        """Realiza una baja lógica del grupo.
+        
+        Args:
+            pk: ID del grupo a eliminar
+            user: Usuario autenticado (se valida que sea el dueño del grupo)
+        
+        Returns:
+            True si se eliminó, False si no existe
+        """
+        # Validar tipo de dato
+        try:
+            pk = int(pk)
+            if pk <= 0:
+                raise ValidationError("ID de grupo inválido")
+        except (ValueError, TypeError):
+            raise ValidationError("ID de grupo debe ser un número válido")
+        
+        if user:
+            # Validar que el grupo pertenezca al entrenador
+            grupo = self.dao.get_by_id_activo(pk)
+            if not grupo:
+                return False
+            
+            entrenador = self.get_entrenador_from_user(user)
+            if grupo.entrenador_id != entrenador.id:
+                raise ValidationError("No tienes permiso para eliminar este grupo")
+        
         updated = self.dao.update(pk, eliminado=True)
         return updated is not None
 
-    def get_grupo(self, pk: int) -> Optional[GrupoAtleta]:
-        """Obtiene un grupo por su ID."""
-        return self.dao.get_by_id_activo(pk)
-
-    def list_grupos(self) -> List[GrupoAtleta]:
-        """Lista todos los grupos activos."""
-        return list(self.dao.get_activos())
+    def get_grupo(self, pk: int, user=None) -> Optional[GrupoAtleta]:
+        """Obtiene un grupo por su ID.
+        
+        Args:
+            pk: ID del grupo
+            user: Usuario autenticado (opcional, para validar ownership)
+        
+        Returns:
+            GrupoAtleta o None si no existe
+        """
+        # Validar tipo de dato
+        try:
+            pk = int(pk)
+            if pk <= 0:
+                raise ValidationError("ID de grupo inválido")
+        except (ValueError, TypeError):
+            raise ValidationError("ID de grupo debe ser un número válido")
+        
+        grupo = self.dao.get_by_id_activo(pk)
+        
+        # Si se proporciona usuario, validar ownership
+        if grupo and user:
+            entrenador = self.get_entrenador_from_user(user)
+            if grupo.entrenador_id != entrenador.id:
+                raise ValidationError("No tienes permiso para ver este grupo")
+        
+        return grupo
+    
+    def list_grupos_by_user(self, user) -> List[GrupoAtleta]:
+        """Lista los grupos del entrenador autenticado.
+        
+        Args:
+            user: Usuario autenticado
+        
+        Returns:
+            Lista de grupos del entrenador
+        """
+        entrenador = self.get_entrenador_from_user(user)
+        return list(self.dao.get_by_entrenador(entrenador.id))
 
     def list_grupos_por_entrenador(self, entrenador_id: int) -> List[GrupoAtleta]:
         """Lista los grupos activos de un entrenador."""
         return list(self.dao.get_by_entrenador(entrenador_id))
-
-    def _validate_rango_edad(self, minima: Any, maxima: Any):
-        """Valida que el rango de edad sea coherente."""
-        if minima is not None and maxima is not None:
-            min_edad = int(minima)
-            max_edad = int(maxima)
-            
-            if min_edad > max_edad:
-                raise ValidationError("La edad mínima no puede ser mayor a la máxima")
-            if min_edad < 0:
-                raise ValidationError("La edad mínima no puede ser negativa")
-            # SECURITY: Validar límites razonables de edad
-            if max_edad > 150:
-                raise ValidationError("La edad máxima no puede ser mayor a 150")
-            if max_edad < min_edad:
-                raise ValidationError("El rango de edad no es válido")
