@@ -73,6 +73,14 @@ class GrupoAtletaService:
 
     def _assign_atletas(self, grupo: GrupoAtleta, atleta_ids: List[int]):
         """Asocia una lista de atletas al grupo, validando que existan."""
+        # SECURITY: Limitar cantidad de atletas para prevenir DoS
+        if len(atleta_ids) > 100:
+            raise ValidationError("No se pueden asignar más de 100 atletas a un grupo")
+        
+        # SECURITY: Validar que todos los IDs sean positivos
+        if any(aid <= 0 for aid in atleta_ids):
+            raise ValidationError("Los IDs de atletas deben ser números positivos")
+        
         atletas = Atleta.objects.filter(id__in=atleta_ids)
         if len(atletas) != len(atleta_ids):
             found_ids = set(atletas.values_list("id", flat=True))
@@ -83,7 +91,7 @@ class GrupoAtletaService:
         for atleta in atletas:
             if atleta.edad < grupo.rango_edad_minima or atleta.edad > grupo.rango_edad_maxima:
                 raise ValidationError(
-                    f"El atleta {atleta.nombre_atleta} {atleta.apellido_atleta} (edad: {atleta.edad}) "
+                    f"El atleta con ID {atleta.id} (edad: {atleta.edad}) "
                     f"no cumple con el rango de edad del grupo ({grupo.rango_edad_minima}-{grupo.rango_edad_maxima})"
                 )
 
@@ -131,7 +139,15 @@ class GrupoAtletaService:
     def _validate_rango_edad(self, minima: Any, maxima: Any):
         """Valida que el rango de edad sea coherente."""
         if minima is not None and maxima is not None:
-            if int(minima) > int(maxima):
+            min_edad = int(minima)
+            max_edad = int(maxima)
+            
+            if min_edad > max_edad:
                 raise ValidationError("La edad mínima no puede ser mayor a la máxima")
-            if int(minima) < 0:
+            if min_edad < 0:
                 raise ValidationError("La edad mínima no puede ser negativa")
+            # SECURITY: Validar límites razonables de edad
+            if max_edad > 150:
+                raise ValidationError("La edad máxima no puede ser mayor a 150")
+            if max_edad < min_edad:
+                raise ValidationError("El rango de edad no es válido")

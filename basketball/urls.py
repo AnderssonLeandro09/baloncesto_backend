@@ -10,6 +10,7 @@ from .controllers.entrenador_controller import EntrenadorController
 from .controllers.auth_controller import AuthController
 from .controllers.inscripcion_controller import InscripcionController
 from .controllers.prueba_fisica_controller import PruebaFisicaController
+from .controllers.grupo_atleta_controller import GrupoAtletaController
 
 app_name = "basketball"
 
@@ -25,6 +26,7 @@ router.register(r"entrenadores", EntrenadorController, basename="entrenador")
 router.register(r"auth", AuthController, basename="auth")
 router.register(r"inscripciones", InscripcionController, basename="inscripcion")
 router.register(r"pruebas-fisicas", PruebaFisicaController, basename="prueba_fisica")
+router.register(r"grupos-atletas", GrupoAtletaController, basename="grupo_atleta")
 
 urlpatterns = [
     path("", include(router.urls)),

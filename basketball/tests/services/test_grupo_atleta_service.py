@@ -101,13 +101,12 @@ class GrupoAtletaServiceTests(SimpleTestCase):
         grupo_mock = MagicMock(rango_edad_minima=10, rango_edad_maxima=12)
         atleta_viejo = MagicMock(id=1)
         atleta_viejo.edad = 15
-        atleta_viejo.nombre_atleta = "Viejo"
-        atleta_viejo.apellido_atleta = "Atleta"
+        # nombre_atleta y apellido_atleta ya no existen en el modelo
         mock_atleta.filter.return_value = [atleta_viejo]
         
         with self.assertRaises(ValidationError) as cm:
             self.service._assign_atletas(grupo_mock, [1])
-        self.assertIn("Viejo Atleta (edad: 15) no cumple con el rango de edad", cm.exception.message)
+        self.assertIn(f"El atleta con ID {atleta_viejo.id} (edad: 15) no cumple con el rango de edad", cm.exception.message)
 
     def test_delete_grupo(self):
         """Debe llamar al DAO para eliminar lógicamente."""
@@ -118,8 +117,9 @@ class GrupoAtletaServiceTests(SimpleTestCase):
     def test_list_atletas_elegibles(self, mock_atleta):
         """Debe listar atletas que cumplen con el rango de edad."""
         mock_qs = MagicMock()
+        # Configurar __iter__ para que list(mock_qs) devuelva la lista deseada
+        mock_qs.__iter__.return_value = iter([MagicMock(id=1)])
         mock_atleta.filter.return_value = mock_qs
-        mock_qs.exclude.return_value = [MagicMock(id=1)]
         
         result = self.service.list_atletas_elegibles(min_edad=10, max_edad=12)
         

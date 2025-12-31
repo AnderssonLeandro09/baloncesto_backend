@@ -60,10 +60,21 @@ class GrupoAtletaControllerTests(SimpleTestCase):
         mock_grupo.nombre = "Nuevo Grupo"
         # Simular que atletas.all() retorna una lista de objetos con PK
         mock_atleta1 = MagicMock()
+        mock_atleta1.id = 1
         mock_atleta1.pk = 1
+        mock_atleta1.persona_external = "ext-1"
+        mock_atleta1.edad = 20
+        mock_atleta1.sexo = "M"
+        
         mock_atleta2 = MagicMock()
+        mock_atleta2.id = 2
         mock_atleta2.pk = 2
+        mock_atleta2.persona_external = "ext-2"
+        mock_atleta2.edad = 22
+        mock_atleta2.sexo = "F"
+        
         mock_grupo.atletas.all.return_value = [mock_atleta1, mock_atleta2]
+        mock_grupo.atletas.__iter__.return_value = iter([mock_atleta1, mock_atleta2])
         
         mock_service.create_grupo.return_value = mock_grupo
         self.view.cls.service = mock_service
@@ -85,7 +96,10 @@ class GrupoAtletaControllerTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data["nombre"], "Nuevo Grupo")
-        self.assertEqual(response.data["atletas"], [1, 2])
+        # Ahora esperamos una lista de objetos, no de IDs
+        self.assertEqual(len(response.data["atletas"]), 2)
+        self.assertEqual(response.data["atletas"][0]["id"], 1)
+        self.assertEqual(response.data["atletas"][1]["id"], 2)
 
     def test_atletas_elegibles_grupo(self):
         view = GrupoAtletaController.as_view({"get": "atletas_elegibles_grupo"})
@@ -107,7 +121,9 @@ class GrupoAtletaControllerTests(SimpleTestCase):
 
     def test_create_handles_error(self):
         mock_service = MagicMock()
-        mock_service.create_grupo.side_effect = Exception("Error de validación")
+        # Usar ValidationError para que devuelva 400 en lugar de 500
+        from django.core.exceptions import ValidationError
+        mock_service.create_grupo.side_effect = ValidationError("Error de validación")
         self.view.cls.service = mock_service
 
         request = self.factory.post(
