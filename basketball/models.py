@@ -404,10 +404,12 @@ class PruebaAntropometrica(models.Model):
     # Cálculos automáticos
     # ================================
     def calcular_imc(self):
-        return self.peso / (self.estatura**2)
+        return Decimal(self.peso) / (Decimal(self.estatura) ** 2)
 
     def calcular_indice_cormico(self):
-        return (self.altura_sentado / self.estatura) * Decimal("100")
+        if self.estatura == 0:
+            return Decimal("0")
+        return (Decimal(self.altura_sentado) / Decimal(self.estatura)) * Decimal("100")
 
     def save(self, *args, **kwargs):
         self.indice_masa_corporal = Decimal(self.calcular_imc()).quantize(
