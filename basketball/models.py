@@ -291,7 +291,9 @@ class PruebaAntropometrica(models.Model):
         blank=True,
         verbose_name="Tipo de registrador",
     )
-    object_id = models.PositiveIntegerField(null=True, blank=True, verbose_name="ID del registrador")
+    object_id = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name="ID del registrador"
+    )
     registrado_por = GenericForeignKey("content_type", "object_id")
 
     rol_registrador = models.CharField(
@@ -307,12 +309,14 @@ class PruebaAntropometrica(models.Model):
     # ================================
     # Datos antropométricos
     # ================================
-    fecha_registro = models.DateField(default=timezone.now, verbose_name="Fecha de registro")
+    fecha_registro = models.DateField(
+        default=timezone.now, verbose_name="Fecha de registro"
+    )
 
     peso = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
+        default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.01"))],
         verbose_name="Peso (kg)",
     )
@@ -320,7 +324,7 @@ class PruebaAntropometrica(models.Model):
     estatura = models.DecimalField(
         max_digits=4,
         decimal_places=2,
-        default=Decimal('0.00'),
+        default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.01"))],
         verbose_name="Estatura (m)",
     )
@@ -328,7 +332,7 @@ class PruebaAntropometrica(models.Model):
     altura_sentado = models.DecimalField(
         max_digits=4,
         decimal_places=2,
-        default=Decimal('0.00'),
+        default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.01"))],
         verbose_name="Altura sentado (m)",
     )
@@ -336,7 +340,7 @@ class PruebaAntropometrica(models.Model):
     envergadura = models.DecimalField(
         max_digits=4,
         decimal_places=2,
-        default=Decimal('0.00'),
+        default=Decimal("0.00"),
         validators=[MinValueValidator(Decimal("0.01"))],
         verbose_name="Envergadura (m)",
     )
@@ -347,7 +351,7 @@ class PruebaAntropometrica(models.Model):
     indice_masa_corporal = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
+        default=Decimal("0.00"),
         editable=False,
         verbose_name="Índice de Masa Corporal",
     )
@@ -355,7 +359,7 @@ class PruebaAntropometrica(models.Model):
     indice_cormico = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        default=Decimal('0.00'),
+        default=Decimal("0.00"),
         editable=False,
         verbose_name="Índice Córmico",
     )
@@ -406,8 +410,12 @@ class PruebaAntropometrica(models.Model):
         return (self.altura_sentado / self.estatura) * Decimal("100")
 
     def save(self, *args, **kwargs):
-        self.indice_masa_corporal = Decimal(self.calcular_imc()).quantize(Decimal("0.01"))
-        self.indice_cormico = Decimal(self.calcular_indice_cormico()).quantize(Decimal("0.01"))
+        self.indice_masa_corporal = Decimal(self.calcular_imc()).quantize(
+            Decimal("0.01")
+        )
+        self.indice_cormico = Decimal(self.calcular_indice_cormico()).quantize(
+            Decimal("0.01")
+        )
         super().save(*args, **kwargs)
 
     def __str__(self):
