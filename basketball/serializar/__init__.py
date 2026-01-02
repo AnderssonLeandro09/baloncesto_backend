@@ -31,3 +31,8 @@ from .prueba_fisica import (  # noqa: F401
     PruebaFisicaInputSerializer,
     PruebaFisicaResponseSerializer,
 )
+from .prueba_antropometrica import (  # noqa: F401
+    PruebaAntropometricaSerializer,
+    PruebaAntropometricaInputSerializer,
+    PruebaAntropometricaResponseSerializer,
+)
