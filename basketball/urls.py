@@ -26,7 +26,11 @@ router.register(r"entrenadores", EntrenadorController, basename="entrenador")
 router.register(r"auth", AuthController, basename="auth")
 router.register(r"inscripciones", InscripcionController, basename="inscripcion")
 router.register(r"pruebas-fisicas", PruebaFisicaController, basename="prueba_fisica")
-router.register(r"pruebas-antropometricas", PruebaAntropometricaController, basename="prueba_antropometrica")
+router.register(
+    r"pruebas-antropometricas",
+    PruebaAntropometricaController,
+    basename="prueba_antropometrica",
+)
 
 urlpatterns = [
     path("", include(router.urls)),
