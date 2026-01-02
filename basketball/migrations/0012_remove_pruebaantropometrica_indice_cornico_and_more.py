@@ -15,20 +15,20 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RemoveField(
-            model_name='pruebaantropometrica',
-            name='indice_cornico',
-        ),
+        #migrations.RemoveField(
+            #model_name='pruebaantropometrica',
+            #name='indice_cornico',
+        #),
         migrations.AddField(
             model_name='pruebaantropometrica',
             name='content_type',
             field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.PROTECT, to='contenttypes.contenttype', verbose_name='Tipo de registrador'),
         ),
-        migrations.AddField(
-            model_name='pruebaantropometrica',
-            name='indice_cormico',
-            field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), editable=False, max_digits=5, verbose_name='Índice Córmico'),
-        ),
+        # migrations.AddField(
+        #     model_name='pruebaantropometrica',
+        #     name='indice_cormico',
+        #     field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), editable=False, max_digits=5, verbose_name='Índice Córmico'),
+        # ),
         migrations.AddField(
             model_name='pruebaantropometrica',
             name='object_id',

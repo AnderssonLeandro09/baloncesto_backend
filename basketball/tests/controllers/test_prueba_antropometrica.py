@@ -1,6 +1,8 @@
 """Tests del controlador de Prueba Antropométrica usando mocks."""
 
 import jwt
+from datetime import date
+from decimal import Decimal
 from unittest.mock import MagicMock
 from django.conf import settings
 from django.test import SimpleTestCase
@@ -115,6 +117,17 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
         mock_prueba = MagicMock()
         mock_prueba.id = 1
         mock_prueba.estado = False
+        mock_prueba.atleta = "Atleta Test"
+        mock_prueba.registrado_por = "Entrenador Test"
+        mock_prueba.rol_registrador = "ENTRENADOR"
+        mock_prueba.fecha_registro = date.today()
+        mock_prueba.peso = Decimal('48.5')
+        mock_prueba.estatura = Decimal('1.55')
+        mock_prueba.altura_sentado = Decimal('0.82')
+        mock_prueba.envergadura = Decimal('1.60')
+        mock_prueba.indice_masa_corporal = Decimal('20.18')
+        mock_prueba.indice_cormico = Decimal('52.90')
+        mock_prueba.observaciones = "Test"
 
         mock_service.toggle_estado.return_value = mock_prueba
 

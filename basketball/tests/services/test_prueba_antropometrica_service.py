@@ -1,6 +1,7 @@
 """Pruebas unitarias para PruebaAntropometricaService."""
 
 from datetime import date
+from decimal import Decimal
 from unittest.mock import MagicMock
 from django.test import TestCase
 
@@ -29,10 +30,10 @@ class PruebaAntropometricaServiceTest(TestCase):
         data = {
             "atleta_id": self.atleta.id,
             "fecha_registro": date.today(),
-            "peso": 48.5,
-            "estatura": 1.55,
-            "altura_sentado": 0.82,
-            "envergadura": 1.60,
+            "peso": Decimal('48.5'),
+            "estatura": Decimal('1.55'),
+            "altura_sentado": Decimal('0.82'),
+            "envergadura": Decimal('1.60'),
             "observaciones": "Medición inicial",
         }
 
@@ -46,10 +47,10 @@ class PruebaAntropometricaServiceTest(TestCase):
         data = {
             "atleta_id": self.atleta.id,
             "fecha_registro": date.today(),
-            "peso": 47.0,
-            "estatura": 1.54,
-            "altura_sentado": 0.81,
-            "envergadura": 1.59,
+            "peso": Decimal('47.0'),
+            "estatura": Decimal('1.54'),
+            "altura_sentado": Decimal('0.81'),
+            "envergadura": Decimal('1.59'),
         }
 
         self.service.create_prueba_antropometrica(data, self.user)
