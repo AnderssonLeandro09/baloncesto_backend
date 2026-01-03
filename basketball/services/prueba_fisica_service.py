@@ -25,10 +25,10 @@ class PruebaFisicaService:
     def calcular_semestre(fecha_registro) -> str:
         """Calcula el semestre automáticamente desde la fecha de registro.
         Formato: YYYY-1 (Enero-Junio) o YYYY-2 (Julio-Diciembre)
-        
+
         Args:
             fecha_registro: Fecha de registro de la prueba (date object)
-            
+
         Returns:
             String en formato 'YYYY-1' o 'YYYY-2'
         """
@@ -186,7 +186,9 @@ class PruebaFisicaService:
             try:
                 atleta_id = int(atleta_id)
                 if atleta_id <= 0 or atleta_id > 2147483647:  # Máximo INT en PostgreSQL
-                    raise ValidationError("El ID del atleta está fuera del rango permitido")
+                    raise ValidationError(
+                        "El ID del atleta está fuera del rango permitido"
+                    )
             except (TypeError, ValueError):
                 raise ValidationError("El ID del atleta debe ser un número válido")
 
@@ -194,16 +196,21 @@ class PruebaFisicaService:
             atleta = self.atleta_dao.get_by_id(atleta_id)
             if not atleta:
                 raise ValidationError(f"El atleta con ID {atleta_id} no existe")
-            
+
             # Validar que el atleta tenga inscripción habilitada
-            if not hasattr(atleta, 'inscripcion') or not atleta.inscripcion.habilitada:
+            if not hasattr(atleta, "inscripcion") or not atleta.inscripcion.habilitada:
                 raise ValidationError("El atleta no tiene inscripción habilitada")
 
             # Validar autorización
             if user and user.role == "ENTRENADOR":
                 entrenador = Entrenador.objects.filter(persona_external=user.pk).first()
-                if not entrenador or not atleta.grupos.filter(entrenador=entrenador).exists():
-                    raise PermissionDenied("No tiene permiso para registrar pruebas a este atleta")
+                if (
+                    not entrenador
+                    or not atleta.grupos.filter(entrenador=entrenador).exists()
+                ):
+                    raise PermissionDenied(
+                        "No tiene permiso para registrar pruebas a este atleta"
+                    )
             elif user and user.role != "ESTUDIANTE_VINCULACION":
                 raise PermissionDenied("No tiene permiso para realizar esta acción")
 
@@ -213,7 +220,7 @@ class PruebaFisicaService:
 
             if fecha_registro and fecha_registro > date.today():
                 raise ValidationError("La fecha de registro no puede ser futura")
-            
+
             # Validar resultado (debe ser positivo y en rango razonable)
             resultado = data.get("resultado")
             if resultado is not None:
@@ -222,7 +229,9 @@ class PruebaFisicaService:
                     if resultado_float <= 0:
                         raise ValidationError("El resultado debe ser mayor a 0")
                     if resultado_float > 999999:  # Límite razonable
-                        raise ValidationError("El resultado excede el valor máximo permitido")
+                        raise ValidationError(
+                            "El resultado excede el valor máximo permitido"
+                        )
                 except (TypeError, ValueError):
                     raise ValidationError("El resultado debe ser un número válido")
 
@@ -230,16 +239,18 @@ class PruebaFisicaService:
             tipo_prueba = data.get("tipo_prueba")
             if not tipo_prueba:
                 raise ValidationError("El tipo de prueba es requerido")
-            
+
             # Validar y sanitizar observaciones
             observaciones = data.get("observaciones")
             if observaciones:
                 observaciones = str(observaciones).strip()
                 if len(observaciones) > 1000:
-                    raise ValidationError("Las observaciones no pueden exceder 1000 caracteres")
+                    raise ValidationError(
+                        "Las observaciones no pueden exceder 1000 caracteres"
+                    )
                 # Sanitización adicional ya se hace en el serializer
                 data["observaciones"] = observaciones
-            
+
             # Asignar unidad de medida automáticamente según el tipo de prueba
             data["unidad_medida"] = PruebaFisica.get_unidad_por_tipo(tipo_prueba)
 
@@ -251,14 +262,18 @@ class PruebaFisicaService:
             logger.error("Error al crear prueba física", exc_info=True)
             raise ValidationError("No se pudo crear la prueba física")
 
-    def update_prueba_fisica(self, prueba_id: int, data: dict, user=None) -> PruebaFisica:
+    def update_prueba_fisica(
+        self, prueba_id: int, data: dict, user=None
+    ) -> PruebaFisica:
         """Actualiza una prueba física existente."""
         try:
             # Validar que prueba_id sea un entero válido y en rango razonable
             try:
                 prueba_id = int(prueba_id)
                 if prueba_id <= 0 or prueba_id > 2147483647:
-                    raise ValidationError("El ID de la prueba está fuera del rango permitido")
+                    raise ValidationError(
+                        "El ID de la prueba está fuera del rango permitido"
+                    )
             except (TypeError, ValueError):
                 raise ValidationError("El ID de la prueba debe ser un número válido")
 
@@ -266,15 +281,20 @@ class PruebaFisicaService:
             prueba = self.dao.get_by_id(prueba_id)
             if not prueba:
                 raise ValidationError("Prueba física no encontrada")
-            
+
             # Validar que la prueba esté activa
             if not prueba.estado:
                 raise ValidationError("No se puede modificar una prueba inactiva")
 
             if user and user.role == "ENTRENADOR":
                 entrenador = Entrenador.objects.filter(persona_external=user.pk).first()
-                if not entrenador or not prueba.atleta.grupos.filter(entrenador=entrenador).exists():
-                    raise PermissionDenied("No tiene permiso para modificar esta prueba")
+                if (
+                    not entrenador
+                    or not prueba.atleta.grupos.filter(entrenador=entrenador).exists()
+                ):
+                    raise PermissionDenied(
+                        "No tiene permiso para modificar esta prueba"
+                    )
             elif user and user.role != "ESTUDIANTE_VINCULACION":
                 raise PermissionDenied("No tiene permiso para realizar esta acción")
 
@@ -291,7 +311,9 @@ class PruebaFisicaService:
                     if resultado_float <= 0:
                         raise ValidationError("El resultado debe ser mayor a 0")
                     if resultado_float > 999999:
-                        raise ValidationError("El resultado excede el valor máximo permitido")
+                        raise ValidationError(
+                            "El resultado excede el valor máximo permitido"
+                        )
                 except (TypeError, ValueError):
                     raise ValidationError("El resultado debe ser un número válido")
 
@@ -300,7 +322,9 @@ class PruebaFisicaService:
             if observaciones is not None:
                 observaciones = str(observaciones).strip()
                 if len(observaciones) > 1000:
-                    raise ValidationError("Las observaciones no pueden exceder 1000 caracteres")
+                    raise ValidationError(
+                        "Las observaciones no pueden exceder 1000 caracteres"
+                    )
                 data["observaciones"] = observaciones
 
             # Asignar unidad de medida automáticamente si se está cambiando el tipo de prueba
@@ -364,20 +388,25 @@ class PruebaFisicaService:
         # Validar autorización
         if user and user.role == "ENTRENADOR":
             entrenador = Entrenador.objects.filter(persona_external=user.pk).first()
-            if not entrenador or not prueba.atleta.grupos.filter(entrenador=entrenador).exists():
+            if (
+                not entrenador
+                or not prueba.atleta.grupos.filter(entrenador=entrenador).exists()
+            ):
                 raise PermissionDenied("No tiene permiso para modificar esta prueba")
         elif user and user.role != "ESTUDIANTE_VINCULACION":
             raise PermissionDenied("No tiene permiso para realizar esta acción")
 
         return self.dao.update(prueba_id, estado=not prueba.estado)
 
-    def get_atletas_habilitados_con_persona(self, token: str, user=None) -> List[Dict[str, Any]]:
+    def get_atletas_habilitados_con_persona(
+        self, token: str, user=None
+    ) -> List[Dict[str, Any]]:
         """Obtiene atletas con inscripción habilitada y sus datos de persona."""
         from ..models import Atleta
-        
+
         # Filtrar atletas que tengan inscripción habilitada
         queryset = Atleta.objects.filter(inscripcion__habilitada=True)
-        
+
         # Si es entrenador, filtrar por sus grupos
         if user and user.role == "ENTRENADOR":
             entrenador = Entrenador.objects.filter(persona_external=user.pk).first()
@@ -388,11 +417,15 @@ class PruebaFisicaService:
 
         results = []
         for atleta in queryset:
-            persona_info = self._fetch_persona(atleta.persona_external, token, allow_fail=True)
-                
-            results.append({
-                "id": atleta.id,
-                "persona": persona_info,
-                "persona_external": atleta.persona_external
-            })
+            persona_info = self._fetch_persona(
+                atleta.persona_external, token, allow_fail=True
+            )
+
+            results.append(
+                {
+                    "id": atleta.id,
+                    "persona": persona_info,
+                    "persona_external": atleta.persona_external,
+                }
+            )
         return results

@@ -31,7 +31,9 @@ class PruebaFisicaController(viewsets.ViewSet):
         """Lista todas las pruebas físicas."""
         token = get_user_module_token()
         try:
-            pruebas = self.service.get_all_pruebas_fisicas_completas(token, user=request.user)
+            pruebas = self.service.get_all_pruebas_fisicas_completas(
+                token, user=request.user
+            )
             # Ya retornamos los diccionarios directamente, que incluyen el campo semestre
             return Response(pruebas, status=status.HTTP_200_OK)
         except Exception as exc:
@@ -41,13 +43,17 @@ class PruebaFisicaController(viewsets.ViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-    @extend_schema(responses={200: serializers.ListField(child=serializers.DictField())})
+    @extend_schema(
+        responses={200: serializers.ListField(child=serializers.DictField())}
+    )
     @action(detail=False, methods=["get"], url_path="atletas-habilitados")
     def atletas_habilitados(self, request):
         """Obtiene la lista de atletas con inscripción habilitada."""
         token = get_user_module_token()
         try:
-            atletas = self.service.get_atletas_habilitados_con_persona(token, user=request.user)
+            atletas = self.service.get_atletas_habilitados_con_persona(
+                token, user=request.user
+            )
             return Response(atletas, status=status.HTTP_200_OK)
         except Exception as exc:
             logger.error("Error en atletas_habilitados", exc_info=True)
@@ -68,9 +74,13 @@ class PruebaFisicaController(viewsets.ViewSet):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            prueba = self.service.create_prueba_fisica(serializer.validated_data, user=request.user)
+            prueba = self.service.create_prueba_fisica(
+                serializer.validated_data, user=request.user
+            )
             # Obtener datos completos para la respuesta
-            prueba_completa = self.service.get_prueba_fisica_completa(prueba.id, token, user=request.user)
+            prueba_completa = self.service.get_prueba_fisica_completa(
+                prueba.id, token, user=request.user
+            )
             return Response(prueba_completa, status=status.HTTP_201_CREATED)
         except ValidationError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -87,7 +97,7 @@ class PruebaFisicaController(viewsets.ViewSet):
     def retrieve(self, request, pk=None):
         """Obtiene una prueba física por ID."""
         token = get_user_module_token()
-        
+
         # Validar que pk sea un entero válido
         try:
             pk = int(pk)
@@ -96,9 +106,11 @@ class PruebaFisicaController(viewsets.ViewSet):
                 {"error": "ID inválido"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         try:
-            prueba = self.service.get_prueba_fisica_completa(pk, token, user=request.user)
+            prueba = self.service.get_prueba_fisica_completa(
+                pk, token, user=request.user
+            )
             if not prueba:
                 return Response(
                     {"error": "Prueba física no encontrada"},
@@ -121,7 +133,7 @@ class PruebaFisicaController(viewsets.ViewSet):
     def update(self, request, pk=None):
         """Actualiza una prueba física existente."""
         token = get_user_module_token()
-        
+
         # Validar que pk sea un entero válido
         try:
             pk = int(pk)
@@ -130,15 +142,19 @@ class PruebaFisicaController(viewsets.ViewSet):
                 {"error": "ID inválido"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         serializer = PruebaFisicaInputSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            prueba = self.service.update_prueba_fisica(pk, serializer.validated_data, user=request.user)
+            prueba = self.service.update_prueba_fisica(
+                pk, serializer.validated_data, user=request.user
+            )
             # Obtener datos completos para la respuesta
-            prueba_completa = self.service.get_prueba_fisica_completa(prueba.id, token, user=request.user)
+            prueba_completa = self.service.get_prueba_fisica_completa(
+                prueba.id, token, user=request.user
+            )
             return Response(prueba_completa, status=status.HTTP_200_OK)
         except ValidationError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -156,7 +172,7 @@ class PruebaFisicaController(viewsets.ViewSet):
     def toggle_estado(self, request, pk=None):
         """Cambia el estado de la prueba física."""
         token = get_user_module_token()
-        
+
         # Validar que pk sea un entero válido
         try:
             pk = int(pk)
@@ -165,11 +181,13 @@ class PruebaFisicaController(viewsets.ViewSet):
                 {"error": "ID inválido"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         try:
             prueba = self.service.toggle_estado(pk, user=request.user)
             # Obtener datos completos para la respuesta
-            prueba_completa = self.service.get_prueba_fisica_completa(prueba.id, token, user=request.user)
+            prueba_completa = self.service.get_prueba_fisica_completa(
+                prueba.id, token, user=request.user
+            )
             return Response(prueba_completa, status=status.HTTP_200_OK)
         except ValidationError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -188,7 +206,9 @@ class PruebaFisicaController(viewsets.ViewSet):
         """Obtiene todas las pruebas físicas de un atleta específico."""
         token = get_user_module_token()
         try:
-            pruebas = self.service.get_pruebas_by_atleta_completas(atleta_id, token, user=request.user)
+            pruebas = self.service.get_pruebas_by_atleta_completas(
+                atleta_id, token, user=request.user
+            )
             return Response(pruebas, status=status.HTTP_200_OK)
         except Exception as exc:
             logger.error("Error en by_atleta pruebas físicas", exc_info=True)
