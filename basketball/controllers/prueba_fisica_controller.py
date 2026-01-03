@@ -32,10 +32,10 @@ class PruebaFisicaController(viewsets.ViewSet):
         token = get_user_module_token()
         try:
             pruebas = self.service.get_all_pruebas_fisicas_completas(token, user=request.user)
-            serializer = PruebaFisicaResponseSerializer(pruebas, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            # Ya retornamos los diccionarios directamente, que incluyen el campo semestre
+            return Response(pruebas, status=status.HTTP_200_OK)
         except Exception as exc:
-            logger.error(f"Error en list pruebas físicas: {exc}")
+            logger.error("Error en list pruebas físicas", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -50,7 +50,7 @@ class PruebaFisicaController(viewsets.ViewSet):
             atletas = self.service.get_atletas_habilitados_con_persona(token, user=request.user)
             return Response(atletas, status=status.HTTP_200_OK)
         except Exception as exc:
-            logger.error(f"Error en atletas_habilitados: {exc}")
+            logger.error("Error en atletas_habilitados", exc_info=True)
             return Response(
                 {"error": "Error al obtener atletas habilitados"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -71,14 +71,13 @@ class PruebaFisicaController(viewsets.ViewSet):
             prueba = self.service.create_prueba_fisica(serializer.validated_data, user=request.user)
             # Obtener datos completos para la respuesta
             prueba_completa = self.service.get_prueba_fisica_completa(prueba.id, token, user=request.user)
-            response_serializer = PruebaFisicaResponseSerializer(prueba_completa)
-            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            return Response(prueba_completa, status=status.HTTP_201_CREATED)
         except ValidationError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except PermissionDenied as exc:
             return Response({"error": str(exc)}, status=status.HTTP_403_FORBIDDEN)
         except Exception as exc:
-            logger.error(f"Error en create prueba física: {exc}")
+            logger.error("Error en create prueba física", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -105,12 +104,11 @@ class PruebaFisicaController(viewsets.ViewSet):
                     {"error": "Prueba física no encontrada"},
                     status=status.HTTP_404_NOT_FOUND,
                 )
-            serializer = PruebaFisicaResponseSerializer(prueba)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(prueba, status=status.HTTP_200_OK)
         except ValidationError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
-            logger.error(f"Error en retrieve prueba física: {exc}")
+            logger.error("Error en retrieve prueba física", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -141,14 +139,13 @@ class PruebaFisicaController(viewsets.ViewSet):
             prueba = self.service.update_prueba_fisica(pk, serializer.validated_data, user=request.user)
             # Obtener datos completos para la respuesta
             prueba_completa = self.service.get_prueba_fisica_completa(prueba.id, token, user=request.user)
-            response_serializer = PruebaFisicaResponseSerializer(prueba_completa)
-            return Response(response_serializer.data, status=status.HTTP_200_OK)
+            return Response(prueba_completa, status=status.HTTP_200_OK)
         except ValidationError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except PermissionDenied as exc:
             return Response({"error": str(exc)}, status=status.HTTP_403_FORBIDDEN)
         except Exception as exc:
-            logger.error(f"Error en update prueba física: {exc}")
+            logger.error("Error en update prueba física", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -173,14 +170,13 @@ class PruebaFisicaController(viewsets.ViewSet):
             prueba = self.service.toggle_estado(pk, user=request.user)
             # Obtener datos completos para la respuesta
             prueba_completa = self.service.get_prueba_fisica_completa(prueba.id, token, user=request.user)
-            serializer = PruebaFisicaResponseSerializer(prueba_completa)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(prueba_completa, status=status.HTTP_200_OK)
         except ValidationError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except PermissionDenied as exc:
             return Response({"error": str(exc)}, status=status.HTTP_403_FORBIDDEN)
         except Exception as exc:
-            logger.error(f"Error en toggle_estado prueba física: {exc}")
+            logger.error("Error en toggle_estado prueba física", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -193,10 +189,9 @@ class PruebaFisicaController(viewsets.ViewSet):
         token = get_user_module_token()
         try:
             pruebas = self.service.get_pruebas_by_atleta_completas(atleta_id, token, user=request.user)
-            serializer = PruebaFisicaResponseSerializer(pruebas, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(pruebas, status=status.HTTP_200_OK)
         except Exception as exc:
-            logger.error(f"Error en by_atleta pruebas físicas: {exc}")
+            logger.error("Error en by_atleta pruebas físicas", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,

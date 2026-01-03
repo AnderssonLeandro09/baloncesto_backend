@@ -56,6 +56,7 @@ class PruebaFisicaResponseSerializer(serializers.ModelSerializer):
     """Serializador para la respuesta de Prueba Física."""
 
     persona = PersonaMinimalSerializer(read_only=True)
+    semestre = serializers.SerializerMethodField()
 
     class Meta:
         model = PruebaFisica
@@ -69,4 +70,10 @@ class PruebaFisicaResponseSerializer(serializers.ModelSerializer):
             "unidad_medida",
             "observaciones",
             "estado",
+            "semestre",
         ]
+    
+    def get_semestre(self, obj):
+        """Calcula el semestre automáticamente desde la fecha de registro."""
+        from ..services.prueba_fisica_service import PruebaFisicaService
+        return PruebaFisicaService.calcular_semestre(obj.fecha_registro)

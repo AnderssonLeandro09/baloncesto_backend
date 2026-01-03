@@ -21,6 +21,25 @@ class PruebaFisicaService:
         self.atleta_dao = AtletaDAO()
         self.user_module_url = settings.USER_MODULE_URL.rstrip("/")
 
+    @staticmethod
+    def calcular_semestre(fecha_registro) -> str:
+        """Calcula el semestre automáticamente desde la fecha de registro.
+        Formato: YYYY-1 (Enero-Junio) o YYYY-2 (Julio-Diciembre)
+        
+        Args:
+            fecha_registro: Fecha de registro de la prueba (date object)
+            
+        Returns:
+            String en formato 'YYYY-1' o 'YYYY-2'
+        """
+        if not fecha_registro:
+            return "N/A"
+        year = fecha_registro.year
+        # Enero (1) a Junio (6) = Semestre 1
+        # Julio (7) a Diciembre (12) = Semestre 2
+        periodo = 1 if fecha_registro.month <= 6 else 2
+        return f"{year}-{periodo}"
+
     def _build_auth_header(self, token: Optional[str]) -> Dict[str, str]:
         if not token:
             raise PermissionDenied("Token de autenticacion requerido")
@@ -76,9 +95,9 @@ class PruebaFisicaService:
             persona_data = response.get("data") if isinstance(response, dict) else None
             if persona_data:
                 return {
-                    "first_name": persona_data.get("firts_name"),
-                    "last_name": persona_data.get("last_name"),
-                    "identification": persona_data.get("identification"),
+                    "nombre": persona_data.get("firts_name"),
+                    "apellido": persona_data.get("last_name"),
+                    "identificacion": persona_data.get("identification"),
                 }
             return None
         except Exception as exc:
@@ -119,7 +138,7 @@ class PruebaFisicaService:
             results.append(
                 {
                     "id": prueba.id,
-                    "atleta": prueba.atleta,
+                    "atleta": prueba.atleta.id,
                     "persona": persona_info,
                     "fecha_registro": prueba.fecha_registro,
                     "tipo_prueba": prueba.tipo_prueba,
@@ -127,6 +146,7 @@ class PruebaFisicaService:
                     "unidad_medida": prueba.unidad_medida,
                     "observaciones": prueba.observaciones,
                     "estado": prueba.estado,
+                    "semestre": self.calcular_semestre(prueba.fecha_registro),
                 }
             )
         return results
@@ -144,9 +164,10 @@ class PruebaFisicaService:
         )
         return {
             "id": prueba.id,
-            "atleta": prueba.atleta,
+            "atleta": prueba.atleta.id,
             "persona": persona_info,
             "fecha_registro": prueba.fecha_registro,
+            "semestre": self.calcular_semestre(prueba.fecha_registro),
             "tipo_prueba": prueba.tipo_prueba,
             "resultado": prueba.resultado,
             "unidad_medida": prueba.unidad_medida,
@@ -161,9 +182,11 @@ class PruebaFisicaService:
             if not atleta_id:
                 raise ValidationError("El ID del atleta es requerido")
 
-            # Validar que atleta_id sea un entero válido
+            # Validar que atleta_id sea un entero válido y en rango razonable
             try:
                 atleta_id = int(atleta_id)
+                if atleta_id <= 0 or atleta_id > 2147483647:  # Máximo INT en PostgreSQL
+                    raise ValidationError("El ID del atleta está fuera del rango permitido")
             except (TypeError, ValueError):
                 raise ValidationError("El ID del atleta debe ser un número válido")
 
@@ -208,6 +231,15 @@ class PruebaFisicaService:
             if not tipo_prueba:
                 raise ValidationError("El tipo de prueba es requerido")
             
+            # Validar y sanitizar observaciones
+            observaciones = data.get("observaciones")
+            if observaciones:
+                observaciones = str(observaciones).strip()
+                if len(observaciones) > 1000:
+                    raise ValidationError("Las observaciones no pueden exceder 1000 caracteres")
+                # Sanitización adicional ya se hace en el serializer
+                data["observaciones"] = observaciones
+            
             # Asignar unidad de medida automáticamente según el tipo de prueba
             data["unidad_medida"] = PruebaFisica.get_unidad_por_tipo(tipo_prueba)
 
@@ -216,15 +248,17 @@ class PruebaFisicaService:
         except (ValidationError, PermissionDenied):
             raise
         except Exception as e:
-            logger.error(f"Error al crear prueba física: {e}")
+            logger.error("Error al crear prueba física", exc_info=True)
             raise ValidationError("No se pudo crear la prueba física")
 
     def update_prueba_fisica(self, prueba_id: int, data: dict, user=None) -> PruebaFisica:
         """Actualiza una prueba física existente."""
         try:
-            # Validar que prueba_id sea un entero válido
+            # Validar que prueba_id sea un entero válido y en rango razonable
             try:
                 prueba_id = int(prueba_id)
+                if prueba_id <= 0 or prueba_id > 2147483647:
+                    raise ValidationError("El ID de la prueba está fuera del rango permitido")
             except (TypeError, ValueError):
                 raise ValidationError("El ID de la prueba debe ser un número válido")
 
@@ -261,6 +295,14 @@ class PruebaFisicaService:
                 except (TypeError, ValueError):
                     raise ValidationError("El resultado debe ser un número válido")
 
+            # Validar y sanitizar observaciones si se están actualizando
+            observaciones = data.get("observaciones")
+            if observaciones is not None:
+                observaciones = str(observaciones).strip()
+                if len(observaciones) > 1000:
+                    raise ValidationError("Las observaciones no pueden exceder 1000 caracteres")
+                data["observaciones"] = observaciones
+
             # Asignar unidad de medida automáticamente si se está cambiando el tipo de prueba
             tipo_prueba = data.get("tipo_prueba")
             if tipo_prueba:
@@ -270,7 +312,7 @@ class PruebaFisicaService:
         except (ValidationError, PermissionDenied):
             raise
         except Exception as e:
-            logger.error(f"Error al actualizar prueba física {prueba_id}: {e}")
+            logger.error("Error al actualizar prueba física", exc_info=True)
             raise ValidationError("No se pudo actualizar la prueba física")
 
     def get_prueba_fisica_by_id(self, prueba_id: int) -> Optional[PruebaFisica]:
@@ -294,9 +336,10 @@ class PruebaFisicaService:
             results.append(
                 {
                     "id": prueba.id,
-                    "atleta": prueba.atleta,
+                    "atleta": prueba.atleta.id,
                     "persona": persona_info,
                     "fecha_registro": prueba.fecha_registro,
+                    "semestre": self.calcular_semestre(prueba.fecha_registro),
                     "tipo_prueba": prueba.tipo_prueba,
                     "resultado": prueba.resultado,
                     "unidad_medida": prueba.unidad_medida,
@@ -346,19 +389,10 @@ class PruebaFisicaService:
         results = []
         for atleta in queryset:
             persona_info = self._fetch_persona(atleta.persona_external, token, allow_fail=True)
-            
-            # Mapear a nombre/apellido para consistencia con el frontend
-            persona_mapped = None
-            if persona_info:
-                persona_mapped = {
-                    "nombre": persona_info.get("first_name"),
-                    "apellido": persona_info.get("last_name"),
-                    "identificacion": persona_info.get("identification")
-                }
                 
             results.append({
                 "id": atleta.id,
-                "persona": persona_mapped,
+                "persona": persona_info,
                 "persona_external": atleta.persona_external
             })
         return results
