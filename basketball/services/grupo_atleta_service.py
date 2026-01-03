@@ -213,6 +213,10 @@ class GrupoAtletaService:
             except (ValueError, TypeError):
                 raise ValidationError("Edad máxima debe ser un número válido")
 
+        if min_edad is not None and max_edad is not None:
+            if min_edad > max_edad:
+                raise ValidationError("Edad mínima no puede ser mayor a la máxima")
+
         if min_edad is None or max_edad is None:
             raise ValidationError(
                 "Se requiere un grupo_id o un rango de edad (min_edad, max_edad)"

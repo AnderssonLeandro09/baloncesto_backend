@@ -12,7 +12,9 @@ class GrupoAtletaDAOTests(SimpleTestCase):
     @patch("basketball.dao.grupo_atleta_dao.GrupoAtleta.objects")
     def test_get_activos(self, mock_objects):
         qs = MagicMock()
-        mock_objects.filter.return_value = qs
+        mock_objects.filter.return_value.order_by.return_value.__getitem__.return_value = (
+            qs
+        )
 
         result = self.dao.get_activos()
 
@@ -31,7 +33,9 @@ class GrupoAtletaDAOTests(SimpleTestCase):
     @patch("basketball.dao.grupo_atleta_dao.GrupoAtleta.objects")
     def test_get_by_entrenador(self, mock_objects):
         qs = MagicMock()
-        mock_objects.filter.return_value = qs
+        mock_objects.filter.return_value.order_by.return_value.__getitem__.return_value = (
+            qs
+        )
 
         result = self.dao.get_by_entrenador(5)
 

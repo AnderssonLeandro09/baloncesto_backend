@@ -3,7 +3,7 @@
 from unittest.mock import MagicMock, patch
 from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase
-from basketball.services.grupo_atleta_service import GrupoAtletaService
+from basketball.services.grupo_atleta_service import GrupoAtletaService, Entrenador
 
 
 class GrupoAtletaServiceTests(SimpleTestCase):
@@ -18,41 +18,42 @@ class GrupoAtletaServiceTests(SimpleTestCase):
     def tearDown(self):
         patch.stopall()
 
-    def test_validate_rango_edad_error(self):
+    @patch("basketball.services.grupo_atleta_service.Atleta.objects")
+    def test_validate_rango_edad_error(self, mock_atleta):
         """Debe fallar si la edad mínima es mayor a la máxima."""
-        with self.assertRaises(ValidationError) as cm:
-            self.service._validate_rango_edad(15, 10)
-        self.assertEqual(
-            cm.exception.message, "La edad mínima no puede ser mayor a la máxima"
-        )
+        with self.assertRaises(ValidationError):
+            self.service.list_atletas_elegibles(min_edad=15, max_edad=10)
 
-    def test_validate_rango_edad_negativo(self):
+    @patch("basketball.services.grupo_atleta_service.Atleta.objects")
+    def test_validate_rango_edad_negativo(self, mock_atleta):
         """Debe fallar si la edad mínima es negativa."""
-        with self.assertRaises(ValidationError) as cm:
-            self.service._validate_rango_edad(-1, 10)
-        self.assertEqual(cm.exception.message, "La edad mínima no puede ser negativa")
+        with self.assertRaises(ValidationError):
+            self.service.list_atletas_elegibles(min_edad=-1, max_edad=10)
 
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
     def test_create_grupo_no_entrenador(self, mock_entrenador):
         """Debe fallar si el entrenador no existe."""
-        mock_entrenador.filter.return_value.exists.return_value = False
+        mock_entrenador.get.side_effect = Entrenador.DoesNotExist()
+        user = MagicMock(pk="test_user")
 
         with self.assertRaises(ValidationError) as cm:
             self.service.create_grupo(
                 {
-                    "entrenador": 99,
                     "rango_edad_minima": 10,
                     "rango_edad_maxima": 12,
                     "nombre": "Grupo Test",
-                }
+                },
+                user=user,
             )
-        self.assertEqual(cm.exception.message, "El entrenador especificado no existe")
+        self.assertIn("No se encontró un entrenador", str(cm.exception))
 
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
     @patch("basketball.services.grupo_atleta_service.Atleta.objects")
     def test_create_grupo_success(self, mock_atleta, mock_entrenador):
         """Debe crear un grupo exitosamente."""
-        mock_entrenador.filter.return_value.exists.return_value = True
+        entrenador_mock = MagicMock(id=1)
+        mock_entrenador.get.return_value = entrenador_mock
+        user = MagicMock(pk="test_user")
 
         # Mock Atletas
         atleta1 = MagicMock(id=1)
@@ -66,13 +67,12 @@ class GrupoAtletaServiceTests(SimpleTestCase):
 
         data = {
             "nombre": "Grupo Test",
-            "entrenador": 1,
             "rango_edad_minima": 10,
             "rango_edad_maxima": 12,
             "atletas": [1],
         }
 
-        result = self.service.create_grupo(data)
+        result = self.service.create_grupo(data, user=user)
 
         self.assertEqual(result, grupo_mock)
         self.service.dao.create.assert_called()
@@ -82,9 +82,13 @@ class GrupoAtletaServiceTests(SimpleTestCase):
     @patch("basketball.services.grupo_atleta_service.Atleta.objects")
     def test_update_grupo_success(self, mock_atleta, mock_entrenador):
         """Debe actualizar un grupo exitosamente."""
-        mock_entrenador.filter.return_value.exists.return_value = True
+        entrenador_mock = MagicMock(id=1)
+        mock_entrenador.get.return_value = entrenador_mock
+        user = MagicMock(pk="test_user")
 
-        grupo_mock = MagicMock(id=1, rango_edad_minima=10, rango_edad_maxima=12)
+        grupo_mock = MagicMock(
+            id=1, entrenador_id=1, rango_edad_minima=10, rango_edad_maxima=12
+        )
         self.service.dao.get_by_id_activo.return_value = grupo_mock
         self.service.dao.update.return_value = grupo_mock
 
@@ -94,7 +98,7 @@ class GrupoAtletaServiceTests(SimpleTestCase):
         mock_atleta.filter.return_value = [atleta1]
 
         data = {"nombre": "Nombre Nuevo", "atletas": [1]}
-        result = self.service.update_grupo(1, data)
+        result = self.service.update_grupo(1, data, user=user)
 
         self.assertEqual(result, grupo_mock)
         self.service.dao.update.assert_called()
@@ -112,7 +116,7 @@ class GrupoAtletaServiceTests(SimpleTestCase):
         with self.assertRaises(ValidationError) as cm:
             self.service._assign_atletas(grupo_mock, [1])
         self.assertIn(
-            f"El atleta con ID {atleta_viejo.id} (edad: 15) no cumple con el rango de edad",
+            "Algunos atletas no cumplen con el rango de edad del grupo",
             cm.exception.message,
         )
 

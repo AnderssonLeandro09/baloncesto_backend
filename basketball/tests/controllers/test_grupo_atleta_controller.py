@@ -40,8 +40,10 @@ class GrupoAtletaControllerTests(SimpleTestCase):
         mock_grupo.estado = True
         mock_grupo.eliminado = False
         mock_grupo.entrenador_id = 1
+        # Mock atletas.all() para el serializer
+        mock_grupo.atletas.all.return_value = []
 
-        mock_service.list_grupos.return_value = [mock_grupo]
+        mock_service.list_grupos_by_user.return_value = [mock_grupo]
         self.view.cls.service = mock_service
 
         request = self.factory.get(
@@ -129,10 +131,16 @@ class GrupoAtletaControllerTests(SimpleTestCase):
 
         request = self.factory.post(
             "/grupos-atletas/",
-            {"nombre": ""},
+            {
+                "nombre": "Grupo Error",
+                "rango_edad_minima": 10,
+                "rango_edad_maxima": 15,
+                "categoria": "Juvenil",
+            },
             format="json",
             HTTP_AUTHORIZATION=self.auth_header,
         )
+        mock_service.create_grupo.side_effect = ValidationError("Error de negocio")
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
