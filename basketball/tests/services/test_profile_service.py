@@ -12,7 +12,7 @@ class TestProfileService(SimpleTestCase):
         self.service.admin_service = MagicMock()
         self.service.entrenador_service = MagicMock()
         self.service.estudiante_service = MagicMock()
-        
+
         self.user = AuthenticatedUser(pk="ext-123", role="ADMIN", payload={})
         self.user.email = "admin@test.com"
         self.user.name = "Admin User"
@@ -24,11 +24,15 @@ class TestProfileService(SimpleTestCase):
         mock_admin = MagicMock()
         mock_admin.id = 1
         self.service.admin_service.dao.get_by_persona_external.return_value = mock_admin
-        self.service.admin_service.get_administrador_by_id.return_value = {"cargo": "Jefe"}
-        
+        self.service.admin_service.get_administrador_by_id.return_value = {
+            "cargo": "Jefe"
+        }
+
         result = self.service.get_profile_data(self.user, self.token)
-        
+
         self.assertIsNotNone(result)
         self.assertEqual(result["role"], "ADMIN")
         self.assertEqual(result["data"], {"cargo": "Jefe"})
-        self.service.admin_service.dao.get_by_persona_external.assert_called_with("ext-123")
+        self.service.admin_service.dao.get_by_persona_external.assert_called_with(
+            "ext-123"
+        )

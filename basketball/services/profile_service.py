@@ -1,17 +1,14 @@
 """Servicio para el Perfil de Usuario."""
 
 import logging
-import jwt
-import datetime
 from typing import Any, Dict, Optional
-from django.conf import settings
-from django.core.exceptions import ValidationError
 
 from .administrador_service import AdministradorService
 from .entrenador_service import EntrenadorService
 from .estudiante_vinculacion_service import EstudianteVinculacionService
 
 logger = logging.getLogger(__name__)
+
 
 class ProfileService:
     """Lógica de negocio para el perfil del usuario autenticado."""
@@ -25,28 +22,26 @@ class ProfileService:
         """Obtiene la información completa del perfil según el rol."""
         persona_external = user.pk
         role = user.role
-        
+
         data = None
         if role == "ADMIN":
             admin = self.admin_service.dao.get_by_persona_external(persona_external)
             if admin:
                 data = self.admin_service.get_administrador_by_id(admin.id, token)
         elif role == "ENTRENADOR":
-            entrenador = self.entrenador_service.dao.get_by_persona_external(persona_external)
+            entrenador = self.entrenador_service.dao.get_by_persona_external(
+                persona_external
+            )
             if entrenador:
                 data = self.entrenador_service.get_entrenador(entrenador.id, token)
         elif role == "ESTUDIANTE_VINCULACION":
-            estudiante = self.estudiante_service.dao.get_by_persona_external(persona_external)
+            estudiante = self.estudiante_service.dao.get_by_persona_external(
+                persona_external
+            )
             if estudiante:
                 data = self.estudiante_service.get_estudiante(estudiante.id, token)
-        
+
         if not data:
             return None
-        
-        return {
-            "role": role,
-            "email": user.email,
-            "name": user.name,
-            "data": data
-        }
 
+        return {"role": role, "email": user.email, "name": user.name, "data": data}

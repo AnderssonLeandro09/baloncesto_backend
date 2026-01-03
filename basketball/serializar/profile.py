@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .persona import PersonaSerializer
+
 
 class ProfileResponseSerializer(serializers.Serializer):
     role = serializers.CharField()
@@ -7,4 +7,3 @@ class ProfileResponseSerializer(serializers.Serializer):
     name = serializers.CharField()
     token = serializers.CharField(required=False, allow_null=True)
     data = serializers.DictField()
-

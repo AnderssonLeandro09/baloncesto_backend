@@ -5,7 +5,6 @@ from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from drf_spectacular.utils import extend_schema
-from django.core.exceptions import ValidationError
 
 from ..permissions import IsAdminOrEntrenadorOrEstudiante
 from ..serializers import (
@@ -30,7 +29,9 @@ class ProfileController(viewsets.ViewSet):
         token = get_user_module_token()
         if not token:
             return Response(
-                {"error": "No se pudo establecer comunicación con el servicio de usuarios"},
+                {
+                    "error": "No se pudo establecer comunicación con el servicio de usuarios"
+                },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
@@ -44,4 +45,3 @@ class ProfileController(viewsets.ViewSet):
             return Response(data, status=status.HTTP_200_OK)
         except Exception as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
