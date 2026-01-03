@@ -1,10 +1,7 @@
 """Tests del servicio de Atleta usando mocks."""
 
-from types import SimpleNamespace
 from unittest.mock import MagicMock
-from datetime import date
 
-from django.core.exceptions import ValidationError
 from django.test import SimpleTestCase
 
 from basketball.services.atleta_service import AtletaService

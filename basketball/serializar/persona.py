@@ -16,3 +16,11 @@ class PersonaSerializer(serializers.Serializer):
     direction = serializers.CharField(required=False)
     type_identification = serializers.CharField(required=False, default="CEDULA")
     type_stament = serializers.CharField(required=False, default="ESTUDIANTES")
+
+
+class PersonaMinimalSerializer(serializers.Serializer):
+    """Datos mínimos de la persona (nombre, apellido, identificación)."""
+
+    nombre = serializers.CharField(source="first_name", read_only=True)
+    apellido = serializers.CharField(source="last_name", read_only=True)
+    identificacion = serializers.CharField(source="identification", read_only=True)
