@@ -34,4 +34,8 @@ from .prueba_fisica import (  # noqa: F401
 from .grupo_atleta import (  # noqa: F401
     GrupoAtletaSerializer,
     GrupoAtletaResponseSerializer,
+from .prueba_antropometrica import (  # noqa: F401
+    PruebaAntropometricaSerializer,
+    PruebaAntropometricaInputSerializer,
+    PruebaAntropometricaResponseSerializer,
 )

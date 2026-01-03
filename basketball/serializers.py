@@ -30,6 +30,9 @@ from .serializar import (  # noqa: F401
     PruebaFisicaResponseSerializer,
     GrupoAtletaSerializer,
     GrupoAtletaResponseSerializer,
+    PruebaAntropometricaSerializer,
+    PruebaAntropometricaInputSerializer,
+    PruebaAntropometricaResponseSerializer,
 )
 
 # Cache global para tokens y datos de persona
