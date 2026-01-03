@@ -258,7 +258,7 @@ class PruebaFisicaService:
             return self.dao.create(**data)
         except (ValidationError, PermissionDenied):
             raise
-        except Exception as e:
+        except Exception:
             logger.error("Error al crear prueba física", exc_info=True)
             raise ValidationError("No se pudo crear la prueba física")
 
@@ -335,7 +335,7 @@ class PruebaFisicaService:
             return self.dao.update(prueba_id, **data)
         except (ValidationError, PermissionDenied):
             raise
-        except Exception as e:
+        except Exception:
             logger.error("Error al actualizar prueba física", exc_info=True)
             raise ValidationError("No se pudo actualizar la prueba física")
 
