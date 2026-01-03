@@ -40,7 +40,7 @@ class GrupoAtletaControllerTests(SimpleTestCase):
         mock_grupo.estado = True
         mock_grupo.eliminado = False
         mock_grupo.entrenador_id = 1
-        
+
         mock_service.list_grupos.return_value = [mock_grupo]
         self.view.cls.service = mock_service
 
@@ -65,17 +65,17 @@ class GrupoAtletaControllerTests(SimpleTestCase):
         mock_atleta1.persona_external = "ext-1"
         mock_atleta1.edad = 20
         mock_atleta1.sexo = "M"
-        
+
         mock_atleta2 = MagicMock()
         mock_atleta2.id = 2
         mock_atleta2.pk = 2
         mock_atleta2.persona_external = "ext-2"
         mock_atleta2.edad = 22
         mock_atleta2.sexo = "F"
-        
+
         mock_grupo.atletas.all.return_value = [mock_atleta1, mock_atleta2]
         mock_grupo.atletas.__iter__.return_value = iter([mock_atleta1, mock_atleta2])
-        
+
         mock_service.create_grupo.return_value = mock_grupo
         self.view.cls.service = mock_service
 
@@ -87,7 +87,7 @@ class GrupoAtletaControllerTests(SimpleTestCase):
                 "rango_edad_maxima": 15,
                 "categoria": "Juvenil",
                 "entrenador": 1,
-                "atletas": [1, 2]
+                "atletas": [1, 2],
             },
             format="json",
             HTTP_AUTHORIZATION=self.auth_header,
@@ -106,7 +106,7 @@ class GrupoAtletaControllerTests(SimpleTestCase):
         mock_service = MagicMock()
         mock_atleta = MagicMock()
         mock_atleta.id = 1
-        
+
         mock_service.list_atletas_elegibles.return_value = [mock_atleta]
         view.cls.service = mock_service
 
@@ -123,6 +123,7 @@ class GrupoAtletaControllerTests(SimpleTestCase):
         mock_service = MagicMock()
         # Usar ValidationError para que devuelva 400 en lugar de 500
         from django.core.exceptions import ValidationError
+
         mock_service.create_grupo.side_effect = ValidationError("Error de validación")
         self.view.cls.service = mock_service
 
@@ -189,9 +190,7 @@ class GrupoAtletaControllerTests(SimpleTestCase):
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
         auth_header = f"Bearer {token}"
 
-        request = self.factory.get(
-            "/grupos-atletas/", HTTP_AUTHORIZATION=auth_header
-        )
+        request = self.factory.get("/grupos-atletas/", HTTP_AUTHORIZATION=auth_header)
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

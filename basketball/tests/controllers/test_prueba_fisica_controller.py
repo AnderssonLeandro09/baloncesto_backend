@@ -1,7 +1,7 @@
 """Tests del controlador de Prueba Física usando mocks."""
 
 import jwt
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from django.conf import settings
 from django.test import SimpleTestCase
 from rest_framework import status
