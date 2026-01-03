@@ -28,6 +28,7 @@ from .serializar import (  # noqa: F401
     PruebaFisicaSerializer,
     PruebaFisicaInputSerializer,
     PruebaFisicaResponseSerializer,
+    ProfileResponseSerializer,
     GrupoAtletaSerializer,
     GrupoAtletaResponseSerializer,
     PruebaAntropometricaSerializer,
