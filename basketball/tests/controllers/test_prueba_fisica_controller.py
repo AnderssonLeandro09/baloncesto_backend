@@ -107,6 +107,12 @@ class PruebaFisicaControllerTests(SimpleTestCase):
         mock_prueba.observaciones = "Ok"
         mock_prueba.estado = False
         mock_service.toggle_estado.return_value = mock_prueba
+        mock_service.get_prueba_fisica_completa.return_value = {
+            "id": 1,
+            "estado": False,
+            "tipo_prueba": "FUERZA",
+            "resultado": 50.0,
+        }
 
         original_service = PruebaFisicaController.service
         PruebaFisicaController.service = mock_service
@@ -124,7 +130,7 @@ class PruebaFisicaControllerTests(SimpleTestCase):
 
     def test_get_by_atleta_success(self):
         mock_service = MagicMock()
-        mock_service.get_pruebas_by_atleta.return_value = []
+        mock_service.get_pruebas_by_atleta_completas.return_value = []
 
         original_service = PruebaFisicaController.service
         PruebaFisicaController.service = mock_service

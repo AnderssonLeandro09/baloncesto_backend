@@ -430,6 +430,13 @@ class PruebaAntropometrica(models.Model):
 class PruebaFisica(models.Model):
     """Modelo para Pruebas Físicas"""
 
+    # Mapeo de tipo de prueba a unidad de medida (basado en pruebas de baloncesto)
+    UNIDADES_POR_TIPO = {
+        TipoPrueba.FUERZA: "Centímetros (cm)",  # Salto horizontal
+        TipoPrueba.VELOCIDAD: "Segundos (seg)",  # 30 metros
+        TipoPrueba.AGILIDAD: "Segundos (seg)",  # Zigzag
+    }
+
     # Relación con Atleta (tiene)
     atleta = models.ForeignKey(
         Atleta,
@@ -444,13 +451,21 @@ class PruebaFisica(models.Model):
         verbose_name="Tipo de prueba",
     )
     resultado = models.DecimalField(
-        max_digits=10, decimal_places=2, verbose_name="Resultado"
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.00"))],
+        verbose_name="Resultado",
     )
     unidad_medida = models.CharField(max_length=20, verbose_name="Unidad de medida")
     observaciones = models.TextField(
         blank=True, null=True, verbose_name="Observaciones"
     )
     estado = models.BooleanField(default=True, verbose_name="Estado")
+
+    @staticmethod
+    def get_unidad_por_tipo(tipo_prueba: str) -> str:
+        """Retorna la unidad de medida según el tipo de prueba."""
+        return PruebaFisica.UNIDADES_POR_TIPO.get(tipo_prueba, "N/A")
 
     class Meta:
         db_table = "prueba_fisica"
