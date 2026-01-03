@@ -1,7 +1,15 @@
 """Pruebas unitarias para PruebaFisicaService."""
 
 from django.test import TestCase
-from ...models import Atleta, TipoPrueba, Sexo, Inscripcion, TipoInscripcion, GrupoAtleta, Entrenador
+from ...models import (
+    Atleta,
+    TipoPrueba,
+    Sexo,
+    Inscripcion,
+    TipoInscripcion,
+    GrupoAtleta,
+    Entrenador,
+)
 from ...services.prueba_fisica_service import PruebaFisicaService
 from ...dao.prueba_fisica_dao import PruebaFisicaDAO
 from datetime import date
@@ -10,13 +18,13 @@ from datetime import date
 class PruebaFisicaServiceTest(TestCase):
     def setUp(self):
         self.service = PruebaFisicaService()
-        
+
         # Crear entrenador
         self.entrenador = Entrenador.objects.create(
             persona_external="uuid-entrenador-test",
             especialidad="Baloncesto",
         )
-        
+
         # Crear grupo
         self.grupo = GrupoAtleta.objects.create(
             nombre="Grupo Test",
@@ -25,7 +33,7 @@ class PruebaFisicaServiceTest(TestCase):
             categoria="Sub-15",
             entrenador=self.entrenador,
         )
-        
+
         # Crear atleta
         self.atleta = Atleta.objects.create(
             persona_external="uuid-maria-lopez",
@@ -33,7 +41,7 @@ class PruebaFisicaServiceTest(TestCase):
             edad=13,
             sexo=Sexo.FEMENINO,
         )
-        
+
         # Crear inscripción habilitada
         self.inscripcion = Inscripcion.objects.create(
             atleta=self.atleta,
@@ -41,7 +49,7 @@ class PruebaFisicaServiceTest(TestCase):
             fecha_inscripcion=date.today(),
             habilitada=True,
         )
-        
+
         # Asignar el atleta al grupo
         self.atleta.grupos.add(self.grupo)
 
