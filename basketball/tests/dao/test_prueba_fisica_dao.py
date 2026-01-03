@@ -1,7 +1,7 @@
 """Pruebas unitarias para PruebaFisicaDAO."""
 
 from django.test import TestCase
-from ...models import Atleta, PruebaFisica, TipoPrueba, Sexo
+from ...models import Atleta, TipoPrueba, Sexo
 from ...dao.prueba_fisica_dao import PruebaFisicaDAO
 from datetime import date
 

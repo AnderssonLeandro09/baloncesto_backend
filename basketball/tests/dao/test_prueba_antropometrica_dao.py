@@ -5,7 +5,6 @@ from django.test import TestCase
 
 from ...models import (
     Atleta,
-    PruebaAntropometrica,
     Sexo,
 )
 from ...dao.prueba_antropometrica_dao import PruebaAntropometricaDAO

@@ -10,7 +10,6 @@ from drf_spectacular.utils import extend_schema
 
 from ..services.prueba_fisica_service import PruebaFisicaService
 from ..serializers import (
-    PruebaFisicaSerializer,
     PruebaFisicaInputSerializer,
     PruebaFisicaResponseSerializer,
     get_user_module_token,

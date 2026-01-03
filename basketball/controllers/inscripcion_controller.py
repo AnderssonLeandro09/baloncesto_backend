@@ -2,7 +2,6 @@ import logging
 from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from django.core.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema
 
 from ..services.inscripcion_service import InscripcionService
