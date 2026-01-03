@@ -1,12 +1,12 @@
 """Servicio de negocio para Prueba Antropométrica."""
 
 import logging
-from typing import List, Optional
+from typing import List
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
 
 from ..dao.prueba_antropometrica_dao import PruebaAntropometricaDAO
-from ..models import PruebaAntropometrica, Atleta, Entrenador, EstudianteVinculacion
+from ..models import PruebaAntropometrica, Atleta
 
 logger = logging.getLogger(__name__)
 
