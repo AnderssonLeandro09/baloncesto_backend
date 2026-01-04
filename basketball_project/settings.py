@@ -195,8 +195,20 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG
 # Orígenes permitidos en producción (agregar los dominios de tu frontend)
 CORS_ALLOWED_ORIGINS = os.getenv(
     "CORS_ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173,http://localhost:8096",
+    "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173,http://localhost:8096,http://localhost:8023,http://127.0.0.1:8023,http://127.0.0.1:8096",
 ).split(",")
+
+# CSRF Trusted Origins (necesario para POST requests)
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8023",
+    "http://localhost:8096",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8023",
+    "http://127.0.0.1:8096",
+]
 
 # Permitir credenciales (cookies, authorization headers)
 CORS_ALLOW_CREDENTIALS = True
