@@ -473,7 +473,6 @@ class InscripcionService:
         inscripcion_data: Dict[str, Any],
         token: str,
     ) -> Optional[Dict[str, Any]]:
-
         try:
             inscripcion = self.inscripcion_dao.get_by_id(inscripcion_id)
             if not inscripcion:
@@ -488,9 +487,9 @@ class InscripcionService:
 
                 # Relleno de seguridad para update
                 if "email" not in persona_payload:
-                    persona_payload["email"] = (
-                        f"update_{atleta.persona_external}@sistema.local"
-                    )
+                    persona_payload[
+                        "email"
+                    ] = f"update_{atleta.persona_external}@sistema.local"
 
                 try:
                     self._call_user_module(
