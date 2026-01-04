@@ -165,7 +165,7 @@ class Atleta(models.Model):
         verbose_name="External ID Persona",
         help_text="UUID externo de la persona en el módulo de usuarios",
     )
-    
+
     # Datos Personales Redundantes (backup local si el microservicio falla)
     nombres = models.CharField(
         max_length=150, blank=True, null=True, verbose_name="Nombres"
@@ -176,16 +176,14 @@ class Atleta(models.Model):
     cedula = models.CharField(
         max_length=20, blank=True, null=True, verbose_name="Cédula/Identificación"
     )
-    email = models.EmailField(
-        blank=True, null=True, verbose_name="Email"
-    )
+    email = models.EmailField(blank=True, null=True, verbose_name="Email")
     direccion = models.CharField(
         max_length=255, blank=True, null=True, verbose_name="Dirección"
     )
     genero = models.CharField(
         max_length=20, blank=True, null=True, verbose_name="Género"
     )
-    
+
     # Datos Personales
     fecha_nacimiento = models.DateField(null=True, verbose_name="Fecha de nacimiento")
     edad = models.IntegerField(

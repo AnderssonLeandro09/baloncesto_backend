@@ -61,7 +61,7 @@ class InscripcionService:
 
         headers = self._build_auth_header(token)
         url = f"{self.user_module_url}{path}"
-        
+
         try:
             response = requests.request(
                 method=method,
@@ -72,12 +72,20 @@ class InscripcionService:
             )
         except requests.exceptions.ConnectionError as exc:
             # MODO OFFLINE: El microservicio no está disponible
-            logger.warning(f"[MODO OFFLINE] Microservicio de usuarios no disponible: {url}")
+            logger.warning(
+                f"[MODO OFFLINE] Microservicio de usuarios no disponible: {url}"
+            )
             logger.debug(f"Detalle conexión: {exc}")
-            return {"offline": True, "data": {"external_id": f"offline_{int(time.time())}"}}
+            return {
+                "offline": True,
+                "data": {"external_id": f"offline_{int(time.time())}"},
+            }
         except requests.exceptions.Timeout as exc:
             logger.warning(f"[TIMEOUT] El microservicio tardó demasiado: {url}")
-            return {"timeout": True, "data": {"external_id": f"timeout_{int(time.time())}"}}
+            return {
+                "timeout": True,
+                "data": {"external_id": f"timeout_{int(time.time())}"},
+            }
         except requests.RequestException as exc:
             logger.error(f"[ERROR CONEXIÓN] Fallo inesperado user_module {url}: {exc}")
             # Retornamos vacío para permitir fallback
@@ -86,8 +94,13 @@ class InscripcionService:
         if response.status_code >= 400:
             message = self._extract_message(response)
             # Ignoramos error de "ya existe" para no bloquear inscripciones repetidas
-            if "ya existe" not in str(message).lower() and "already" not in str(message).lower():
-                logger.warning(f"Error externo no fatal ({response.status_code}): {message}")
+            if (
+                "ya existe" not in str(message).lower()
+                and "already" not in str(message).lower()
+            ):
+                logger.warning(
+                    f"Error externo no fatal ({response.status_code}): {message}"
+                )
 
         try:
             return response.json()
@@ -149,18 +162,19 @@ class InscripcionService:
         persona_externa = (
             persona_payload.get("data") if isinstance(persona_payload, dict) else {}
         ) or {}
-        
+
         # RESPUESTA HÍBRIDA: Prioriza datos locales, complementa con externos
         persona_response = {
             "first_name": atleta.nombres or persona_externa.get("first_name", ""),
             "last_name": atleta.apellidos or persona_externa.get("last_name", ""),
-            "identification": atleta.cedula or persona_externa.get("identification", ""),
+            "identification": atleta.cedula
+            or persona_externa.get("identification", ""),
             "email": atleta.email or persona_externa.get("email", ""),
             "phono": atleta.telefono or persona_externa.get("phono", ""),
             "direction": atleta.direccion or persona_externa.get("direction", ""),
             "gender": atleta.genero or atleta.sexo or persona_externa.get("gender", ""),
         }
-        
+
         return {
             "atleta": {
                 "id": atleta.id,
@@ -212,7 +226,7 @@ class InscripcionService:
     ) -> Dict[str, Any]:
         """
         Crea una inscripción de atleta cumpliendo con UC-004 y UC-005.
-        
+
         Reglas de Negocio:
         - Valida duplicados por cédula (Curso Alterno 8)
         - Persiste datos localmente (no depende del microservicio externo)
@@ -227,57 +241,55 @@ class InscripcionService:
 
             atleta_data = atleta_data or {}
             inscripcion_data = inscripcion_data or {}
-            
+
             # ============================================================
             # 2. MAPEO ROBUSTO DE DATOS (Frontend -> BD Local)
             # Soporta múltiples nombres de campo para evitar errores por typos
             # ============================================================
             cedula = (
-                persona_data.get('identification') or 
-                persona_data.get('cedula') or 
-                persona_data.get('dni') or 
-                ""
+                persona_data.get("identification")
+                or persona_data.get("cedula")
+                or persona_data.get("dni")
+                or ""
             )
             nombre = (
-                persona_data.get('first_name') or 
-                persona_data.get('firts_name') or  # Typo común del frontend
-                persona_data.get('nombres') or 
-                persona_data.get('nombre') or 
-                ""
+                persona_data.get("first_name")
+                or persona_data.get("firts_name")  # Typo común del frontend
+                or persona_data.get("nombres")
+                or persona_data.get("nombre")
+                or ""
             )
             apellido = (
-                persona_data.get('last_name') or 
-                persona_data.get('apellidos') or 
-                persona_data.get('apellido') or 
-                ""
+                persona_data.get("last_name")
+                or persona_data.get("apellidos")
+                or persona_data.get("apellido")
+                or ""
             )
             telefono = (
-                persona_data.get('phono') or 
-                persona_data.get('telefono') or 
-                persona_data.get('phone') or 
-                persona_data.get('celular') or 
-                ""
+                persona_data.get("phono")
+                or persona_data.get("telefono")
+                or persona_data.get("phone")
+                or persona_data.get("celular")
+                or ""
             )
             direccion = (
-                persona_data.get('direction') or 
-                persona_data.get('direccion') or 
-                persona_data.get('address') or 
-                ""
+                persona_data.get("direction")
+                or persona_data.get("direccion")
+                or persona_data.get("address")
+                or ""
             )
-            email = (
-                persona_data.get('email') or 
-                persona_data.get('correo') or 
-                ""
-            )
+            email = persona_data.get("email") or persona_data.get("correo") or ""
             genero = (
-                persona_data.get('gender') or 
-                persona_data.get('genero') or 
-                persona_data.get('sexo') or 
-                ""
+                persona_data.get("gender")
+                or persona_data.get("genero")
+                or persona_data.get("sexo")
+                or ""
             )
-            
-            logger.info(f"[CREATE] Datos mapeados: cedula={cedula}, nombre={nombre}, apellido={apellido}")
-            
+
+            logger.info(
+                f"[CREATE] Datos mapeados: cedula={cedula}, nombre={nombre}, apellido={apellido}"
+            )
+
             # ============================================================
             # 3. VALIDACIÓN DE DUPLICADOS (UC-004 Curso Alterno 8)
             # Verificar si ya existe una inscripción ACTIVA con esta cédula
@@ -285,18 +297,21 @@ class InscripcionService:
             if cedula:
                 # Buscar atleta existente por cédula
                 atleta_existente = self.atleta_dao.get_by_filter(cedula=cedula).first()
-                
+
                 if atleta_existente:
                     # Verificar si tiene inscripción activa
                     inscripcion_activa = self.inscripcion_dao.get_by_filter(
-                        atleta=atleta_existente, 
-                        habilitada=True
+                        atleta=atleta_existente, habilitada=True
                     ).first()
-                    
+
                     if inscripcion_activa:
-                        logger.warning(f"[DUPLICADO] Atleta con cédula {cedula} ya tiene inscripción activa ID={inscripcion_activa.id}")
-                        raise ValidationError("El atleta ya se encuentra registrado con una inscripción activa.")
-            
+                        logger.warning(
+                            f"[DUPLICADO] Atleta con cédula {cedula} ya tiene inscripción activa ID={inscripcion_activa.id}"
+                        )
+                        raise ValidationError(
+                            "El atleta ya se encuentra registrado con una inscripción activa."
+                        )
+
             # ============================================================
             # 4. GENERACIÓN DE CREDENCIALES DUMMY (Modo Fail-Safe)
             # Si no viene email/password, generamos unos técnicos
@@ -304,19 +319,19 @@ class InscripcionService:
             if not email:
                 email = f"atleta_{cedula}_{int(time.time())}@local.system"
                 logger.info(f"[FAIL-SAFE] Email dummy generado: {email}")
-            
+
             if not persona_data.get("password"):
                 persona_data["password"] = "System_Auto_Pass_123$"
-            
+
             # Actualizar persona_data con email generado
             persona_data["email"] = email
-            
+
             # ============================================================
             # 5. OBTENCIÓN DE ID EXTERNO (Opcional - Fail-Safe)
             # Intentamos registrar en el microservicio, pero continuamos si falla
             # ============================================================
             persona_external = None
-            
+
             try:
                 persona_response = self._call_user_module(
                     "post", "/api/person/save-account", token, persona_data
@@ -327,7 +342,9 @@ class InscripcionService:
                     lookup_response = self._search_by_identification(cedula, token)
                     persona_external = self._extract_external(lookup_response)
             except Exception as ext_err:
-                logger.warning(f"[MODO OFFLINE] Error con microservicio externo: {ext_err}")
+                logger.warning(
+                    f"[MODO OFFLINE] Error con microservicio externo: {ext_err}"
+                )
                 # Intentar búsqueda silenciosa
                 try:
                     if cedula:
@@ -335,73 +352,93 @@ class InscripcionService:
                         persona_external = self._extract_external(lookup_response)
                 except Exception:
                     pass
-            
+
             # Fallback: ID local si no hay conexión externa
             if not persona_external:
                 persona_external = f"local_{cedula or 'unknown'}_{int(time.time())}"
                 logger.info(f"[MODO OFFLINE] ID local generado: {persona_external}")
-            
+
             # ============================================================
             # 6. CREACIÓN/ACTUALIZACIÓN DE ATLETA EN BD LOCAL
             # Esta es la fuente de verdad - no depende del microservicio
             # ============================================================
             datos_atleta_local = {
-                'nombres': nombre,
-                'apellidos': apellido,
-                'cedula': cedula,
-                'email': email,
-                'telefono': telefono,
-                'direccion': direccion,
-                'genero': genero,
+                "nombres": nombre,
+                "apellidos": apellido,
+                "cedula": cedula,
+                "email": email,
+                "telefono": telefono,
+                "direccion": direccion,
+                "genero": genero,
             }
-            
+
             # Agregar campos adicionales de atleta_data (edad, sexo, etc.)
             valid_fields = [f.name for f in Atleta._meta.get_fields()]
             for key, value in (atleta_data or {}).items():
                 if key in valid_fields and value is not None:
                     datos_atleta_local[key] = value
-            
+
             # Verificar si ya existe atleta con este persona_external
-            atleta_por_external = self.atleta_dao.get_by_filter(persona_external=persona_external).first()
+            atleta_por_external = self.atleta_dao.get_by_filter(
+                persona_external=persona_external
+            ).first()
             # También verificar por cédula (puede existir con otro external)
-            atleta_por_cedula = self.atleta_dao.get_by_filter(cedula=cedula).first() if cedula else None
-            
+            atleta_por_cedula = (
+                self.atleta_dao.get_by_filter(cedula=cedula).first() if cedula else None
+            )
+
             atleta = atleta_por_external or atleta_por_cedula
-            
+
             if atleta:
                 # Actualizar atleta existente
                 logger.info(f"[UPDATE] Actualizando atleta ID={atleta.id}")
-                clean_data = {k: v for k, v in datos_atleta_local.items() if k in valid_fields and v}
-                if not atleta.persona_external or atleta.persona_external.startswith('local_'):
-                    clean_data['persona_external'] = persona_external
+                clean_data = {
+                    k: v
+                    for k, v in datos_atleta_local.items()
+                    if k in valid_fields and v
+                }
+                if not atleta.persona_external or atleta.persona_external.startswith(
+                    "local_"
+                ):
+                    clean_data["persona_external"] = persona_external
                 self.atleta_dao.update(atleta.id, **clean_data)
                 atleta = self.atleta_dao.get_by_id(atleta.id)
             else:
                 # Crear nuevo atleta
                 logger.info(f"[CREATE] Creando nuevo atleta con cédula={cedula}")
-                clean_data = {k: v for k, v in datos_atleta_local.items() if k in valid_fields and v}
-                atleta = self.atleta_dao.create(persona_external=persona_external, **clean_data)
-            
+                clean_data = {
+                    k: v
+                    for k, v in datos_atleta_local.items()
+                    if k in valid_fields and v
+                }
+                atleta = self.atleta_dao.create(
+                    persona_external=persona_external, **clean_data
+                )
+
             # ============================================================
             # 7. GESTIÓN DE INSCRIPCIÓN
             # ============================================================
             inscripcion = self.inscripcion_dao.get_by_filter(atleta=atleta).first()
-            
+
             if inscripcion:
                 # Si existe inscripción (deshabilitada), reactivarla
                 logger.info(f"[REACTIVAR] Inscripción existente ID={inscripcion.id}")
-                update_data = {'habilitada': True}
+                update_data = {"habilitada": True}
                 if inscripcion_data:
                     update_data.update(inscripcion_data)
                 self.inscripcion_dao.update(inscripcion.id, **update_data)
                 inscripcion = self.inscripcion_dao.get_by_id(inscripcion.id)
             else:
                 # Crear nueva inscripción
-                logger.info(f"[CREATE] Creando nueva inscripción para atleta ID={atleta.id}")
+                logger.info(
+                    f"[CREATE] Creando nueva inscripción para atleta ID={atleta.id}"
+                )
                 inscripcion_params = {
                     "atleta": atleta,
                     "fecha_inscripcion": date.today(),
-                    "tipo_inscripcion": inscripcion_data.get("tipo_inscripcion", "MAYOR_EDAD"),
+                    "tipo_inscripcion": inscripcion_data.get(
+                        "tipo_inscripcion", "MAYOR_EDAD"
+                    ),
                     "habilitada": True,
                 }
                 # Solo agregar campos válidos de inscripcion_data
@@ -415,14 +452,18 @@ class InscripcionService:
             # 8. CONSTRUIR RESPUESTA EXITOSA
             # ============================================================
             persona_info = self._fetch_persona(persona_external, token, allow_fail=True)
-            logger.info(f"[SUCCESS] Inscripción creada exitosamente. Atleta ID={atleta.id}, Inscripción ID={inscripcion.id}")
+            logger.info(
+                f"[SUCCESS] Inscripción creada exitosamente. Atleta ID={atleta.id}, Inscripción ID={inscripcion.id}"
+            )
             return self._build_response(atleta, inscripcion, persona_info)
-            
+
         except ValidationError:
             # Re-lanzar errores de validación (duplicados, datos faltantes)
             raise
         except Exception as e:
-            logger.exception(f"[ERROR] Error inesperado en create_atleta_inscripcion: {e}")
+            logger.exception(
+                f"[ERROR] Error inesperado en create_atleta_inscripcion: {e}"
+            )
             raise ValidationError(f"Error interno al guardar: {str(e)}")
 
     def update_atleta_inscripcion(
@@ -433,7 +474,7 @@ class InscripcionService:
         inscripcion_data: Dict[str, Any],
         token: str,
     ) -> Optional[Dict[str, Any]]:
-        
+
         try:
             inscripcion = self.inscripcion_dao.get_by_id(inscripcion_id)
             if not inscripcion:
@@ -445,70 +486,70 @@ class InscripcionService:
             if persona_data:
                 persona_payload = persona_data.copy()
                 persona_payload.setdefault("external", atleta.persona_external)
-                
+
                 # Relleno de seguridad para update
                 if "email" not in persona_payload:
-                     persona_payload["email"] = f"update_{atleta.persona_external}@sistema.local"
-                
+                    persona_payload["email"] = (
+                        f"update_{atleta.persona_external}@sistema.local"
+                    )
+
                 try:
-                    self._call_user_module("post", "/api/person/update", token, persona_payload)
+                    self._call_user_module(
+                        "post", "/api/person/update", token, persona_payload
+                    )
                 except Exception:
-                    logger.warning("[UPDATE] Fallo API externa, solo se actualizará localmente")
+                    logger.warning(
+                        "[UPDATE] Fallo API externa, solo se actualizará localmente"
+                    )
 
                 # CRÍTICO: Actualizar TODOS los datos personales LOCALMENTE con MAPEO ROBUSTO
                 nombre_real = (
-                    persona_data.get('first_name') or 
-                    persona_data.get('firts_name') or 
-                    persona_data.get('nombres') or 
-                    persona_data.get('nombre')
+                    persona_data.get("first_name")
+                    or persona_data.get("firts_name")
+                    or persona_data.get("nombres")
+                    or persona_data.get("nombre")
                 )
                 apellido_real = (
-                    persona_data.get('last_name') or 
-                    persona_data.get('apellidos') or 
-                    persona_data.get('apellido')
+                    persona_data.get("last_name")
+                    or persona_data.get("apellidos")
+                    or persona_data.get("apellido")
                 )
                 cedula_real = (
-                    persona_data.get('identification') or 
-                    persona_data.get('cedula') or 
-                    persona_data.get('dni')
+                    persona_data.get("identification")
+                    or persona_data.get("cedula")
+                    or persona_data.get("dni")
                 )
                 telefono_real = (
-                    persona_data.get('phono') or 
-                    persona_data.get('telefono') or 
-                    persona_data.get('phone')
+                    persona_data.get("phono")
+                    or persona_data.get("telefono")
+                    or persona_data.get("phone")
                 )
                 direccion_real = (
-                    persona_data.get('direction') or 
-                    persona_data.get('direccion') or 
-                    persona_data.get('address')
+                    persona_data.get("direction")
+                    or persona_data.get("direccion")
+                    or persona_data.get("address")
                 )
-                email_real = (
-                    persona_data.get('email') or 
-                    persona_data.get('correo')
-                )
-                genero_real = (
-                    persona_data.get('gender') or 
-                    persona_data.get('genero')
-                )
-                
+                email_real = persona_data.get("email") or persona_data.get("correo")
+                genero_real = persona_data.get("gender") or persona_data.get("genero")
+
                 local_update = {}
                 if nombre_real:
-                    local_update['nombres'] = nombre_real
+                    local_update["nombres"] = nombre_real
                 if apellido_real:
-                    local_update['apellidos'] = apellido_real
+                    local_update["apellidos"] = apellido_real
                 if cedula_real:
-                    local_update['cedula'] = cedula_real
+                    local_update["cedula"] = cedula_real
                 if email_real:
-                    local_update['email'] = email_real
+                    local_update["email"] = email_real
                 if telefono_real:
-                    local_update['telefono'] = telefono_real
+                    local_update["telefono"] = telefono_real
                 if direccion_real:
-                    local_update['direccion'] = direccion_real
+                    local_update["direccion"] = direccion_real
                 if genero_real:
-                    local_update['genero'] = genero_real
-                
+                    local_update["genero"] = genero_real
+
                 logger.info(f"[UPDATE MAPEO] local_update={local_update}")
-                
+
                 if local_update:
                     self.atleta_dao.update(atleta.id, **local_update)
                     atleta = self.atleta_dao.get_by_id(atleta.id)  # Refrescar
@@ -529,7 +570,7 @@ class InscripcionService:
                 atleta.persona_external, token, allow_fail=True
             )
             return self._build_response(atleta, inscripcion, persona_info)
-            
+
         except Exception as e:
             logger.error(f"Error actualizando: {e}")
             raise ValidationError(f"Error al actualizar: {str(e)}")

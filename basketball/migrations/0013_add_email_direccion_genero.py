@@ -6,23 +6,29 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('basketball', '0012_add_local_persona_fields'),
+        ("basketball", "0012_add_local_persona_fields"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='atleta',
-            name='direccion',
-            field=models.CharField(blank=True, max_length=255, null=True, verbose_name='Dirección'),
+            model_name="atleta",
+            name="direccion",
+            field=models.CharField(
+                blank=True, max_length=255, null=True, verbose_name="Dirección"
+            ),
         ),
         migrations.AddField(
-            model_name='atleta',
-            name='email',
-            field=models.EmailField(blank=True, max_length=254, null=True, verbose_name='Email'),
+            model_name="atleta",
+            name="email",
+            field=models.EmailField(
+                blank=True, max_length=254, null=True, verbose_name="Email"
+            ),
         ),
         migrations.AddField(
-            model_name='atleta',
-            name='genero',
-            field=models.CharField(blank=True, max_length=20, null=True, verbose_name='Género'),
+            model_name="atleta",
+            name="genero",
+            field=models.CharField(
+                blank=True, max_length=20, null=True, verbose_name="Género"
+            ),
         ),
     ]

@@ -62,7 +62,7 @@ class InscripcionController(viewsets.ViewSet):
             if not persona_data:
                 return Response(
                     {"detail": "ERROR: Datos de persona son requeridos"},
-                    status=status.HTTP_400_BAD_REQUEST
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             result = self.service.create_atleta_inscripcion(
@@ -75,7 +75,7 @@ class InscripcionController(viewsets.ViewSet):
             logger.warning(f"Validación fallida en create inscripcion: {exc}")
             return Response(
                 {"detail": f"Error de validación: {str(exc)}"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception as exc:
             # Error inesperado - logueamos el traceback completo
@@ -83,7 +83,7 @@ class InscripcionController(viewsets.ViewSet):
             traceback.print_exc()  # Imprime el error completo en consola
             return Response(
                 {"detail": f"ERROR INTERNO BACKEND: {str(exc)}"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
     @extend_schema(responses={200: AtletaInscripcionResponseSerializer})
@@ -132,14 +132,14 @@ class InscripcionController(viewsets.ViewSet):
             logger.warning(f"Validación fallida en update inscripcion: {exc}")
             return Response(
                 {"detail": f"Error de validación: {str(exc)}"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception as exc:
             logger.error(f"ERROR INTERNO en update inscripcion: {exc}")
             traceback.print_exc()
             return Response(
                 {"detail": f"ERROR INTERNO BACKEND: {str(exc)}"},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
 
     @action(detail=True, methods=["post"], url_path="cambiar-estado")
@@ -172,46 +172,55 @@ class InscripcionController(viewsets.ViewSet):
 
     @action(detail=False, methods=["get"], url_path="verificar-cedula")
     @extend_schema(
-        parameters=[{
-            "name": "dni",
-            "in": "query",
-            "required": True,
-            "description": "Número de cédula/DNI del atleta a verificar",
-            "schema": {"type": "string"}
-        }],
+        parameters=[
+            {
+                "name": "dni",
+                "in": "query",
+                "required": True,
+                "description": "Número de cédula/DNI del atleta a verificar",
+                "schema": {"type": "string"},
+            }
+        ],
         responses={
             200: {
                 "type": "object",
                 "properties": {
                     "existe": {"type": "boolean"},
-                    "mensaje": {"type": "string"}
-                }
+                    "mensaje": {"type": "string"},
+                },
             }
-        }
+        },
     )
     def verificar_cedula(self, request):
         """
         Verifica si existe una inscripción activa para un DNI/cédula.
         Útil para validación en tiempo real desde el frontend.
-        
+
         GET /api/inscripciones/verificar-cedula/?dni=1234567890
         """
         dni = request.query_params.get("dni")
-        
+
         if not dni:
             return Response(
                 {"error": "DNI requerido", "existe": False},
-                status=status.HTTP_400_BAD_REQUEST
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         # Buscar inscripción activa por cédula del atleta
         from ..models import Inscripcion
+
         existe = Inscripcion.objects.filter(
-            atleta__cedula=dni,
-            habilitada=True
+            atleta__cedula=dni, habilitada=True
         ).exists()
-        
-        return Response({
-            "existe": existe,
-            "mensaje": "El atleta ya se encuentra registrado" if existe else "Disponible para inscripción"
-        }, status=status.HTTP_200_OK)
+
+        return Response(
+            {
+                "existe": existe,
+                "mensaje": (
+                    "El atleta ya se encuentra registrado"
+                    if existe
+                    else "Disponible para inscripción"
+                ),
+            },
+            status=status.HTTP_200_OK,
+        )

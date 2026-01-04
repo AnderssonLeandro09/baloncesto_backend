@@ -6,23 +6,32 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('basketball', '0010_merge_0007_migrations'),
+        ("basketball", "0010_merge_0007_migrations"),
     ]
 
     operations = [
         migrations.AddField(
-            model_name='atleta',
-            name='apellidos',
-            field=models.CharField(blank=True, max_length=150, null=True, verbose_name='Apellidos'),
+            model_name="atleta",
+            name="apellidos",
+            field=models.CharField(
+                blank=True, max_length=150, null=True, verbose_name="Apellidos"
+            ),
         ),
         migrations.AddField(
-            model_name='atleta',
-            name='cedula',
-            field=models.CharField(blank=True, max_length=20, null=True, verbose_name='Cédula/Identificación'),
+            model_name="atleta",
+            name="cedula",
+            field=models.CharField(
+                blank=True,
+                max_length=20,
+                null=True,
+                verbose_name="Cédula/Identificación",
+            ),
         ),
         migrations.AddField(
-            model_name='atleta',
-            name='nombres',
-            field=models.CharField(blank=True, max_length=150, null=True, verbose_name='Nombres'),
+            model_name="atleta",
+            name="nombres",
+            field=models.CharField(
+                blank=True, max_length=150, null=True, verbose_name="Nombres"
+            ),
         ),
     ]
