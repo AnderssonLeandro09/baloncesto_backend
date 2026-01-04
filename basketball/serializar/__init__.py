@@ -1,4 +1,4 @@
-from .persona import PersonaSerializer  # noqa: F401
+from .persona import PersonaSerializer, PersonaMinimalSerializer  # noqa: F401
 from .administrador import (  # noqa: F401
     AdministradorSerializer,
     AdministradorDataSerializer,
@@ -11,6 +11,12 @@ from .estudiante_vinculacion import (  # noqa: F401
     EstudianteVinculacionInputSerializer,
     EstudianteVinculacionResponseSerializer,
 )
+from .entrenador import (  # noqa: F401
+    EntrenadorSerializer,
+    EntrenadorDataSerializer,
+    EntrenadorInputSerializer,
+    EntrenadorResponseSerializer,
+)
 from .auth import LoginSerializer  # noqa: F401
 from .inscripcion import InscripcionSerializer  # noqa: F401
 from .atleta import (  # noqa: F401
@@ -19,4 +25,21 @@ from .atleta import (  # noqa: F401
     InscripcionDataSerializer,
     AtletaInscripcionInputSerializer,
     AtletaInscripcionResponseSerializer,
+)
+from .prueba_fisica import (  # noqa: F401
+    PruebaFisicaSerializer,
+    PruebaFisicaInputSerializer,
+    PruebaFisicaResponseSerializer,
+)
+from .profile import (  # noqa: F401
+    ProfileResponseSerializer,
+)
+from .grupo_atleta import (  # noqa: F401
+    GrupoAtletaSerializer,
+    GrupoAtletaResponseSerializer,
+)
+from .prueba_antropometrica import (  # noqa: F401
+    PruebaAntropometricaSerializer,
+    PruebaAntropometricaInputSerializer,
+    PruebaAntropometricaResponseSerializer,
 )

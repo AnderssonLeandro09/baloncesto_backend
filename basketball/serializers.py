@@ -14,6 +14,10 @@ from .serializar import (  # noqa: F401
     EstudianteVinculacionDataSerializer,
     EstudianteVinculacionInputSerializer,
     EstudianteVinculacionResponseSerializer,
+    EntrenadorSerializer,
+    EntrenadorDataSerializer,
+    EntrenadorInputSerializer,
+    EntrenadorResponseSerializer,
     LoginSerializer,
     InscripcionSerializer,
     AtletaSerializer,
@@ -21,6 +25,15 @@ from .serializar import (  # noqa: F401
     InscripcionDataSerializer,
     AtletaInscripcionInputSerializer,
     AtletaInscripcionResponseSerializer,
+    PruebaFisicaSerializer,
+    PruebaFisicaInputSerializer,
+    PruebaFisicaResponseSerializer,
+    ProfileResponseSerializer,
+    GrupoAtletaSerializer,
+    GrupoAtletaResponseSerializer,
+    PruebaAntropometricaSerializer,
+    PruebaAntropometricaInputSerializer,
+    PruebaAntropometricaResponseSerializer,
 )
 
 # Cache global para tokens y datos de persona

@@ -27,6 +27,6 @@ class PersonaSerializer(serializers.Serializer):
 
     gender = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     direction = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-
+    
     type_identification = serializers.CharField(required=False, default="CEDULA")
     type_stament = serializers.CharField(required=False, default="ESTUDIANTES")
