@@ -208,181 +208,221 @@ class InscripcionService:
         persona_data: Dict[str, Any],
         atleta_data: Dict[str, Any],
         inscripcion_data: Dict[str, Any],
-        token: str,
+        token: str = None,
     ) -> Dict[str, Any]:
+        """
+        Crea una inscripción de atleta cumpliendo con UC-004 y UC-005.
         
-        # 1. Validación mínima (Solo datos personales básicos)
-        if not persona_data:
-            raise ValidationError("Datos de persona son requeridos")
+        Reglas de Negocio:
+        - Valida duplicados por cédula (Curso Alterno 8)
+        - Persiste datos localmente (no depende del microservicio externo)
+        - Modo Fail-Safe: genera credenciales dummy si faltan
+        """
+        try:
+            # ============================================================
+            # 1. VALIDACIÓN BÁSICA DE ENTRADA
+            # ============================================================
+            if not persona_data:
+                raise ValidationError("Datos de persona son requeridos")
 
-        atleta_data = atleta_data or {}
-        inscripcion_data = inscripcion_data or {}
-        
-        # 2. GENERACIÓN INTERNA DE CREDENCIALES (Invisible)
-        # Como el atleta NO tiene usuario, generamos datos técnicos dummy
-        # para satisfacer al sistema externo sin molestar al usuario.
-        if not persona_data.get("email"):
-            unique_id = str(int(time.time()))
-            ident = persona_data.get('identification', unique_id)
-            # Email técnico interno
-            persona_data["email"] = f"atleta_{ident}@sistema.local"
+            atleta_data = atleta_data or {}
+            inscripcion_data = inscripcion_data or {}
             
-        if not persona_data.get("password"):
-            # Password técnico interno
-            persona_data["password"] = "System_Auto_Pass_123$"
-
-        persona_external = None
-
-        # 3. Obtención de ID Externo (Fail-Safe)
-        try:
-            # Intentar registrar en sistema externo
-            persona_response = self._call_user_module(
-                "post", "/api/person/save-account", token, persona_data
-            )
-            persona_external = self._extract_external(persona_response)
-
-            # Si falla (ej: ya existe), buscamos por cédula
-            if not persona_external and persona_data.get("identification"):
-                lookup_response = self._search_by_identification(
-                    persona_data.get("identification"), token
-                )
-                persona_external = self._extract_external(lookup_response)
-
-        except Exception:
-            # Si el sistema externo falla totalmente, intentamos búsqueda silenciosa
-            try:
-                if persona_data.get("identification"):
-                    lookup_response = self._search_by_identification(
-                        persona_data.get("identification"), token
-                    )
-                    persona_external = self._extract_external(lookup_response)
-            except Exception as search_err:
-                logger.warning(f"[FALLBACK] Búsqueda por cédula también falló: {search_err}")
-        
-        # FALLBACK: Generar ID local si no hay conexión externa
-        # SIEMPRE permitimos continuar para evitar Error 500
-        if not persona_external:
-            logger.warning("[MODO OFFLINE] Generando ID Local temporal (Fallo API Externa)")
-            persona_external = f"local_{persona_data.get('identification', 'unknown')}_{int(time.time())}"
-
-        # 4. Creación Local (Base de datos local)
-        try:
-            # MAPEO ROBUSTO: Buscar en múltiples claves posibles (maneja typos del frontend)
-            nombre_real = (
-                persona_data.get('first_name') or 
-                persona_data.get('firts_name') or  # Typo común
-                persona_data.get('nombres') or 
-                persona_data.get('nombre') or 
-                ""
-            )
-            apellido_real = (
-                persona_data.get('last_name') or 
-                persona_data.get('apellidos') or 
-                persona_data.get('apellido') or 
-                ""
-            )
-            cedula_real = (
+            # ============================================================
+            # 2. MAPEO ROBUSTO DE DATOS (Frontend -> BD Local)
+            # Soporta múltiples nombres de campo para evitar errores por typos
+            # ============================================================
+            cedula = (
                 persona_data.get('identification') or 
                 persona_data.get('cedula') or 
                 persona_data.get('dni') or 
                 ""
             )
-            telefono_real = (
+            nombre = (
+                persona_data.get('first_name') or 
+                persona_data.get('firts_name') or  # Typo común del frontend
+                persona_data.get('nombres') or 
+                persona_data.get('nombre') or 
+                ""
+            )
+            apellido = (
+                persona_data.get('last_name') or 
+                persona_data.get('apellidos') or 
+                persona_data.get('apellido') or 
+                ""
+            )
+            telefono = (
                 persona_data.get('phono') or 
                 persona_data.get('telefono') or 
                 persona_data.get('phone') or 
                 persona_data.get('celular') or 
                 ""
             )
-            direccion_real = (
+            direccion = (
                 persona_data.get('direction') or 
                 persona_data.get('direccion') or 
                 persona_data.get('address') or 
                 ""
             )
-            email_real = (
+            email = (
                 persona_data.get('email') or 
                 persona_data.get('correo') or 
                 ""
             )
-            genero_real = (
+            genero = (
                 persona_data.get('gender') or 
                 persona_data.get('genero') or 
                 persona_data.get('sexo') or 
                 ""
             )
             
-            # Log para debugging
-            logger.info(f"[MAPEO] nombre={nombre_real}, apellido={apellido_real}, cedula={cedula_real}")
+            logger.info(f"[CREATE] Datos mapeados: cedula={cedula}, nombre={nombre}, apellido={apellido}")
             
-            datos_persona_local = {
-                'nombres': nombre_real,
-                'apellidos': apellido_real,
-                'cedula': cedula_real,
-                'email': email_real,
-                'telefono': telefono_real,
-                'direccion': direccion_real,
-                'genero': genero_real,
+            # ============================================================
+            # 3. VALIDACIÓN DE DUPLICADOS (UC-004 Curso Alterno 8)
+            # Verificar si ya existe una inscripción ACTIVA con esta cédula
+            # ============================================================
+            if cedula:
+                # Buscar atleta existente por cédula
+                atleta_existente = self.atleta_dao.get_by_filter(cedula=cedula).first()
+                
+                if atleta_existente:
+                    # Verificar si tiene inscripción activa
+                    inscripcion_activa = self.inscripcion_dao.get_by_filter(
+                        atleta=atleta_existente, 
+                        habilitada=True
+                    ).first()
+                    
+                    if inscripcion_activa:
+                        logger.warning(f"[DUPLICADO] Atleta con cédula {cedula} ya tiene inscripción activa ID={inscripcion_activa.id}")
+                        raise ValidationError("El atleta ya se encuentra registrado con una inscripción activa.")
+            
+            # ============================================================
+            # 4. GENERACIÓN DE CREDENCIALES DUMMY (Modo Fail-Safe)
+            # Si no viene email/password, generamos unos técnicos
+            # ============================================================
+            if not email:
+                email = f"atleta_{cedula}_{int(time.time())}@local.system"
+                logger.info(f"[FAIL-SAFE] Email dummy generado: {email}")
+            
+            if not persona_data.get("password"):
+                persona_data["password"] = "System_Auto_Pass_123$"
+            
+            # Actualizar persona_data con email generado
+            persona_data["email"] = email
+            
+            # ============================================================
+            # 5. OBTENCIÓN DE ID EXTERNO (Opcional - Fail-Safe)
+            # Intentamos registrar en el microservicio, pero continuamos si falla
+            # ============================================================
+            persona_external = None
+            
+            try:
+                persona_response = self._call_user_module(
+                    "post", "/api/person/save-account", token, persona_data
+                )
+                persona_external = self._extract_external(persona_response)
+
+                if not persona_external and cedula:
+                    lookup_response = self._search_by_identification(cedula, token)
+                    persona_external = self._extract_external(lookup_response)
+            except Exception as ext_err:
+                logger.warning(f"[MODO OFFLINE] Error con microservicio externo: {ext_err}")
+                # Intentar búsqueda silenciosa
+                try:
+                    if cedula:
+                        lookup_response = self._search_by_identification(cedula, token)
+                        persona_external = self._extract_external(lookup_response)
+                except Exception:
+                    pass
+            
+            # Fallback: ID local si no hay conexión externa
+            if not persona_external:
+                persona_external = f"local_{cedula or 'unknown'}_{int(time.time())}"
+                logger.info(f"[MODO OFFLINE] ID local generado: {persona_external}")
+            
+            # ============================================================
+            # 6. CREACIÓN/ACTUALIZACIÓN DE ATLETA EN BD LOCAL
+            # Esta es la fuente de verdad - no depende del microservicio
+            # ============================================================
+            datos_atleta_local = {
+                'nombres': nombre,
+                'apellidos': apellido,
+                'cedula': cedula,
+                'email': email,
+                'telefono': telefono,
+                'direccion': direccion,
+                'genero': genero,
             }
             
-            # Verificar existencia previa
-            if self.atleta_dao.exists(persona_external=persona_external):
-                atleta = self.atleta_dao.get_by_filter(
-                    persona_external=persona_external
-                ).first()
-                # Actualizar datos si existen cambios
-                if atleta:
-                    valid_fields = [f.name for f in Atleta._meta.get_fields()]
-                    # Combinar datos de atleta_data con datos de persona
-                    clean_data = {k: v for k, v in (atleta_data or {}).items() if k in valid_fields}
-                    # Agregar TODOS los datos personales
-                    for key, value in datos_persona_local.items():
-                        if value:  # Solo si tiene valor
-                            clean_data[key] = value
-                    self.atleta_dao.update(atleta.id, **clean_data)
-                    atleta = self.atleta_dao.get_by_id(atleta.id)  # Refrescar
+            # Agregar campos adicionales de atleta_data (edad, sexo, etc.)
+            valid_fields = [f.name for f in Atleta._meta.get_fields()]
+            for key, value in (atleta_data or {}).items():
+                if key in valid_fields and value is not None:
+                    datos_atleta_local[key] = value
+            
+            # Verificar si ya existe atleta con este persona_external
+            atleta_por_external = self.atleta_dao.get_by_filter(persona_external=persona_external).first()
+            # También verificar por cédula (puede existir con otro external)
+            atleta_por_cedula = self.atleta_dao.get_by_filter(cedula=cedula).first() if cedula else None
+            
+            atleta = atleta_por_external or atleta_por_cedula
+            
+            if atleta:
+                # Actualizar atleta existente
+                logger.info(f"[UPDATE] Actualizando atleta ID={atleta.id}")
+                clean_data = {k: v for k, v in datos_atleta_local.items() if k in valid_fields and v}
+                if not atleta.persona_external or atleta.persona_external.startswith('local_'):
+                    clean_data['persona_external'] = persona_external
+                self.atleta_dao.update(atleta.id, **clean_data)
+                atleta = self.atleta_dao.get_by_id(atleta.id)
             else:
                 # Crear nuevo atleta
-                valid_fields = [f.name for f in Atleta._meta.get_fields()]
-                # Combinar datos de atleta_data con datos de persona
-                clean_data = {k: v for k, v in (atleta_data or {}).items() if k in valid_fields}
-                # Agregar TODOS los datos personales
-                for key, value in datos_persona_local.items():
-                    if value:  # Solo si tiene valor
-                        clean_data[key] = value
-                
-                atleta = self.atleta_dao.create(
-                    persona_external=persona_external, **clean_data
-                )
-
-            # 5. Gestión de Inscripción
+                logger.info(f"[CREATE] Creando nuevo atleta con cédula={cedula}")
+                clean_data = {k: v for k, v in datos_atleta_local.items() if k in valid_fields and v}
+                atleta = self.atleta_dao.create(persona_external=persona_external, **clean_data)
+            
+            # ============================================================
+            # 7. GESTIÓN DE INSCRIPCIÓN
+            # ============================================================
             inscripcion = self.inscripcion_dao.get_by_filter(atleta=atleta).first()
             
             if inscripcion:
-                # Si existe, habilitar y actualizar
-                if not inscripcion.habilitada:
-                    self.inscripcion_dao.update(inscripcion.id, habilitada=True)
-                
+                # Si existe inscripción (deshabilitada), reactivarla
+                logger.info(f"[REACTIVAR] Inscripción existente ID={inscripcion.id}")
+                update_data = {'habilitada': True}
                 if inscripcion_data:
-                    self.inscripcion_dao.update(inscripcion.id, **inscripcion_data)
-                
+                    update_data.update(inscripcion_data)
+                self.inscripcion_dao.update(inscripcion.id, **update_data)
                 inscripcion = self.inscripcion_dao.get_by_id(inscripcion.id)
             else:
                 # Crear nueva inscripción
+                logger.info(f"[CREATE] Creando nueva inscripción para atleta ID={atleta.id}")
                 inscripcion_params = {
                     "atleta": atleta,
                     "fecha_inscripcion": date.today(),
-                    "tipo_inscripcion": "MAYOR_EDAD",
+                    "tipo_inscripcion": inscripcion_data.get("tipo_inscripcion", "MAYOR_EDAD"),
                     "habilitada": True,
                 }
-                inscripcion_params.update(inscripcion_data)
+                # Solo agregar campos válidos de inscripcion_data
+                valid_insc_fields = [f.name for f in Inscripcion._meta.get_fields()]
+                for key, value in inscripcion_data.items():
+                    if key in valid_insc_fields and key not in inscripcion_params:
+                        inscripcion_params[key] = value
                 inscripcion = self.inscripcion_dao.create(**inscripcion_params)
 
+            # ============================================================
+            # 8. CONSTRUIR RESPUESTA EXITOSA
+            # ============================================================
             persona_info = self._fetch_persona(persona_external, token, allow_fail=True)
+            logger.info(f"[SUCCESS] Inscripción creada exitosamente. Atleta ID={atleta.id}, Inscripción ID={inscripcion.id}")
             return self._build_response(atleta, inscripcion, persona_info)
             
+        except ValidationError:
+            # Re-lanzar errores de validación (duplicados, datos faltantes)
+            raise
         except Exception as e:
-            logger.exception("Error guardando datos locales")
+            logger.exception(f"[ERROR] Error inesperado en create_atleta_inscripcion: {e}")
             raise ValidationError(f"Error interno al guardar: {str(e)}")
 
     def update_atleta_inscripcion(

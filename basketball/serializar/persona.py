@@ -9,12 +9,10 @@ class PersonaSerializer(serializers.Serializer):
     identification = serializers.CharField(
         required=True, help_text="Cédula o identificación"
     )
-    # NOTA: Verifica si tu frontend envía "first_name" o "firts_name" (con el error de tipeo)
-    # y usa el que corresponda aquí.
+
     first_name = serializers.CharField(required=True) 
     last_name = serializers.CharField(required=True)
 
-    # === ESTA ES LA CORRECCIÓN ===
     # Usamos CharField y required=False para que no valide formato ni existencia obligatoria
     email = serializers.CharField(required=False, allow_null=True, allow_blank=True)
     

@@ -169,3 +169,49 @@ class InscripcionController(viewsets.ViewSet):
         except Exception as exc:
             logger.error(f"Error en cambiar_estado inscripcion: {exc}")
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=["get"], url_path="verificar-cedula")
+    @extend_schema(
+        parameters=[{
+            "name": "dni",
+            "in": "query",
+            "required": True,
+            "description": "Número de cédula/DNI del atleta a verificar",
+            "schema": {"type": "string"}
+        }],
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "existe": {"type": "boolean"},
+                    "mensaje": {"type": "string"}
+                }
+            }
+        }
+    )
+    def verificar_cedula(self, request):
+        """
+        Verifica si existe una inscripción activa para un DNI/cédula.
+        Útil para validación en tiempo real desde el frontend.
+        
+        GET /api/inscripciones/verificar-cedula/?dni=1234567890
+        """
+        dni = request.query_params.get("dni")
+        
+        if not dni:
+            return Response(
+                {"error": "DNI requerido", "existe": False},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Buscar inscripción activa por cédula del atleta
+        from ..models import Inscripcion
+        existe = Inscripcion.objects.filter(
+            atleta__cedula=dni,
+            habilitada=True
+        ).exists()
+        
+        return Response({
+            "existe": existe,
+            "mensaje": "El atleta ya se encuentra registrado" if existe else "Disponible para inscripción"
+        }, status=status.HTTP_200_OK)
