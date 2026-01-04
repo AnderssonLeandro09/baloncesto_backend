@@ -30,3 +30,18 @@ class PersonaSerializer(serializers.Serializer):
 
     type_identification = serializers.CharField(required=False, default="CEDULA")
     type_stament = serializers.CharField(required=False, default="ESTUDIANTES")
+
+
+class PersonaMinimalSerializer(serializers.Serializer):
+    """
+    Serializer mínimo para datos de persona.
+    Solo contiene los campos esenciales.
+    """
+
+    identification = serializers.CharField(
+        required=True, help_text="Cédula o identificación"
+    )
+    first_name = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True
+    )
+    last_name = serializers.CharField(required=False, allow_null=True, allow_blank=True)

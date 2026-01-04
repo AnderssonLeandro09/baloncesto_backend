@@ -14,7 +14,6 @@ from ..serializers import (
     AtletaInscripcionResponseSerializer,
     get_user_module_token,
 )
-from ..permissions import IsEntrenadorOrEstudianteVinculacion
 
 logger = logging.getLogger(__name__)
 

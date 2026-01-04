@@ -6,14 +6,12 @@ MODO FAIL-SAFE: El sistema continúa funcionando aunque el microservicio de usua
 
 import logging
 import time
-import traceback
 from typing import Any, Dict, List, Optional
 from datetime import date
 
 import requests
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from rest_framework.exceptions import PermissionDenied
 
 from ..models import Inscripcion, Atleta
 from ..dao.inscripcion_dao import InscripcionDAO
@@ -80,7 +78,7 @@ class InscripcionService:
                 "offline": True,
                 "data": {"external_id": f"offline_{int(time.time())}"},
             }
-        except requests.exceptions.Timeout as exc:
+        except requests.exceptions.Timeout:
             logger.warning(f"[TIMEOUT] El microservicio tardó demasiado: {url}")
             return {
                 "timeout": True,
@@ -306,7 +304,8 @@ class InscripcionService:
 
                     if inscripcion_activa:
                         logger.warning(
-                            f"[DUPLICADO] Atleta con cédula {cedula} ya tiene inscripción activa ID={inscripcion_activa.id}"
+                            f"[DUPLICADO] Atleta con cédula {cedula} ya tiene "
+                            f"inscripción activa ID={inscripcion_activa.id}"
                         )
                         raise ValidationError(
                             "El atleta ya se encuentra registrado con una inscripción activa."
