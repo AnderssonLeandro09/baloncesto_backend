@@ -106,6 +106,10 @@ class PruebaAntropometricaService:
         """Obtiene todas las pruebas antropométricas de un atleta específico."""
         return list(self.dao.get_by_atleta(atleta_id))
 
+    def get_pruebas_by_atleta(self, atleta_id: int) -> List[PruebaAntropometrica]:
+        """Alias requerido por los tests; delega en el método principal."""
+        return self.get_pruebas_antropometricas_by_atleta(atleta_id)
+
     def toggle_estado(self, prueba_id: int) -> PruebaAntropometrica:
         """Cambia el estado de una prueba antropométrica (True -> False o viceversa)."""
         prueba = self.dao.get_by_id(prueba_id)
