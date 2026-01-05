@@ -7,6 +7,10 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
+        migrations.RemoveField(
+            model_name="grupoatleta",
+            name="entrenador",
+        ),
         migrations.DeleteModel(
             name="EstudianteVinculacion",
         ),
@@ -130,5 +134,15 @@ class Migration(migrations.Migration):
                 "db_table": "pasante",
                 "ordering": ["-fecha_registro"],
             },
+        ),
+        migrations.AddField(
+            model_name="grupoatleta",
+            name="entrenador",
+            field=models.ForeignKey(
+                on_delete=models.PROTECT,
+                related_name="grupos",
+                to="basketball.entrenador",
+                verbose_name="Entrenador",
+            ),
         ),
     ]
