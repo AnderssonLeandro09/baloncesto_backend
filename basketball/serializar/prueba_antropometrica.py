@@ -60,13 +60,20 @@ class PruebaAntropometricaInputSerializer(serializers.Serializer):
 
 class AtletaSimpleSerializer(serializers.ModelSerializer):
     """Serializador simple para el atleta en la respuesta."""
-    
+
     nombre_atleta = serializers.SerializerMethodField()
     apellido_atleta = serializers.SerializerMethodField()
 
     class Meta:
         model = Atleta
-        fields = ["id", "nombres", "apellidos", "cedula", "nombre_atleta", "apellido_atleta"]
+        fields = [
+            "id",
+            "nombres",
+            "apellidos",
+            "cedula",
+            "nombre_atleta",
+            "apellido_atleta",
+        ]
 
     def get_nombre_atleta(self, obj):
         return obj.nombres or ""

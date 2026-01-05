@@ -21,7 +21,9 @@ class PruebaAntropometricaService:
         """Obtiene todas las pruebas antropométricas."""
         return list(self.dao.get_all())
 
-    def get_prueba_antropometrica_by_id(self, pk: int) -> Optional[PruebaAntropometrica]:
+    def get_prueba_antropometrica_by_id(
+        self, pk: int
+    ) -> Optional[PruebaAntropometrica]:
         """Obtiene una prueba antropométrica por su ID."""
         return self.dao.get_by_id(pk)
 
@@ -68,7 +70,9 @@ class PruebaAntropometricaService:
             raise
         except Exception as e:
             logger.error(f"Error al crear prueba antropométrica: {e}")
-            raise ValidationError(f"No se pudo crear la prueba antropométrica: {str(e)}")
+            raise ValidationError(
+                f"No se pudo crear la prueba antropométrica: {str(e)}"
+            )
 
     def update_prueba_antropometrica(
         self, pk: int, data: dict, user
@@ -92,7 +96,9 @@ class PruebaAntropometricaService:
             raise
         except Exception as e:
             logger.error(f"Error al actualizar prueba antropométrica: {e}")
-            raise ValidationError(f"No se pudo actualizar la prueba antropométrica: {str(e)}")
+            raise ValidationError(
+                f"No se pudo actualizar la prueba antropométrica: {str(e)}"
+            )
 
     def get_pruebas_antropometricas_by_atleta(
         self, atleta_id: int
