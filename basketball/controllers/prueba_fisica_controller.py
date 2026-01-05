@@ -10,7 +10,6 @@ from drf_spectacular.utils import extend_schema
 
 from ..services.prueba_fisica_service import PruebaFisicaService
 from ..serializers import (
-    PruebaFisicaSerializer,
     PruebaFisicaInputSerializer,
     PruebaFisicaResponseSerializer,
     get_user_module_token,
@@ -36,7 +35,7 @@ class PruebaFisicaController(viewsets.ViewSet):
             )
             # Ya retornamos los diccionarios directamente, que incluyen el campo semestre
             return Response(pruebas, status=status.HTTP_200_OK)
-        except Exception as exc:
+        except Exception:
             logger.error("Error en list pruebas físicas", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},
@@ -55,7 +54,7 @@ class PruebaFisicaController(viewsets.ViewSet):
                 token, user=request.user
             )
             return Response(atletas, status=status.HTTP_200_OK)
-        except Exception as exc:
+        except Exception:
             logger.error("Error en atletas_habilitados", exc_info=True)
             return Response(
                 {"error": "Error al obtener atletas habilitados"},
@@ -86,7 +85,7 @@ class PruebaFisicaController(viewsets.ViewSet):
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except PermissionDenied as exc:
             return Response({"error": str(exc)}, status=status.HTTP_403_FORBIDDEN)
-        except Exception as exc:
+        except Exception:
             logger.error("Error en create prueba física", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},
@@ -119,7 +118,7 @@ class PruebaFisicaController(viewsets.ViewSet):
             return Response(prueba, status=status.HTTP_200_OK)
         except ValidationError as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        except Exception as exc:
+        except Exception:
             logger.error("Error en retrieve prueba física", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},
@@ -160,7 +159,7 @@ class PruebaFisicaController(viewsets.ViewSet):
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except PermissionDenied as exc:
             return Response({"error": str(exc)}, status=status.HTTP_403_FORBIDDEN)
-        except Exception as exc:
+        except Exception:
             logger.error("Error en update prueba física", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},
@@ -193,7 +192,7 @@ class PruebaFisicaController(viewsets.ViewSet):
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except PermissionDenied as exc:
             return Response({"error": str(exc)}, status=status.HTTP_403_FORBIDDEN)
-        except Exception as exc:
+        except Exception:
             logger.error("Error en toggle_estado prueba física", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},
@@ -210,7 +209,7 @@ class PruebaFisicaController(viewsets.ViewSet):
                 atleta_id, token, user=request.user
             )
             return Response(pruebas, status=status.HTTP_200_OK)
-        except Exception as exc:
+        except Exception:
             logger.error("Error en by_atleta pruebas físicas", exc_info=True)
             return Response(
                 {"error": "Error interno del servidor"},

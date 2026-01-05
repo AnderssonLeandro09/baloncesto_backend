@@ -9,7 +9,6 @@ from drf_spectacular.utils import extend_schema
 
 from ..services.prueba_antropometrica_service import PruebaAntropometricaService
 from ..serializers import (
-    PruebaAntropometricaSerializer,
     PruebaAntropometricaInputSerializer,
     PruebaAntropometricaResponseSerializer,
 )

@@ -11,8 +11,6 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.fields import GenericForeignKey
-from django.contrib.contenttypes.models import ContentType
 
 
 class TipoInscripcion(models.TextChoices):
@@ -83,6 +81,7 @@ class GrupoAtleta(models.Model):
         auto_now_add=True, verbose_name="Fecha de creación"
     )
     estado = models.BooleanField(default=True, verbose_name="Estado")
+    eliminado = models.BooleanField(default=False, verbose_name="Eliminado")
 
     # Relación con Entrenador (implementa) - Cardinalidad 1 Entrenador tiene 1..* Grupos
     # La FK se define como string porque Entrenador se define después
@@ -168,6 +167,25 @@ class Atleta(models.Model):
         verbose_name="External ID Persona",
         help_text="UUID externo de la persona en el módulo de usuarios",
     )
+
+    # Datos Personales Redundantes (backup local si el microservicio falla)
+    nombres = models.CharField(
+        max_length=150, blank=True, null=True, verbose_name="Nombres"
+    )
+    apellidos = models.CharField(
+        max_length=150, blank=True, null=True, verbose_name="Apellidos"
+    )
+    cedula = models.CharField(
+        max_length=20, blank=True, null=True, verbose_name="Cédula/Identificación"
+    )
+    email = models.EmailField(blank=True, null=True, verbose_name="Email")
+    direccion = models.CharField(
+        max_length=255, blank=True, null=True, verbose_name="Dirección"
+    )
+    genero = models.CharField(
+        max_length=20, blank=True, null=True, verbose_name="Género"
+    )
+
     # Datos Personales
     fecha_nacimiento = models.DateField(null=True, verbose_name="Fecha de nacimiento")
     edad = models.IntegerField(
