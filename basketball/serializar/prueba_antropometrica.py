@@ -1,7 +1,7 @@
 """Serializadores para Prueba Antropométrica."""
 
 from rest_framework import serializers
-from ..models import PruebaAntropometrica
+from ..models import PruebaAntropometrica, Atleta
 
 
 class PruebaAntropometricaSerializer(serializers.ModelSerializer):
@@ -15,7 +15,9 @@ class PruebaAntropometricaSerializer(serializers.ModelSerializer):
 class PruebaAntropometricaInputSerializer(serializers.Serializer):
     """Serializador para la entrada de datos de Prueba Antropométrica."""
 
-    atleta_id = serializers.IntegerField(required=True)
+    # Soportar tanto 'atleta' como 'atleta_id' del frontend
+    atleta = serializers.IntegerField(required=False)
+    atleta_id = serializers.IntegerField(required=False)
     fecha_registro = serializers.DateField(required=True)
 
     peso = serializers.DecimalField(
@@ -47,12 +49,50 @@ class PruebaAntropometricaInputSerializer(serializers.Serializer):
 
     estado = serializers.BooleanField(default=True)
 
+    def validate(self, data):
+        """Validar que al menos uno de atleta o atleta_id esté presente."""
+        if not data.get("atleta") and not data.get("atleta_id"):
+            raise serializers.ValidationError(
+                {"atleta": "El ID del atleta es requerido"}
+            )
+        return data
+
+
+class AtletaSimpleSerializer(serializers.ModelSerializer):
+    """Serializador simple para el atleta en la respuesta."""
+
+    nombre_atleta = serializers.SerializerMethodField()
+    apellido_atleta = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Atleta
+        fields = [
+            "id",
+            "nombres",
+            "apellidos",
+            "cedula",
+            "nombre_atleta",
+            "apellido_atleta",
+        ]
+
+    def get_nombre_atleta(self, obj):
+        return obj.nombres or ""
+
+    def get_apellido_atleta(self, obj):
+        return obj.apellidos or ""
+
 
 class PruebaAntropometricaResponseSerializer(serializers.ModelSerializer):
     """Serializador para la respuesta de Prueba Antropométrica."""
 
-    atleta = serializers.StringRelatedField()
+    atleta = serializers.SerializerMethodField()
     registrado_por = serializers.StringRelatedField()
+    imc = serializers.DecimalField(
+        source="indice_masa_corporal",
+        max_digits=5,
+        decimal_places=2,
+        read_only=True,
+    )
 
     class Meta:
         model = PruebaAntropometrica
@@ -67,7 +107,27 @@ class PruebaAntropometricaResponseSerializer(serializers.ModelSerializer):
             "altura_sentado",
             "envergadura",
             "indice_masa_corporal",
+            "imc",
             "indice_cormico",
             "observaciones",
             "estado",
         ]
+
+    def get_atleta(self, obj):
+        """Permite serializar mocks (string) sin romper la lógica real."""
+        atleta = getattr(obj, "atleta", None)
+
+        if isinstance(atleta, Atleta):
+            return AtletaSimpleSerializer(atleta).data
+
+        if isinstance(atleta, str):
+            return {
+                "id": None,
+                "nombres": atleta,
+                "apellidos": "",
+                "cedula": "",
+                "nombre_atleta": atleta,
+                "apellido_atleta": "",
+            }
+
+        return None

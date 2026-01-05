@@ -5,19 +5,24 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('basketball', '0012_remove_pruebaantropometrica_indice_cornico_and_more'),
+        ("basketball", "0012_remove_pruebaantropometrica_indice_cornico_and_more"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='pruebaantropometrica',
-            name='indice_cornico',
+            model_name="pruebaantropometrica",
+            name="indice_cornico",
         ),
         migrations.AddField(
-            model_name='pruebaantropometrica',
-            name='indice_cormico',
-            field=models.DecimalField(decimal_places=2, default=Decimal('0.00'), editable=False, max_digits=5, verbose_name='Índice Córmico'),
+            model_name="pruebaantropometrica",
+            name="indice_cormico",
+            field=models.DecimalField(
+                decimal_places=2,
+                default=Decimal("0.00"),
+                editable=False,
+                max_digits=5,
+                verbose_name="Índice Córmico",
+            ),
         ),
     ]

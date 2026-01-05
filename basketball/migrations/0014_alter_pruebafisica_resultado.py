@@ -6,15 +6,19 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('basketball', '0011_alter_pruebafisica_tipo_prueba'),
+        ("basketball", "0011_alter_pruebafisica_tipo_prueba"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='pruebafisica',
-            name='resultado',
-            field=models.DecimalField(decimal_places=2, max_digits=10, validators=[django.core.validators.MinValueValidator(Decimal('0.00'))], verbose_name='Resultado'),
+            model_name="pruebafisica",
+            name="resultado",
+            field=models.DecimalField(
+                decimal_places=2,
+                max_digits=10,
+                validators=[django.core.validators.MinValueValidator(Decimal("0.00"))],
+                verbose_name="Resultado",
+            ),
         ),
     ]
