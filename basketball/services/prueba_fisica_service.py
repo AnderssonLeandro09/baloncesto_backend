@@ -107,7 +107,7 @@ class PruebaFisicaService:
 
     def _get_filtered_queryset(self, user):
         """Retorna el queryset de pruebas físicas filtrado por permisos del usuario."""
-        queryset = self.dao.get_by_filter(estado=True).select_related("atleta")
+        queryset = self.dao.get_all().select_related("atleta")
 
         if not user or not hasattr(user, "role"):
             return queryset.none()
