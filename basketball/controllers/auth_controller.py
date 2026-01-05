@@ -56,7 +56,9 @@ class AuthController(viewsets.ViewSet):
         except requests.RequestException as e:
             logger.error(f"Error conectando al servicio de usuarios: {e}")
             return Response(
-                {"error": "Servicio de autenticación no disponible. Intente más tarde."},
+                {
+                    "error": "Servicio de autenticación no disponible. Intente más tarde."
+                },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
@@ -66,24 +68,37 @@ class AuthController(viewsets.ViewSet):
                 resp_json = response.json()
                 # Intentar obtener el mensaje de error del servicio externo
                 # Puede venir en 'msg', 'message', 'error' o 'data'
-                error_msg = resp_json.get("msg") or resp_json.get("message") or resp_json.get("error") or error_msg
-                
+                error_msg = (
+                    resp_json.get("msg")
+                    or resp_json.get("message")
+                    or resp_json.get("error")
+                    or error_msg
+                )
+
                 # Si el mensaje es muy genérico o técnico, podemos mapearlo
                 if response.status_code == 404:
                     error_msg = "El correo electrónico no está registrado."
                 elif response.status_code == 401:
-                    if "password" in str(error_msg).lower() or "contraseña" in str(error_msg).lower():
+                    if (
+                        "password" in str(error_msg).lower()
+                        or "contraseña" in str(error_msg).lower()
+                    ):
                         error_msg = "La contraseña es incorrecta."
-                    elif "account" in str(error_msg).lower() or "cuenta" in str(error_msg).lower():
+                    elif (
+                        "account" in str(error_msg).lower()
+                        or "cuenta" in str(error_msg).lower()
+                    ):
                         error_msg = "La cuenta tiene problemas (bloqueada/inactiva)."
                     else:
                         error_msg = "Credenciales incorrectas (correo o contraseña)."
             except ValueError:
                 pass
-            
+
             return Response(
                 {"error": error_msg},
-                status=response.status_code if response.status_code < 500 else status.HTTP_502_BAD_GATEWAY,
+                status=response.status_code
+                if response.status_code < 500
+                else status.HTTP_502_BAD_GATEWAY,
             )
 
         # 2. Extraer información del usuario
