@@ -335,7 +335,10 @@ class PruebaAntropometrica(models.Model):
         max_digits=5,
         decimal_places=2,
         default=Decimal("0.00"),
-        validators=[MinValueValidator(Decimal("0.01"))],
+        validators=[
+            MinValueValidator(Decimal("20.0"), message="El peso mínimo es 20 kg"),
+            MaxValueValidator(Decimal("200.0"), message="El peso máximo es 200 kg"),
+        ],
         verbose_name="Peso (kg)",
     )
 
@@ -343,7 +346,10 @@ class PruebaAntropometrica(models.Model):
         max_digits=4,
         decimal_places=2,
         default=Decimal("0.00"),
-        validators=[MinValueValidator(Decimal("0.01"))],
+        validators=[
+            MinValueValidator(Decimal("1.0"), message="La estatura mínima es 1.0 m"),
+            MaxValueValidator(Decimal("2.5"), message="La estatura máxima es 2.5 m"),
+        ],
         verbose_name="Estatura (m)",
     )
 
@@ -351,7 +357,10 @@ class PruebaAntropometrica(models.Model):
         max_digits=4,
         decimal_places=2,
         default=Decimal("0.00"),
-        validators=[MinValueValidator(Decimal("0.01"))],
+        validators=[
+            MinValueValidator(Decimal("0.5"), message="La altura sentado mínima es 0.5 m"),
+            MaxValueValidator(Decimal("1.5"), message="La altura sentado máxima es 1.5 m"),
+        ],
         verbose_name="Altura sentado (m)",
     )
 
@@ -359,7 +368,10 @@ class PruebaAntropometrica(models.Model):
         max_digits=4,
         decimal_places=2,
         default=Decimal("0.00"),
-        validators=[MinValueValidator(Decimal("0.01"))],
+        validators=[
+            MinValueValidator(Decimal("1.0"), message="La envergadura mínima es 1.0 m"),
+            MaxValueValidator(Decimal("3.0"), message="La envergadura máxima es 3.0 m"),
+        ],
         verbose_name="Envergadura (m)",
     )
 
