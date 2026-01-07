@@ -95,7 +95,7 @@ class PruebaFisicaService:
             persona_data = response.get("data") if isinstance(response, dict) else None
             if persona_data:
                 return {
-                    "nombre": persona_data.get("firts_name"),
+                    "nombre": persona_data.get("first_name") or persona_data.get("firts_name"),
                     "apellido": persona_data.get("last_name"),
                     "identificacion": persona_data.get("identification"),
                 }
@@ -104,6 +104,27 @@ class PruebaFisicaService:
             if allow_fail:
                 return None
             raise ValidationError(f"No se pudo obtener datos de la persona: {exc}")
+
+    def _get_persona_info(self, atleta, token: str) -> Dict[str, Any]:
+        """Obtiene información de la persona con fallback a datos locales."""
+        persona_info = self._fetch_persona(atleta.persona_external, token, allow_fail=True)
+
+        if not persona_info:
+            return {
+                "nombre": atleta.nombres or "Atleta",
+                "apellido": atleta.apellidos or f"ID: {atleta.id}",
+                "identificacion": atleta.cedula or "N/A",
+            }
+
+        # Asegurar que los campos tengan algún valor de los datos locales si el externo falla parcial
+        if not persona_info.get("nombre") and atleta.nombres:
+            persona_info["nombre"] = atleta.nombres
+        if not persona_info.get("apellido") and atleta.apellidos:
+            persona_info["apellido"] = atleta.apellidos
+        if not persona_info.get("identificacion") and atleta.cedula:
+            persona_info["identificacion"] = atleta.cedula
+
+        return persona_info
 
     def _get_filtered_queryset(self, user):
         """Retorna el queryset de pruebas físicas filtrado por permisos del usuario."""
@@ -132,9 +153,7 @@ class PruebaFisicaService:
         pruebas = self._get_filtered_queryset(user)
         results = []
         for prueba in pruebas:
-            persona_info = self._fetch_persona(
-                prueba.atleta.persona_external, token, allow_fail=True
-            )
+            persona_info = self._get_persona_info(prueba.atleta, token)
             results.append(
                 {
                     "id": prueba.id,
@@ -159,9 +178,7 @@ class PruebaFisicaService:
         if not prueba:
             return None
 
-        persona_info = self._fetch_persona(
-            prueba.atleta.persona_external, token, allow_fail=True
-        )
+        persona_info = self._get_persona_info(prueba.atleta, token)
         return {
             "id": prueba.id,
             "atleta": prueba.atleta.id,
@@ -354,9 +371,7 @@ class PruebaFisicaService:
         pruebas = self._get_filtered_queryset(user).filter(atleta_id=atleta_id)
         results = []
         for prueba in pruebas:
-            persona_info = self._fetch_persona(
-                prueba.atleta.persona_external, token, allow_fail=True
-            )
+            persona_info = self._get_persona_info(prueba.atleta, token)
             results.append(
                 {
                     "id": prueba.id,
@@ -417,9 +432,7 @@ class PruebaFisicaService:
 
         results = []
         for atleta in queryset:
-            persona_info = self._fetch_persona(
-                atleta.persona_external, token, allow_fail=True
-            )
+            persona_info = self._get_persona_info(atleta, token)
 
             results.append(
                 {
