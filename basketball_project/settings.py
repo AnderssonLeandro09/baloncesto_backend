@@ -5,6 +5,7 @@ Configuración para el ambiente de desarrollo del módulo de Basketball.
 """
 
 import os
+import sys
 from pathlib import Path
 
 # Intentar cargar dotenv si está disponible
