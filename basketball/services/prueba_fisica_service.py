@@ -95,7 +95,8 @@ class PruebaFisicaService:
             persona_data = response.get("data") if isinstance(response, dict) else None
             if persona_data:
                 return {
-                    "nombre": persona_data.get("first_name") or persona_data.get("firts_name"),
+                    "nombre": persona_data.get("first_name")
+                    or persona_data.get("firts_name"),
                     "apellido": persona_data.get("last_name"),
                     "identificacion": persona_data.get("identification"),
                 }
@@ -107,7 +108,9 @@ class PruebaFisicaService:
 
     def _get_persona_info(self, atleta, token: str) -> Dict[str, Any]:
         """Obtiene información de la persona con fallback a datos locales."""
-        persona_info = self._fetch_persona(atleta.persona_external, token, allow_fail=True)
+        persona_info = self._fetch_persona(
+            atleta.persona_external, token, allow_fail=True
+        )
 
         if not persona_info:
             return {
@@ -216,7 +219,9 @@ class PruebaFisicaService:
 
             # Validar que el atleta tenga inscripción habilitada
             if not hasattr(atleta, "inscripcion") or not atleta.inscripcion.habilitada:
-                raise ValidationError("El atleta no tiene inscripción habilitada")
+                raise ValidationError(
+                    '"El atleta no tiene inscripción habilitada". No se guarda el registro.'
+                )
 
             # Validar autorización
             if user and user.role == "ENTRENADOR":
@@ -238,32 +243,43 @@ class PruebaFisicaService:
             if fecha_registro and fecha_registro > date.today():
                 raise ValidationError("La fecha de registro no puede ser futura")
 
-            # Validar resultado (debe ser positivo y en rango razonable)
+            # Validar tipo de prueba primero (necesario para validar rangos de resultado)
+            tipo_prueba = data.get("tipo_prueba")
+            if not tipo_prueba:
+                raise ValidationError("El tipo de prueba es requerido")
+
+            # Rangos máximos por tipo de prueba (baloncesto)
+            RANGOS_MAXIMOS = {
+                "FUERZA": 300,  # Salto horizontal: hasta 300 cm
+                "VELOCIDAD": 15,  # 30m velocidad: hasta ~15 seg (margen amplio)
+                "AGILIDAD": 25,  # Zigzag: hasta ~25 seg (margen amplio)
+            }
+
+            # Validar resultado (debe ser positivo y en rango según tipo)
             resultado = data.get("resultado")
             if resultado is not None:
                 try:
                     resultado_float = float(resultado)
                     if resultado_float <= 0:
-                        raise ValidationError("El resultado debe ser mayor a 0")
-                    if resultado_float > 999999:  # Límite razonable
                         raise ValidationError(
-                            "El resultado excede el valor máximo permitido"
+                            "No se permiten valores negativos. El resultado debe ser mayor a 0"
+                        )
+                    # Validar rango máximo según tipo de prueba
+                    rango_max = RANGOS_MAXIMOS.get(tipo_prueba, 999999)
+                    if resultado_float > rango_max:
+                        raise ValidationError(
+                            f"El resultado excede el rango máximo para {tipo_prueba}: {rango_max}"
                         )
                 except (TypeError, ValueError):
                     raise ValidationError("El resultado debe ser un número válido")
 
-            # Validar tipo de prueba
-            tipo_prueba = data.get("tipo_prueba")
-            if not tipo_prueba:
-                raise ValidationError("El tipo de prueba es requerido")
-
-            # Validar y sanitizar observaciones
+            # Validar y sanitizar observaciones (límite 200 caracteres)
             observaciones = data.get("observaciones")
             if observaciones:
                 observaciones = str(observaciones).strip()
-                if len(observaciones) > 1000:
+                if len(observaciones) > 200:
                     raise ValidationError(
-                        "Las observaciones no pueden exceder 1000 caracteres"
+                        "Las observaciones no pueden exceder 200 caracteres"
                     )
                 # Sanitización adicional ya se hace en el serializer
                 data["observaciones"] = observaciones
@@ -334,13 +350,13 @@ class PruebaFisicaService:
                 except (TypeError, ValueError):
                     raise ValidationError("El resultado debe ser un número válido")
 
-            # Validar y sanitizar observaciones si se están actualizando
+            # Validar y sanitizar observaciones si se están actualizando (límite 200)
             observaciones = data.get("observaciones")
             if observaciones is not None:
                 observaciones = str(observaciones).strip()
-                if len(observaciones) > 1000:
+                if len(observaciones) > 200:
                     raise ValidationError(
-                        "Las observaciones no pueden exceder 1000 caracteres"
+                        "Las observaciones no pueden exceder 200 caracteres"
                     )
                 data["observaciones"] = observaciones
 
