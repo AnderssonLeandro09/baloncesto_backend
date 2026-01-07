@@ -7,7 +7,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("basketball", "0011_alter_pruebafisica_tipo_prueba"),
+        ("basketball", "0013_add_email_direccion_genero"),
     ]
 
     operations = [

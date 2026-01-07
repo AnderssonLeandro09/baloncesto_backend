@@ -5,6 +5,7 @@ Las personas se referencian al módulo externo de usuarios mediante `persona_ext
 """
 
 from django.db import models
+from django.core.validators import MinLengthValidator, MaxLengthValidator
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
 from django.core.exceptions import ValidationError
@@ -29,11 +30,17 @@ class TipoPrueba(models.TextChoices):
 
 
 class Sexo(models.TextChoices):
-    """Enum para sexo"""
+    """
+    Enum para sexo - Referencia para el frontend.
 
-    MASCULINO = "M", "Masculino"
-    FEMENINO = "F", "Femenino"
-    OTRO = "O", "Otro"
+    NOTA: El campo 'sexo' en Atleta permite valores personalizados.
+    Si el usuario selecciona 'Otro', puede escribir texto libre (max 20 chars).
+    Valores estándar: 'Masculino', 'Femenino', o texto personalizado.
+    """
+
+    MASCULINO = "Masculino", "Masculino"
+    FEMENINO = "Femenino", "Femenino"
+    OTRO = "Otro", "Otro"
 
 
 class Administrador(models.Model):
@@ -114,8 +121,20 @@ class Entrenador(models.Model):
         verbose_name="External ID Persona",
         help_text="UUID externo de la persona en el módulo de usuarios",
     )
-    especialidad = models.CharField(max_length=100, verbose_name="Especialidad")
-    club_asignado = models.CharField(max_length=100, verbose_name="Club asignado")
+    especialidad = models.CharField(
+        max_length=100,
+        verbose_name="Especialidad",
+        validators=[
+            MinLengthValidator(3, "La especialidad debe tener al menos 3 caracteres")
+        ],
+    )
+    club_asignado = models.CharField(
+        max_length=100,
+        verbose_name="Club asignado",
+        validators=[
+            MinLengthValidator(3, "El club asignado debe tener al menos 3 caracteres")
+        ],
+    )
     eliminado = models.BooleanField(default=False, verbose_name="Eliminado")
 
     class Meta:
@@ -335,7 +354,10 @@ class PruebaAntropometrica(models.Model):
         max_digits=5,
         decimal_places=2,
         default=Decimal("0.00"),
-        validators=[MinValueValidator(Decimal("0.01"))],
+        validators=[
+            MinValueValidator(Decimal("20.0"), message="El peso mínimo es 20 kg"),
+            MaxValueValidator(Decimal("200.0"), message="El peso máximo es 200 kg"),
+        ],
         verbose_name="Peso (kg)",
     )
 
@@ -343,7 +365,10 @@ class PruebaAntropometrica(models.Model):
         max_digits=4,
         decimal_places=2,
         default=Decimal("0.00"),
-        validators=[MinValueValidator(Decimal("0.01"))],
+        validators=[
+            MinValueValidator(Decimal("1.0"), message="La estatura mínima es 1.0 m"),
+            MaxValueValidator(Decimal("2.5"), message="La estatura máxima es 2.5 m"),
+        ],
         verbose_name="Estatura (m)",
     )
 
@@ -351,7 +376,14 @@ class PruebaAntropometrica(models.Model):
         max_digits=4,
         decimal_places=2,
         default=Decimal("0.00"),
-        validators=[MinValueValidator(Decimal("0.01"))],
+        validators=[
+            MinValueValidator(
+                Decimal("0.5"), message="La altura sentado mínima es 0.5 m"
+            ),
+            MaxValueValidator(
+                Decimal("1.5"), message="La altura sentado máxima es 1.5 m"
+            ),
+        ],
         verbose_name="Altura sentado (m)",
     )
 
@@ -359,7 +391,10 @@ class PruebaAntropometrica(models.Model):
         max_digits=4,
         decimal_places=2,
         default=Decimal("0.00"),
-        validators=[MinValueValidator(Decimal("0.01"))],
+        validators=[
+            MinValueValidator(Decimal("1.0"), message="La envergadura mínima es 1.0 m"),
+            MaxValueValidator(Decimal("3.0"), message="La envergadura máxima es 3.0 m"),
+        ],
         verbose_name="Envergadura (m)",
     )
 

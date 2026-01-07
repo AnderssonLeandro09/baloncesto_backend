@@ -51,3 +51,26 @@ class PruebaFisicaDAOTest(TestCase):
         )
         updated = self.dao.update(prueba.id, resultado=14.2)
         self.assertEqual(float(updated.resultado), 14.2)
+
+    def test_get_by_id(self):
+        prueba = self.dao.create(
+            atleta=self.atleta,
+            fecha_registro=date.today(),
+            tipo_prueba=TipoPrueba.FUERZA,
+            resultado=50.5,
+            unidad_medida="cm",
+        )
+        found = self.dao.get_by_id(prueba.id)
+        self.assertEqual(found.id, prueba.id)
+
+    def test_delete_prueba_fisica(self):
+        prueba = self.dao.create(
+            atleta=self.atleta,
+            fecha_registro=date.today(),
+            tipo_prueba=TipoPrueba.FUERZA,
+            resultado=50.5,
+            unidad_medida="cm",
+        )
+        # Probamos el borrado físico (si el dao lo soporta) o simplemente verificar que existe
+        self.dao.delete(prueba.id)
+        self.assertIsNone(self.dao.get_by_id(prueba.id))
