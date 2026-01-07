@@ -47,13 +47,17 @@ class GrupoAtletaServiceTests(SimpleTestCase):
             )
         self.assertIn("No se encontró un entrenador", str(cm.exception))
 
+    @patch("basketball.services.grupo_atleta_service.GrupoAtleta.objects")
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
     @patch("basketball.services.grupo_atleta_service.Atleta.objects")
-    def test_create_grupo_success(self, mock_atleta, mock_entrenador):
+    def test_create_grupo_success(self, mock_atleta, mock_entrenador, mock_grupo):
         """Debe crear un grupo exitosamente."""
         entrenador_mock = MagicMock(id=1)
         mock_entrenador.get.return_value = entrenador_mock
         user = MagicMock(pk="test_user")
+
+        # Mock para validación de nombre duplicado
+        mock_grupo.filter.return_value.exists.return_value = False
 
         # Mock Atletas
         atleta1 = MagicMock(id=1)
@@ -78,9 +82,10 @@ class GrupoAtletaServiceTests(SimpleTestCase):
         self.service.dao.create.assert_called()
         grupo_mock.atletas.set.assert_called()
 
+    @patch("basketball.services.grupo_atleta_service.GrupoAtleta.objects")
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
     @patch("basketball.services.grupo_atleta_service.Atleta.objects")
-    def test_update_grupo_success(self, mock_atleta, mock_entrenador):
+    def test_update_grupo_success(self, mock_atleta, mock_entrenador, mock_grupo):
         """Debe actualizar un grupo exitosamente."""
         entrenador_mock = MagicMock(id=1)
         mock_entrenador.get.return_value = entrenador_mock
@@ -91,6 +96,9 @@ class GrupoAtletaServiceTests(SimpleTestCase):
         )
         self.service.dao.get_by_id_activo.return_value = grupo_mock
         self.service.dao.update.return_value = grupo_mock
+
+        # Mock para validación de nombre duplicado
+        mock_grupo.filter.return_value.exclude.return_value.exists.return_value = False
 
         # Mock Atletas
         atleta1 = MagicMock(id=1)
