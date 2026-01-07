@@ -73,6 +73,21 @@ class GrupoAtletaService:
             data.pop("eliminado", None)
             data.pop("id", None)
 
+            # Validar que el nombre no esté duplicado (case-insensitive)
+            nombre = data.get("nombre")
+            if nombre:
+                if GrupoAtleta.objects.filter(
+                    nombre__iexact=nombre, eliminado=False
+                ).exists():
+                    raise ValidationError(
+                        f"Ya existe un grupo con el nombre '{nombre}'"
+                    )
+
+            # Validar categoría no vacía
+            categoria = data.get("categoria")
+            if categoria and not categoria.strip():
+                raise ValidationError("La categoría no puede estar vacía")
+
             # Extraer atletas antes de crear el grupo
             atleta_ids = data.pop("atletas", [])
 
@@ -130,6 +145,25 @@ class GrupoAtletaService:
             data.pop("eliminado", None)
             data.pop("id", None)
             data.pop("fecha_creacion", None)
+
+            # Validar que el nombre no esté duplicado (case-insensitive)
+            nombre = data.get("nombre")
+            if nombre:
+                if (
+                    GrupoAtleta.objects.filter(
+                        nombre__iexact=nombre, eliminado=False
+                    )
+                    .exclude(id=pk)
+                    .exists()
+                ):
+                    raise ValidationError(
+                        f"Ya existe un grupo con el nombre '{nombre}'"
+                    )
+
+            # Validar categoría no vacía
+            categoria = data.get("categoria")
+            if categoria and not categoria.strip():
+                raise ValidationError("La categoría no puede estar vacía")
 
             # Extraer atletas antes de actualizar
             atleta_ids = data.pop("atletas", None)
