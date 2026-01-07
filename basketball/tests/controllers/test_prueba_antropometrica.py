@@ -166,7 +166,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
     # ========================================================================
     # Tests de validación de peso
     # ========================================================================
-    
+
     def test_create_prueba_peso_negativo(self):
         """Test que valida rechazo de peso negativo."""
         payload = {

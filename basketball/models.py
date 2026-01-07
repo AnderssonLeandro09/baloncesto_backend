@@ -358,8 +358,12 @@ class PruebaAntropometrica(models.Model):
         decimal_places=2,
         default=Decimal("0.00"),
         validators=[
-            MinValueValidator(Decimal("0.5"), message="La altura sentado mínima es 0.5 m"),
-            MaxValueValidator(Decimal("1.5"), message="La altura sentado máxima es 1.5 m"),
+            MinValueValidator(
+                Decimal("0.5"), message="La altura sentado mínima es 0.5 m"
+            ),
+            MaxValueValidator(
+                Decimal("1.5"), message="La altura sentado máxima es 1.5 m"
+            ),
         ],
         verbose_name="Altura sentado (m)",
     )
