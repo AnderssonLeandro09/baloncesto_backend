@@ -6,7 +6,7 @@ class PersonaSerializer(serializers.Serializer):
     """
     Datos de la persona en el microservicio de usuarios.
     MODO FAIL-SAFE: Todos los campos excepto identification son opcionales.
-    
+
     Validaciones:
     - first_name/last_name: Solo letras y espacios
     - identification: 10 dígitos numéricos (cédula ecuatoriana)
@@ -28,7 +28,10 @@ class PersonaSerializer(serializers.Serializer):
     )
 
     phono = serializers.CharField(
-        required=False, allow_null=True, allow_blank=True, help_text="Teléfono/Celular (9-15 dígitos)"
+        required=False,
+        allow_null=True,
+        allow_blank=True,
+        help_text="Teléfono/Celular (9-15 dígitos)",
     )
 
     gender = serializers.CharField(required=False, allow_null=True, allow_blank=True)
@@ -48,22 +51,22 @@ class PersonaSerializer(serializers.Serializer):
         """
         if not value:
             return value
-        
+
         value = value.strip()
-        
+
         if not value:
             raise serializers.ValidationError("El nombre es requerido.")
-        
+
         # Patrón: letras (incluyendo tildes), espacios y apóstrofes
         patron = r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s']+$"
-        
+
         if not re.match(patron, value):
             raise serializers.ValidationError(
                 "El nombre solo puede contener letras y espacios."
             )
-        
+
         # Capitalizar cada palabra
-        return ' '.join(word.capitalize() for word in value.split())
+        return " ".join(word.capitalize() for word in value.split())
 
     def validate_last_name(self, value):
         """
@@ -72,22 +75,22 @@ class PersonaSerializer(serializers.Serializer):
         """
         if not value:
             return value
-        
+
         value = value.strip()
-        
+
         if not value:
             raise serializers.ValidationError("El apellido es requerido.")
-        
+
         # Patrón: letras (incluyendo tildes), espacios y apóstrofes
         patron = r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s']+$"
-        
+
         if not re.match(patron, value):
             raise serializers.ValidationError(
                 "El apellido solo puede contener letras y espacios."
             )
-        
+
         # Capitalizar cada palabra
-        return ' '.join(word.capitalize() for word in value.split())
+        return " ".join(word.capitalize() for word in value.split())
 
     def validate_identification(self, value):
         """
@@ -97,22 +100,22 @@ class PersonaSerializer(serializers.Serializer):
         """
         if not value:
             raise serializers.ValidationError("La cédula es requerida.")
-        
+
         value = value.strip()
-        
+
         # Remover espacios o guiones que el usuario pueda haber ingresado
-        value = re.sub(r'[\s\-]', '', value)
-        
+        value = re.sub(r"[\s\-]", "", value)
+
         if not value.isdigit():
             raise serializers.ValidationError(
                 "La cédula debe contener solo dígitos numéricos."
             )
-        
+
         if len(value) != 10:
             raise serializers.ValidationError(
                 "La cédula debe tener exactamente 10 dígitos."
             )
-        
+
         return value
 
     def validate_phono(self, value):
@@ -123,25 +126,25 @@ class PersonaSerializer(serializers.Serializer):
         """
         if not value:
             return value
-        
+
         value = value.strip()
-        
+
         if not value:
             return value
-        
+
         # Remover espacios, guiones y paréntesis comunes en teléfonos
-        value = re.sub(r'[\s\-\(\)\+]', '', value)
-        
+        value = re.sub(r"[\s\-\(\)\+]", "", value)
+
         if not value.isdigit():
             raise serializers.ValidationError(
                 "El teléfono debe contener solo dígitos numéricos."
             )
-        
+
         if len(value) < 9 or len(value) > 15:
             raise serializers.ValidationError(
                 "El teléfono debe tener entre 9 y 15 dígitos."
             )
-        
+
         return value
 
 

@@ -14,11 +14,11 @@ class AtletaSerializer(serializers.ModelSerializer):
 class AtletaDataSerializer(serializers.ModelSerializer):
     """
     Datos específicos del atleta para input.
-    
+
     El campo 'sexo' acepta:
     - 'Masculino' o 'Femenino' como valores estándar
     - Cualquier texto personalizado (max 20 caracteres) para opciones no binarias
-    
+
     Validaciones adicionales:
     - telefono: 9-15 dígitos numéricos
     - telefono_representante: 9-15 dígitos numéricos
@@ -30,7 +30,7 @@ class AtletaDataSerializer(serializers.ModelSerializer):
         max_length=20,
         required=False,
         allow_blank=True,
-        help_text="Sexo del atleta. Valores: 'Masculino', 'Femenino', o texto personalizado (max 20 chars)"
+        help_text="Sexo del atleta. Valores: 'Masculino', 'Femenino', o texto personalizado (max 20 chars)",
     )
 
     def validate_sexo(self, value):
@@ -42,31 +42,31 @@ class AtletaDataSerializer(serializers.ModelSerializer):
         """
         if not value:
             return value
-        
+
         # Limpiar whitespace
         value = value.strip()
-        
+
         if not value:
             return value
-        
+
         # Validar longitud máxima
         if len(value) > 20:
             raise serializers.ValidationError(
                 "El campo sexo no puede exceder 20 caracteres."
             )
-        
+
         # Valores estándar (case-insensitive)
         valores_estandar = {
-            'masculino': 'Masculino',
-            'femenino': 'Femenino',
-            'm': 'Masculino',
-            'f': 'Femenino',
+            "masculino": "Masculino",
+            "femenino": "Femenino",
+            "m": "Masculino",
+            "f": "Femenino",
         }
-        
+
         valor_normalizado = valores_estandar.get(value.lower())
         if valor_normalizado:
             return valor_normalizado
-        
+
         # Si no es estándar, se permite texto personalizado
         # Capitalizar primera letra para consistencia
         return value.capitalize() if value else value
@@ -79,25 +79,25 @@ class AtletaDataSerializer(serializers.ModelSerializer):
         """
         if not value:
             return value
-        
+
         value = value.strip()
-        
+
         if not value:
             return value
-        
+
         # Remover caracteres de formato comunes
-        value = re.sub(r'[\s\-\(\)\+]', '', value)
-        
+        value = re.sub(r"[\s\-\(\)\+]", "", value)
+
         if not value.isdigit():
             raise serializers.ValidationError(
                 "El teléfono debe contener solo dígitos numéricos."
             )
-        
+
         if len(value) < 9 or len(value) > 15:
             raise serializers.ValidationError(
                 "El teléfono debe tener entre 9 y 15 dígitos."
             )
-        
+
         return value
 
     def validate_telefono_representante(self, value):
@@ -108,25 +108,25 @@ class AtletaDataSerializer(serializers.ModelSerializer):
         """
         if not value:
             return value
-        
+
         value = value.strip()
-        
+
         if not value:
             return value
-        
+
         # Remover caracteres de formato comunes
-        value = re.sub(r'[\s\-\(\)\+]', '', value)
-        
+        value = re.sub(r"[\s\-\(\)\+]", "", value)
+
         if not value.isdigit():
             raise serializers.ValidationError(
                 "El teléfono del representante debe contener solo dígitos numéricos."
             )
-        
+
         if len(value) < 9 or len(value) > 15:
             raise serializers.ValidationError(
                 "El teléfono del representante debe tener entre 9 y 15 dígitos."
             )
-        
+
         return value
 
     def validate_cedula_representante(self, value):
@@ -137,25 +137,25 @@ class AtletaDataSerializer(serializers.ModelSerializer):
         """
         if not value:
             return value
-        
+
         value = value.strip()
-        
+
         if not value:
             return value
-        
+
         # Remover espacios o guiones
-        value = re.sub(r'[\s\-]', '', value)
-        
+        value = re.sub(r"[\s\-]", "", value)
+
         if not value.isdigit():
             raise serializers.ValidationError(
                 "La cédula del representante debe contener solo dígitos numéricos."
             )
-        
+
         if len(value) != 10:
             raise serializers.ValidationError(
                 "La cédula del representante debe tener exactamente 10 dígitos."
             )
-        
+
         return value
 
     def validate_nombre_representante(self, value):
@@ -166,22 +166,22 @@ class AtletaDataSerializer(serializers.ModelSerializer):
         """
         if not value:
             return value
-        
+
         value = value.strip()
-        
+
         if not value:
             return value
-        
+
         # Patrón: letras (incluyendo tildes), espacios y apóstrofes
         patron = r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s']+$"
-        
+
         if not re.match(patron, value):
             raise serializers.ValidationError(
                 "El nombre del representante solo puede contener letras y espacios."
             )
-        
+
         # Capitalizar cada palabra
-        return ' '.join(word.capitalize() for word in value.split())
+        return " ".join(word.capitalize() for word in value.split())
 
     class Meta:
         model = Atleta
@@ -191,7 +191,7 @@ class AtletaDataSerializer(serializers.ModelSerializer):
 class InscripcionDataSerializer(serializers.ModelSerializer):
     """
     Datos específicos de la inscripción para input.
-    
+
     Validaciones:
     - fecha_inscripcion: No puede ser una fecha futura
     """
@@ -202,12 +202,12 @@ class InscripcionDataSerializer(serializers.ModelSerializer):
         """
         if not value:
             return value
-        
+
         if value > date.today():
             raise serializers.ValidationError(
                 "La fecha de inscripción no puede ser una fecha futura."
             )
-        
+
         return value
 
     class Meta:

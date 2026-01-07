@@ -6,7 +6,7 @@ from ..models import Inscripcion
 class InscripcionSerializer(serializers.ModelSerializer):
     """
     Serializador para el modelo Inscripcion.
-    
+
     Validaciones:
     - fecha_inscripcion: No puede ser una fecha futura
     """
@@ -29,10 +29,10 @@ class InscripcionSerializer(serializers.ModelSerializer):
         """
         if not value:
             return value
-        
+
         if value > date.today():
             raise serializers.ValidationError(
                 "La fecha de inscripción no puede ser una fecha futura."
             )
-        
+
         return value

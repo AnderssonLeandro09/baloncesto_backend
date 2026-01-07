@@ -3,6 +3,7 @@
 from unittest.mock import patch, MagicMock
 import jwt
 from django.conf import settings
+
 # AJUSTE SENIOR: Usar ValidationError de rest_framework para que el Exception Handler de DRF
 # lo capture automáticamente y devuelva 400 con el formato de error correcto.
 from rest_framework.exceptions import ValidationError
@@ -12,7 +13,10 @@ from rest_framework.test import APITestCase, APIRequestFactory
 from basketball.controllers.inscripcion_controller import InscripcionController
 
 
-@patch("basketball.controllers.inscripcion_controller.get_user_module_token", return_value="mock_token")
+@patch(
+    "basketball.controllers.inscripcion_controller.get_user_module_token",
+    return_value="mock_token",
+)
 @patch("basketball.controllers.inscripcion_controller.InscripcionService")
 class InscripcionControllerTests(APITestCase):
     def setUp(self):
@@ -39,7 +43,9 @@ class InscripcionControllerTests(APITestCase):
             {"atleta": {"id": 1}, "inscripcion": {"id": 1}}
         ]
 
-        request = self.factory.get("/inscripciones/", HTTP_AUTHORIZATION=self.auth_header)
+        request = self.factory.get(
+            "/inscripciones/", HTTP_AUTHORIZATION=self.auth_header
+        )
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -78,7 +84,9 @@ class InscripcionControllerTests(APITestCase):
         InscripcionController.service = mock_service
 
         mensaje_error = "El atleta ya se encuentra registrado"
-        mock_service.create_atleta_inscripcion.side_effect = ValidationError(mensaje_error)
+        mock_service.create_atleta_inscripcion.side_effect = ValidationError(
+            mensaje_error
+        )
 
         request = self.factory.post(
             "/inscripciones/",
@@ -99,7 +107,7 @@ class InscripcionControllerTests(APITestCase):
     def test_create_inscripcion_forbidden_role(self, mock_service_class, mock_token):
         """
         Verifica el comportamiento con un rol no autorizado.
-        Nota: Según la configuración actual (AllowAny), el permiso pasa, pero 
+        Nota: Según la configuración actual (AllowAny), el permiso pasa, pero
         la solicitud debe fallar por validación de datos (HTTP 400).
         Si se protege el endpoint, este test debería esperar HTTP 403.
         """
@@ -124,7 +132,9 @@ class InscripcionControllerTests(APITestCase):
         InscripcionController.service = mock_service
 
         view = InscripcionController.as_view({"post": "cambiar_estado"})
-        mock_service.cambiar_estado_inscripcion.return_value = MagicMock(habilitada=False)
+        mock_service.cambiar_estado_inscripcion.return_value = MagicMock(
+            habilitada=False
+        )
 
         request = self.factory.post(
             "/inscripciones/1/cambiar-estado/", HTTP_AUTHORIZATION=self.auth_header
@@ -136,7 +146,9 @@ class InscripcionControllerTests(APITestCase):
         self.assertIn("mensaje", response.data)
 
     @patch("basketball.controllers.inscripcion_controller.Inscripcion.objects.filter")
-    def test_verificar_cedula_endpoint(self, mock_filter, mock_service_class, mock_token):
+    def test_verificar_cedula_endpoint(
+        self, mock_filter, mock_service_class, mock_token
+    ):
         """Verifica la acción personalizada GET /verificar-cedula/."""
         # Simulamos que el DNI ya existe en la base de datos
         mock_filter.return_value.exists.return_value = True
@@ -151,4 +163,6 @@ class InscripcionControllerTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["existe"])
-        self.assertEqual(response.data["mensaje"], "El atleta ya se encuentra registrado")
+        self.assertEqual(
+            response.data["mensaje"], "El atleta ya se encuentra registrado"
+        )

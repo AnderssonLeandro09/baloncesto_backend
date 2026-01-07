@@ -126,7 +126,7 @@ class InscripcionServiceTests(SimpleTestCase):
             direccion_representante="Calle Falsa 123",
             ocupacion_representante="Ingeniero",
             direccion="Cuenca",
-            genero="MASCULINO"
+            genero="MASCULINO",
         )
         self.service.atleta_dao.create.return_value = atleta_obj
         self.service.atleta_dao.get_by_id.return_value = atleta_obj
@@ -139,7 +139,9 @@ class InscripcionServiceTests(SimpleTestCase):
             tipo_inscripcion="MAYOR_EDAD",
             habilitada=True,
         )
-        self.service.inscripcion_dao.get_by_filter.return_value.first.return_value = None
+        self.service.inscripcion_dao.get_by_filter.return_value.first.return_value = (
+            None
+        )
         self.service.inscripcion_dao.create.return_value = inscripcion_obj
 
         result = self.service.create_atleta_inscripcion(

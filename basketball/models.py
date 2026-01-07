@@ -31,7 +31,7 @@ class TipoPrueba(models.TextChoices):
 class Sexo(models.TextChoices):
     """
     Enum para sexo - Referencia para el frontend.
-    
+
     NOTA: El campo 'sexo' en Atleta permite valores personalizados.
     Si el usuario selecciona 'Otro', puede escribir texto libre (max 20 chars).
     Valores estándar: 'Masculino', 'Femenino', o texto personalizado.

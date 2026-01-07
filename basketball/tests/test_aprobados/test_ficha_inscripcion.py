@@ -366,7 +366,5 @@ class TestFichaInscripcion(SimpleTestCase):
         # Assertions
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["habilitada"])
-        self.assertIn(
-            "Inscripción habilitada correctamente", response.data["mensaje"]
-        )
+        self.assertIn("Inscripción habilitada correctamente", response.data["mensaje"])
         mock_service.cambiar_estado_inscripcion.assert_called_once_with(1)
