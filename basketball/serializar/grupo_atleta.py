@@ -113,22 +113,31 @@ class GrupoAtletaSerializer(serializers.ModelSerializer):
         """Valida el campo categoría."""
         if not value or not value.strip():
             raise serializers.ValidationError("La categoría no puede estar vacía")
-        if len(value) > 50:
+
+        value_stripped = value.strip()
+
+        if len(value_stripped) < 5:
             raise serializers.ValidationError(
-                "La categoría no puede exceder 50 caracteres"
+                "La categoría debe tener al menos 5 caracteres"
             )
-        return value.strip()
+        if len(value_stripped) > 30:
+            raise serializers.ValidationError(
+                "La categoría no puede exceder 30 caracteres"
+            )
+        return value_stripped
 
     def validate_rango_edad_minima(self, value):
         """Valida la edad mínima."""
         try:
             edad = int(value)
-            if edad < 0:
+            if edad < 10:
                 raise serializers.ValidationError(
-                    "La edad mínima no puede ser negativa"
+                    "La edad mínima debe ser al menos 10 años"
                 )
-            if edad > 150:
-                raise serializers.ValidationError("La edad mínima debe ser menor a 150")
+            if edad > 50:
+                raise serializers.ValidationError(
+                    "La edad mínima no puede ser mayor a 50 años"
+                )
             return edad
         except (ValueError, TypeError):
             raise serializers.ValidationError(
@@ -139,12 +148,14 @@ class GrupoAtletaSerializer(serializers.ModelSerializer):
         """Valida la edad máxima."""
         try:
             edad = int(value)
-            if edad < 0:
+            if edad < 10:
                 raise serializers.ValidationError(
-                    "La edad máxima no puede ser negativa"
+                    "La edad máxima debe ser al menos 10 años"
                 )
-            if edad > 150:
-                raise serializers.ValidationError("La edad máxima debe ser menor a 150")
+            if edad > 50:
+                raise serializers.ValidationError(
+                    "La edad máxima no puede ser mayor a 50 años"
+                )
             return edad
         except (ValueError, TypeError):
             raise serializers.ValidationError(
