@@ -5,6 +5,7 @@ Las personas se referencian al módulo externo de usuarios mediante `persona_ext
 """
 
 from django.db import models
+from django.core.validators import MinLengthValidator, MaxLengthValidator
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
 from django.core.exceptions import ValidationError
@@ -114,8 +115,20 @@ class Entrenador(models.Model):
         verbose_name="External ID Persona",
         help_text="UUID externo de la persona en el módulo de usuarios",
     )
-    especialidad = models.CharField(max_length=100, verbose_name="Especialidad")
-    club_asignado = models.CharField(max_length=100, verbose_name="Club asignado")
+    especialidad = models.CharField(
+        max_length=100,
+        verbose_name="Especialidad",
+        validators=[
+            MinLengthValidator(3, "La especialidad debe tener al menos 3 caracteres")
+        ],
+    )
+    club_asignado = models.CharField(
+        max_length=100,
+        verbose_name="Club asignado",
+        validators=[
+            MinLengthValidator(3, "El club asignado debe tener al menos 3 caracteres")
+        ],
+    )
     eliminado = models.BooleanField(default=False, verbose_name="Eliminado")
 
     class Meta:
