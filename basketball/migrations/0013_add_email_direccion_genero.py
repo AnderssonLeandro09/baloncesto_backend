@@ -5,7 +5,7 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("basketball", "0012_add_local_persona_fields"),
+        ("basketball", "0013_remove_pruebaantropometrica_indice_cornico_and_more"),
     ]
 
     operations = [

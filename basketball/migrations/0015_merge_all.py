@@ -5,8 +5,6 @@ from django.db import migrations
 
 class Migration(migrations.Migration):
     dependencies = [
-        ("basketball", "0012_grupoatleta_eliminado"),
-        ("basketball", "0013_remove_pruebaantropometrica_indice_cornico_and_more"),
         ("basketball", "0014_alter_pruebafisica_resultado"),
     ]
 
