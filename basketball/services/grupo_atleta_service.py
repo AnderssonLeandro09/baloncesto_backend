@@ -150,9 +150,7 @@ class GrupoAtletaService:
             nombre = data.get("nombre")
             if nombre:
                 if (
-                    GrupoAtleta.objects.filter(
-                        nombre__iexact=nombre, eliminado=False
-                    )
+                    GrupoAtleta.objects.filter(nombre__iexact=nombre, eliminado=False)
                     .exclude(id=pk)
                     .exists()
                 ):

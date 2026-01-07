@@ -113,9 +113,9 @@ class GrupoAtletaSerializer(serializers.ModelSerializer):
         """Valida el campo categoría."""
         if not value or not value.strip():
             raise serializers.ValidationError("La categoría no puede estar vacía")
-        
+
         value_stripped = value.strip()
-        
+
         if len(value_stripped) < 5:
             raise serializers.ValidationError(
                 "La categoría debe tener al menos 5 caracteres"

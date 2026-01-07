@@ -409,7 +409,9 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         mock_entrenador.persona_external = "entrenador-123"
         mock_entrenador_objects.get.return_value = mock_entrenador
 
-        mock_grupo_objects.filter.return_value.exists.return_value = True # Ya existe el nombre
+        mock_grupo_objects.filter.return_value.exists.return_value = (
+            True  # Ya existe el nombre
+        )
 
         real_service = GrupoAtletaService()
         real_service.dao = MagicMock()
