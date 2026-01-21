@@ -97,6 +97,7 @@ class PersonaSerializer(serializers.Serializer):
         Valida la cédula ecuatoriana:
         - Debe contener exactamente 10 dígitos numéricos
         - No puede estar vacía
+        - Debe cumplir con el algoritmo del dígito verificador (Módulo 10)
         """
         if not value:
             raise serializers.ValidationError("La cédula es requerida.")
@@ -116,6 +117,67 @@ class PersonaSerializer(serializers.Serializer):
                 "La cédula debe tener exactamente 10 dígitos."
             )
 
+        # Algoritmo de validación de cédula ecuatoriana (Módulo 10)
+        provincia = int(value[0:2])
+        if provincia < 1 or provincia > 24:
+            raise serializers.ValidationError("Código de provincia inválido.")
+
+        tercer_digito = int(value[2])
+        if tercer_digito >= 6:
+            raise serializers.ValidationError("Cédula inválida.")
+
+        # Pesos correspondientes a cada posición
+        coeficientes = [2, 1, 2, 1, 2, 1, 2, 1, 2]
+        suma = 0
+        for i in range(9):
+            valor = int(value[i]) * coeficientes[i]
+            if valor >= 10:
+                valor -= 9
+            suma += valor
+
+        total = (suma % 10) if (suma % 10) == 0 else (10 - (suma % 10))
+        verificador = int(value[9])
+
+        if total != verificador:
+            raise serializers.ValidationError("La cédula no es válida.")
+
+        return value
+
+    def validate_password(self, value):
+        """
+        Valida la complejidad de la contraseña:
+        - Mínimo 8 caracteres
+        - Al menos una mayúscula
+        - Al menos un número
+        """
+        if not value:
+            return value
+
+        if len(value) < 8:
+            raise serializers.ValidationError(
+                "La contraseña debe tener al menos 8 caracteres."
+            )
+        if not any(char.isupper() for char in value):
+            raise serializers.ValidationError(
+                "La contraseña debe contener al menos una mayúscula."
+            )
+        if not any(char.isdigit() for char in value):
+            raise serializers.ValidationError(
+                "La contraseña debe contener al menos un número."
+            )
+        return value
+
+    def validate_gender(self, value):
+        """Valida que el género sea uno de los permitidos."""
+        if not value:
+            return value
+
+        value = value.strip().capitalize()
+        permitidos = ["Masculino", "Femenino", "Otro"]
+        if value not in permitidos:
+            raise serializers.ValidationError(
+                f"Género inválido. Debe ser uno de: {', '.join(permitidos)}"
+            )
         return value
 
     def validate_phono(self, value):
