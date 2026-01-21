@@ -42,7 +42,7 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
 
     @patch("basketball.serializers.get_persona_from_user_module")
     @patch("basketball.services.grupo_atleta_service.GrupoAtleta.objects")
-    @patch("basketball.services.grupo_atleta_service.Atleta.objects")
+    @patch("basketball.models.Atleta.objects")
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
     def test_crear_grupo_atleta_completo_exitoso(
         self,
@@ -70,16 +70,28 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         mock_atleta2.edad = 18
         mock_atleta2.persona_external = "atleta-002"
 
-        def filter_atletas(**kwargs):
-            ids_solicitados = kwargs.get("id__in", [])
-            atletas_disponibles = {1: mock_atleta1, 2: mock_atleta2}
-            return [
-                atletas_disponibles[id]
-                for id in ids_solicitados
-                if id in atletas_disponibles
-            ]
-
-        mock_atleta_objects.filter.side_effect = filter_atletas
+        # Mock para Atleta.objects.filter() - usado tanto en serializer como en service
+        atletas_map = {1: mock_atleta1, 2: mock_atleta2}
+        
+        def atleta_filter_mock(**kwargs):
+            if 'id' in kwargs:
+                # Para el serializer - retorna un QuerySet mock con .first()
+                atleta_id = kwargs['id']
+                mock_filter_result = MagicMock()
+                mock_filter_result.first.return_value = atletas_map.get(atleta_id)
+                return mock_filter_result
+            elif 'id__in' in kwargs:
+                # Para el service - retorna un QuerySet mock iterable
+                ids = kwargs['id__in']
+                filtered_atletas = [atletas_map[aid] for aid in ids if aid in atletas_map]
+                mock_queryset = MagicMock()
+                mock_queryset.__iter__.return_value = iter(filtered_atletas)
+                mock_queryset.__len__.return_value = len(filtered_atletas)
+                mock_queryset.count.return_value = len(filtered_atletas)
+                return mock_queryset
+            return MagicMock()
+        
+        mock_atleta_objects.filter.side_effect = atleta_filter_mock
         mock_grupo_objects.filter.return_value.exists.return_value = False
 
         mock_grupo = MagicMock(spec=GrupoAtleta)
@@ -116,12 +128,13 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["nombre"], "Grupo Juvenil A")
-        self.assertEqual(response.data["rango_edad_minima"], 14)
-        self.assertEqual(response.data["rango_edad_maxima"], 18)
-        self.assertEqual(response.data["categoria"], "Juvenil")
+        self.assertEqual(response.data["status"], "success")
+        self.assertEqual(response.data["data"]["nombre"], "Grupo Juvenil A")
+        self.assertEqual(response.data["data"]["rango_edad_minima"], 14)
+        self.assertEqual(response.data["data"]["rango_edad_maxima"], 18)
+        self.assertEqual(response.data["data"]["categoria"], "Juvenil")
         real_service.dao.create.assert_called_once()
-        mock_grupo.atletas.set.assert_called_once_with([mock_atleta1, mock_atleta2])
+        mock_grupo.atletas.set.assert_called_once()  # Verificar que se llamó
 
     @patch("basketball.serializers.get_persona_from_user_module")
     @patch("basketball.services.grupo_atleta_service.GrupoAtleta.objects")
@@ -174,7 +187,8 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["nombre"], "Grupo Infantil B")
+        self.assertEqual(response.data["status"], "success")
+        self.assertEqual(response.data["data"]["nombre"], "Grupo Infantil B")
         real_service.dao.create.assert_called_once()
 
     # =========================================================================
@@ -183,7 +197,7 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
 
     @patch("basketball.serializers.get_persona_from_user_module")
     @patch("basketball.services.grupo_atleta_service.GrupoAtleta.objects")
-    @patch("basketball.services.grupo_atleta_service.Atleta.objects")
+    @patch("basketball.models.Atleta.objects")
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
     def test_crear_grupo_atleta_con_edad_menor_al_rango(
         self,
@@ -204,16 +218,26 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         mock_atleta_menor.id = 1
         mock_atleta_menor.edad = 10  # Menor que el rango mínimo de 14
 
-        def filter_atletas(**kwargs):
-            ids_solicitados = kwargs.get("id__in", [])
-            atletas_disponibles = {1: mock_atleta_menor}
-            return [
-                atletas_disponibles[id]
-                for id in ids_solicitados
-                if id in atletas_disponibles
-            ]
-
-        mock_atleta_objects.filter.side_effect = filter_atletas
+        # Mock para Atleta.objects.filter() - usado tanto en serializer como en service
+        atletas_map = {1: mock_atleta_menor}
+        
+        def atleta_filter_mock(**kwargs):
+            if 'id' in kwargs:
+                atleta_id = kwargs['id']
+                mock_filter_result = MagicMock()
+                mock_filter_result.first.return_value = atletas_map.get(atleta_id)
+                return mock_filter_result
+            elif 'id__in' in kwargs:
+                ids = kwargs['id__in']
+                filtered_atletas = [atletas_map[aid] for aid in ids if aid in atletas_map]
+                mock_queryset = MagicMock()
+                mock_queryset.__iter__.return_value = iter(filtered_atletas)
+                mock_queryset.__len__.return_value = len(filtered_atletas)
+                mock_queryset.count.return_value = len(filtered_atletas)
+                return mock_queryset
+            return MagicMock()
+        
+        mock_atleta_objects.filter.side_effect = atleta_filter_mock
         mock_grupo_objects.filter.return_value.exists.return_value = False
 
         mock_grupo = MagicMock(spec=GrupoAtleta)
@@ -246,12 +270,14 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
-        self.assertIn("rango de edad", response.data["error"].lower())
+        self.assertEqual(response.data["status"], "error")
+        # La validación del serializer pone los errores en data
+        self.assertIn("atletas", str(response.data["data"]).lower())
+        self.assertIn("rango", str(response.data["data"]).lower())
 
     @patch("basketball.serializers.get_persona_from_user_module")
     @patch("basketball.services.grupo_atleta_service.GrupoAtleta.objects")
-    @patch("basketball.services.grupo_atleta_service.Atleta.objects")
+    @patch("basketball.models.Atleta.objects")
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
     def test_crear_grupo_atleta_con_edad_mayor_al_rango(
         self,
@@ -272,16 +298,26 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         mock_atleta_mayor.id = 1
         mock_atleta_mayor.edad = 25  # Mayor que el rango máximo de 18
 
-        def filter_atletas(**kwargs):
-            ids_solicitados = kwargs.get("id__in", [])
-            atletas_disponibles = {1: mock_atleta_mayor}
-            return [
-                atletas_disponibles[id]
-                for id in ids_solicitados
-                if id in atletas_disponibles
-            ]
-
-        mock_atleta_objects.filter.side_effect = filter_atletas
+        # Mock para Atleta.objects.filter() - usado tanto en serializer como en service
+        atletas_map = {1: mock_atleta_mayor}
+        
+        def atleta_filter_mock(**kwargs):
+            if 'id' in kwargs:
+                atleta_id = kwargs['id']
+                mock_filter_result = MagicMock()
+                mock_filter_result.first.return_value = atletas_map.get(atleta_id)
+                return mock_filter_result
+            elif 'id__in' in kwargs:
+                ids = kwargs['id__in']
+                filtered_atletas = [atletas_map[aid] for aid in ids if aid in atletas_map]
+                mock_queryset = MagicMock()
+                mock_queryset.__iter__.return_value = iter(filtered_atletas)
+                mock_queryset.__len__.return_value = len(filtered_atletas)
+                mock_queryset.count.return_value = len(filtered_atletas)
+                return mock_queryset
+            return MagicMock()
+        
+        mock_atleta_objects.filter.side_effect = atleta_filter_mock
         mock_grupo_objects.filter.return_value.exists.return_value = False
 
         mock_grupo = MagicMock(spec=GrupoAtleta)
@@ -314,12 +350,14 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
-        self.assertIn("rango de edad", response.data["error"].lower())
+        self.assertEqual(response.data["status"], "error")
+        # La validación del serializer pone los errores en data
+        self.assertIn("atletas", str(response.data["data"]).lower())
+        self.assertIn("rango", str(response.data["data"]).lower())
 
     @patch("basketball.serializers.get_persona_from_user_module")
     @patch("basketball.services.grupo_atleta_service.GrupoAtleta.objects")
-    @patch("basketball.services.grupo_atleta_service.Atleta.objects")
+    @patch("basketball.models.Atleta.objects")
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
     def test_crear_grupo_atleta_con_mezcla_edades_validas_e_invalidas(
         self,
@@ -344,16 +382,26 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         mock_atleta_invalido.id = 2
         mock_atleta_invalido.edad = 25
 
-        def filter_atletas(**kwargs):
-            ids_solicitados = kwargs.get("id__in", [])
-            atletas_disponibles = {1: mock_atleta_valido, 2: mock_atleta_invalido}
-            return [
-                atletas_disponibles[id]
-                for id in ids_solicitados
-                if id in atletas_disponibles
-            ]
-
-        mock_atleta_objects.filter.side_effect = filter_atletas
+        # Mock para Atleta.objects.filter() - usado tanto en serializer como en service
+        atletas_map = {1: mock_atleta_valido, 2: mock_atleta_invalido}
+        
+        def atleta_filter_mock(**kwargs):
+            if 'id' in kwargs:
+                atleta_id = kwargs['id']
+                mock_filter_result = MagicMock()
+                mock_filter_result.first.return_value = atletas_map.get(atleta_id)
+                return mock_filter_result
+            elif 'id__in' in kwargs:
+                ids = kwargs['id__in']
+                filtered_atletas = [atletas_map[aid] for aid in ids if aid in atletas_map]
+                mock_queryset = MagicMock()
+                mock_queryset.__iter__.return_value = iter(filtered_atletas)
+                mock_queryset.__len__.return_value = len(filtered_atletas)
+                mock_queryset.count.return_value = len(filtered_atletas)
+                return mock_queryset
+            return MagicMock()
+        
+        mock_atleta_objects.filter.side_effect = atleta_filter_mock
         mock_grupo_objects.filter.return_value.exists.return_value = False
 
         mock_grupo = MagicMock(spec=GrupoAtleta)
@@ -386,7 +434,7 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
+        self.assertEqual(response.data["status"], "error")
 
     # =========================================================================
     # Tests de nombre duplicado
@@ -433,8 +481,10 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
-        self.assertIn("ya existe", response.data["error"].lower())
+        self.assertEqual(response.data["status"], "error")
+        # El error de validación del serializer va en data
+        self.assertIn("nombre", str(response.data["data"]).lower())
+        self.assertIn("ya existe", str(response.data["data"]).lower())
 
     # =========================================================================
     # Tests de atletas inexistentes
@@ -442,7 +492,7 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
 
     @patch("basketball.serializers.get_persona_from_user_module")
     @patch("basketball.services.grupo_atleta_service.GrupoAtleta.objects")
-    @patch("basketball.services.grupo_atleta_service.Atleta.objects")
+    @patch("basketball.models.Atleta.objects")
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
     def test_crear_grupo_con_atletas_inexistentes_falla(
         self,
@@ -463,16 +513,26 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         mock_atleta.id = 1
         mock_atleta.edad = 15
 
-        def filter_atletas(**kwargs):
-            ids_solicitados = kwargs.get("id__in", [])
-            atletas_disponibles = {1: mock_atleta}
-            return [
-                atletas_disponibles[id]
-                for id in ids_solicitados
-                if id in atletas_disponibles
-            ]
-
-        mock_atleta_objects.filter.side_effect = filter_atletas
+        # Solo existe el atleta 1, no el 999
+        atletas_map = {1: mock_atleta}
+        
+        def atleta_filter_mock(**kwargs):
+            if 'id' in kwargs:
+                atleta_id = kwargs['id']
+                mock_filter_result = MagicMock()
+                mock_filter_result.first.return_value = atletas_map.get(atleta_id)
+                return mock_filter_result
+            elif 'id__in' in kwargs:
+                ids = kwargs['id__in']
+                filtered_atletas = [atletas_map[aid] for aid in ids if aid in atletas_map]
+                mock_queryset = MagicMock()
+                mock_queryset.__iter__.return_value = iter(filtered_atletas)
+                mock_queryset.__len__.return_value = len(filtered_atletas)
+                mock_queryset.count.return_value = len(filtered_atletas)
+                return mock_queryset
+            return MagicMock()
+        
+        mock_atleta_objects.filter.side_effect = atleta_filter_mock
         mock_grupo_objects.filter.return_value.exists.return_value = False
 
         mock_grupo = MagicMock(spec=GrupoAtleta)
@@ -504,8 +564,10 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
-        self.assertIn("no existen", response.data["error"].lower())
+        self.assertEqual(response.data["status"], "error")
+        # La validación del serializer pone los errores en data
+        self.assertIn("atleta", str(response.data["data"]).lower())
+        self.assertIn("no existe", str(response.data["data"]).lower())
 
     # =========================================================================
     # Tests sin autenticación

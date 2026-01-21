@@ -98,7 +98,7 @@ class TestGrupoAtletaBaja(SimpleTestCase):
         response = self.view(request, pk=999)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
-        self.assertIn("error", response.data)
+        self.assertEqual(response.data["status"], "error")
 
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
     def test_dar_baja_grupo_ya_eliminado_retorna_404(self, mock_entrenador_objects):
@@ -119,6 +119,7 @@ class TestGrupoAtletaBaja(SimpleTestCase):
         response = self.view(request, pk=1)
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.data["status"], "error")
 
     # =========================================================================
     # Tests sin permiso (ownership)
@@ -149,8 +150,8 @@ class TestGrupoAtletaBaja(SimpleTestCase):
         response = self.view(request, pk=1)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
-        self.assertIn("permiso", response.data["error"].lower())
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn("permiso", response.data["msg"].lower())
 
     # =========================================================================
     # Tests con ID inválido
@@ -174,7 +175,7 @@ class TestGrupoAtletaBaja(SimpleTestCase):
         response = self.view(request, pk=-1)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
+        self.assertEqual(response.data["status"], "error")
 
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
     def test_dar_baja_con_id_cero_falla(self, mock_entrenador_objects):
@@ -194,7 +195,7 @@ class TestGrupoAtletaBaja(SimpleTestCase):
         response = self.view(request, pk=0)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
+        self.assertEqual(response.data["status"], "error")
 
     # =========================================================================
     # Tests sin autenticación

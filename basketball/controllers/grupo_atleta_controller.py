@@ -279,14 +279,9 @@ class GrupoAtletaController(viewsets.ViewSet):
         Solo el entrenador dueño del grupo puede actualizarlo.
         """
         try:
-            # Validar datos con serializer (partial para PATCH)
-            serializer = GrupoAtletaSerializer(data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-
-            grupo = self.service.update_grupo(
-                pk, serializer.validated_data, user=request.user
-            )
-            if not grupo:
+            # Obtener el grupo primero
+            grupo_existente = self.service.get_grupo(pk)
+            if not grupo_existente:
                 return Response(
                     {
                         "msg": "Grupo no encontrado",
@@ -296,6 +291,16 @@ class GrupoAtletaController(viewsets.ViewSet):
                     },
                     status=status.HTTP_404_NOT_FOUND,
                 )
+            
+            # Validar datos con serializer pasando la instancia actual
+            serializer = GrupoAtletaSerializer(
+                grupo_existente, data=request.data, partial=True
+            )
+            serializer.is_valid(raise_exception=True)
+
+            grupo = self.service.update_grupo(
+                pk, serializer.validated_data, user=request.user
+            )
             response_serializer = GrupoAtletaResponseSerializer(grupo)
             logger.info(f"Grupo actualizado exitosamente por usuario {request.user.pk}")
             return Response(
