@@ -54,14 +54,19 @@ class EstudianteVinculacionController(viewsets.ViewSet):
     )
     def create(self, request):
         token = get_user_module_token()
-        payload = request.data.dict() if hasattr(request.data, "dict") else request.data
-        persona_data = payload.get("persona") or payload.get("persona_data")
-        estudiante_data = (
-            payload.get("estudiante") or payload.get("estudiante_data") or {}
-        )
+        
+        # Validar datos usando el serializer
+        serializer = EstudianteVinculacionInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        validated_data = serializer.validated_data
+        persona_data = validated_data.get("persona")
+        estudiante_data = validated_data.get("estudiante")
+        
         try:
             result = self.service.create_estudiante(
-                persona_data or {}, estudiante_data, token
+                persona_data, estudiante_data, token
             )
             return Response(result, status=status.HTTP_201_CREATED)
         except Exception as exc:
@@ -73,14 +78,19 @@ class EstudianteVinculacionController(viewsets.ViewSet):
     )
     def update(self, request, pk=None):
         token = get_user_module_token()
-        payload = request.data.dict() if hasattr(request.data, "dict") else request.data
-        persona_data = payload.get("persona") or payload.get("persona_data")
-        estudiante_data = (
-            payload.get("estudiante") or payload.get("estudiante_data") or {}
-        )
+        
+        # Validar datos usando el serializer (permitiendo actualización parcial si es necesario)
+        serializer = EstudianteVinculacionInputSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            
+        validated_data = serializer.validated_data
+        persona_data = validated_data.get("persona")
+        estudiante_data = validated_data.get("estudiante")
+        
         try:
             result = self.service.update_estudiante(
-                pk, persona_data or {}, estudiante_data, token
+                pk, persona_data or {}, estudiante_data or {}, token
             )
             if not result:
                 return Response(
