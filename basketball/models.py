@@ -471,7 +471,7 @@ class PruebaFisica(models.Model):
     resultado = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.00"))],
+        validators=[MinValueValidator(Decimal("0.01"))],
         verbose_name="Resultado",
     )
     unidad_medida = models.CharField(max_length=20, verbose_name="Unidad de medida")

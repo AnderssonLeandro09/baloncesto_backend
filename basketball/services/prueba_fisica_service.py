@@ -236,11 +236,14 @@ class PruebaFisicaService:
             elif user and user.role != "ESTUDIANTE_VINCULACION":
                 raise PermissionDenied("No tiene permiso para realizar esta acción")
 
-            # Validar fecha no futura
+            # Validar fecha no futura (o asignar hoy por defecto si falta)
             fecha_registro = data.get("fecha_registro")
             from datetime import date
 
-            if fecha_registro and fecha_registro > date.today():
+            if not fecha_registro:
+                fecha_registro = date.today()
+                data["fecha_registro"] = fecha_registro
+            elif fecha_registro > date.today():
                 raise ValidationError("La fecha de registro no puede ser futura")
 
             # Validar tipo de prueba primero (necesario para validar rangos de resultado)
@@ -262,13 +265,13 @@ class PruebaFisicaService:
                     resultado_float = float(resultado)
                     if resultado_float <= 0:
                         raise ValidationError(
-                            "No se permiten valores negativos. El resultado debe ser mayor a 0"
+                            "No se permiten valores negativos o cero. El resultado debe ser mayor a 0"
                         )
                     # Validar rango máximo según tipo de prueba
                     rango_max = RANGOS_MAXIMOS.get(tipo_prueba, 999999)
                     if resultado_float > rango_max:
                         raise ValidationError(
-                            f"El resultado excede el rango máximo para {tipo_prueba}: {rango_max}"
+                            f"El resultado excede el rango máximo permitido para {tipo_prueba}: {rango_max}"
                         )
                 except (TypeError, ValueError):
                     raise ValidationError("El resultado debe ser un número válido")
@@ -336,16 +339,29 @@ class PruebaFisicaService:
             # No permitir cambiar la fecha de registro en actualización
             data.pop("fecha_registro", None)
 
-            # Validar resultado si se está actualizando
             resultado = data.get("resultado")
             if resultado is not None:
                 try:
                     resultado_float = float(resultado)
                     if resultado_float <= 0:
-                        raise ValidationError("El resultado debe ser mayor a 0")
-                    if resultado_float > 999999:
                         raise ValidationError(
-                            "El resultado excede el valor máximo permitido"
+                            "No se permiten valores negativos o cero. El resultado debe ser mayor a 0"
+                        )
+                    
+                    # Usar el tipo de prueba actual o el nuevo si se está cambiando
+                    tipo_actual = data.get("tipo_prueba") or prueba.tipo_prueba
+                    
+                    # Rangos máximos por tipo de prueba (deben coincidir con create)
+                    RANGOS_MAXIMOS = {
+                        "FUERZA": 300,
+                        "VELOCIDAD": 15,
+                        "AGILIDAD": 25,
+                    }
+                    
+                    rango_max = RANGOS_MAXIMOS.get(tipo_actual, 1000)
+                    if resultado_float > rango_max:
+                        raise ValidationError(
+                            f"El resultado excede el rango máximo permitido para {tipo_actual}: {rango_max}"
                         )
                 except (TypeError, ValueError):
                     raise ValidationError("El resultado debe ser un número válido")
