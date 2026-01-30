@@ -44,9 +44,18 @@ class TestGrupoAtletaGet(SimpleTestCase):
     @patch("basketball.serializers.get_persona_from_user_module")
     @patch("basketball.models.Entrenador.objects")
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
-    def test_listar_grupos_exitoso(self, mock_service_entrenador_objects, mock_model_entrenador_objects, mock_get_persona):
+    def test_listar_grupos_exitoso(
+        self,
+        mock_service_entrenador_objects,
+        mock_model_entrenador_objects,
+        mock_get_persona,
+    ):
         """Test: Listar todos los grupos del entrenador autenticado."""
-        mock_get_persona.return_value = {"first_name": "Test", "last_name": "Entrenador", "identification": "123456"}
+        mock_get_persona.return_value = {
+            "first_name": "Test",
+            "last_name": "Entrenador",
+            "identification": "123456",
+        }
         mock_entrenador = MagicMock(spec=Entrenador)
         mock_entrenador.id = 1
         mock_entrenador.persona_external = "entrenador-123"

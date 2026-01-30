@@ -72,25 +72,27 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
 
         # Mock para Atleta.objects.filter() - usado tanto en serializer como en service
         atletas_map = {1: mock_atleta1, 2: mock_atleta2}
-        
+
         def atleta_filter_mock(**kwargs):
-            if 'id' in kwargs:
+            if "id" in kwargs:
                 # Para el serializer - retorna un QuerySet mock con .first()
-                atleta_id = kwargs['id']
+                atleta_id = kwargs["id"]
                 mock_filter_result = MagicMock()
                 mock_filter_result.first.return_value = atletas_map.get(atleta_id)
                 return mock_filter_result
-            elif 'id__in' in kwargs:
+            elif "id__in" in kwargs:
                 # Para el service - retorna un QuerySet mock iterable
-                ids = kwargs['id__in']
-                filtered_atletas = [atletas_map[aid] for aid in ids if aid in atletas_map]
+                ids = kwargs["id__in"]
+                filtered_atletas = [
+                    atletas_map[aid] for aid in ids if aid in atletas_map
+                ]
                 mock_queryset = MagicMock()
                 mock_queryset.__iter__.return_value = iter(filtered_atletas)
                 mock_queryset.__len__.return_value = len(filtered_atletas)
                 mock_queryset.count.return_value = len(filtered_atletas)
                 return mock_queryset
             return MagicMock()
-        
+
         mock_atleta_objects.filter.side_effect = atleta_filter_mock
         mock_grupo_objects.filter.return_value.exists.return_value = False
 
@@ -220,23 +222,25 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
 
         # Mock para Atleta.objects.filter() - usado tanto en serializer como en service
         atletas_map = {1: mock_atleta_menor}
-        
+
         def atleta_filter_mock(**kwargs):
-            if 'id' in kwargs:
-                atleta_id = kwargs['id']
+            if "id" in kwargs:
+                atleta_id = kwargs["id"]
                 mock_filter_result = MagicMock()
                 mock_filter_result.first.return_value = atletas_map.get(atleta_id)
                 return mock_filter_result
-            elif 'id__in' in kwargs:
-                ids = kwargs['id__in']
-                filtered_atletas = [atletas_map[aid] for aid in ids if aid in atletas_map]
+            elif "id__in" in kwargs:
+                ids = kwargs["id__in"]
+                filtered_atletas = [
+                    atletas_map[aid] for aid in ids if aid in atletas_map
+                ]
                 mock_queryset = MagicMock()
                 mock_queryset.__iter__.return_value = iter(filtered_atletas)
                 mock_queryset.__len__.return_value = len(filtered_atletas)
                 mock_queryset.count.return_value = len(filtered_atletas)
                 return mock_queryset
             return MagicMock()
-        
+
         mock_atleta_objects.filter.side_effect = atleta_filter_mock
         mock_grupo_objects.filter.return_value.exists.return_value = False
 
@@ -300,23 +304,25 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
 
         # Mock para Atleta.objects.filter() - usado tanto en serializer como en service
         atletas_map = {1: mock_atleta_mayor}
-        
+
         def atleta_filter_mock(**kwargs):
-            if 'id' in kwargs:
-                atleta_id = kwargs['id']
+            if "id" in kwargs:
+                atleta_id = kwargs["id"]
                 mock_filter_result = MagicMock()
                 mock_filter_result.first.return_value = atletas_map.get(atleta_id)
                 return mock_filter_result
-            elif 'id__in' in kwargs:
-                ids = kwargs['id__in']
-                filtered_atletas = [atletas_map[aid] for aid in ids if aid in atletas_map]
+            elif "id__in" in kwargs:
+                ids = kwargs["id__in"]
+                filtered_atletas = [
+                    atletas_map[aid] for aid in ids if aid in atletas_map
+                ]
                 mock_queryset = MagicMock()
                 mock_queryset.__iter__.return_value = iter(filtered_atletas)
                 mock_queryset.__len__.return_value = len(filtered_atletas)
                 mock_queryset.count.return_value = len(filtered_atletas)
                 return mock_queryset
             return MagicMock()
-        
+
         mock_atleta_objects.filter.side_effect = atleta_filter_mock
         mock_grupo_objects.filter.return_value.exists.return_value = False
 
@@ -384,23 +390,25 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
 
         # Mock para Atleta.objects.filter() - usado tanto en serializer como en service
         atletas_map = {1: mock_atleta_valido, 2: mock_atleta_invalido}
-        
+
         def atleta_filter_mock(**kwargs):
-            if 'id' in kwargs:
-                atleta_id = kwargs['id']
+            if "id" in kwargs:
+                atleta_id = kwargs["id"]
                 mock_filter_result = MagicMock()
                 mock_filter_result.first.return_value = atletas_map.get(atleta_id)
                 return mock_filter_result
-            elif 'id__in' in kwargs:
-                ids = kwargs['id__in']
-                filtered_atletas = [atletas_map[aid] for aid in ids if aid in atletas_map]
+            elif "id__in" in kwargs:
+                ids = kwargs["id__in"]
+                filtered_atletas = [
+                    atletas_map[aid] for aid in ids if aid in atletas_map
+                ]
                 mock_queryset = MagicMock()
                 mock_queryset.__iter__.return_value = iter(filtered_atletas)
                 mock_queryset.__len__.return_value = len(filtered_atletas)
                 mock_queryset.count.return_value = len(filtered_atletas)
                 return mock_queryset
             return MagicMock()
-        
+
         mock_atleta_objects.filter.side_effect = atleta_filter_mock
         mock_grupo_objects.filter.return_value.exists.return_value = False
 
@@ -515,23 +523,25 @@ class TestGrupoAtletaCreacion(SimpleTestCase):
 
         # Solo existe el atleta 1, no el 999
         atletas_map = {1: mock_atleta}
-        
+
         def atleta_filter_mock(**kwargs):
-            if 'id' in kwargs:
-                atleta_id = kwargs['id']
+            if "id" in kwargs:
+                atleta_id = kwargs["id"]
                 mock_filter_result = MagicMock()
                 mock_filter_result.first.return_value = atletas_map.get(atleta_id)
                 return mock_filter_result
-            elif 'id__in' in kwargs:
-                ids = kwargs['id__in']
-                filtered_atletas = [atletas_map[aid] for aid in ids if aid in atletas_map]
+            elif "id__in" in kwargs:
+                ids = kwargs["id__in"]
+                filtered_atletas = [
+                    atletas_map[aid] for aid in ids if aid in atletas_map
+                ]
                 mock_queryset = MagicMock()
                 mock_queryset.__iter__.return_value = iter(filtered_atletas)
                 mock_queryset.__len__.return_value = len(filtered_atletas)
                 mock_queryset.count.return_value = len(filtered_atletas)
                 return mock_queryset
             return MagicMock()
-        
+
         mock_atleta_objects.filter.side_effect = atleta_filter_mock
         mock_grupo_objects.filter.return_value.exists.return_value = False
 

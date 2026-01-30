@@ -291,7 +291,7 @@ class GrupoAtletaController(viewsets.ViewSet):
                     },
                     status=status.HTTP_404_NOT_FOUND,
                 )
-            
+
             # Validar datos con serializer pasando la instancia actual
             serializer = GrupoAtletaSerializer(
                 grupo_existente, data=request.data, partial=True

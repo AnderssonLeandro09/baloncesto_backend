@@ -98,9 +98,9 @@ class GrupoAtletaSerializer(serializers.ModelSerializer):
         """Valida el campo nombre y asegura que no esté duplicado."""
         if not value or not value.strip():
             raise serializers.ValidationError("El nombre no puede estar vacío")
-        
+
         name_clean = value.strip()
-        
+
         if len(name_clean) < 3:
             raise serializers.ValidationError(
                 "El nombre debe tener al menos 3 caracteres"
@@ -109,15 +109,17 @@ class GrupoAtletaSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 "El nombre no puede exceder 100 caracteres"
             )
-            
+
         # Validación de duplicados (excluyendo el actual si es una actualización)
         instance = getattr(self, "instance", None)
         qs = GrupoAtleta.objects.filter(nombre__iexact=name_clean, eliminado=False)
         if instance:
             qs = qs.exclude(id=instance.id)
-        
+
         if qs.exists():
-            raise serializers.ValidationError(f"Ya existe un grupo activo con el nombre '{name_clean}'")
+            raise serializers.ValidationError(
+                f"Ya existe un grupo activo con el nombre '{name_clean}'"
+            )
 
         return name_clean
 
@@ -185,22 +187,32 @@ class GrupoAtletaSerializer(serializers.ModelSerializer):
         # Intentar obtener el rango del payload o de la instancia existente
         min_v = self.initial_data.get("rango_edad_minima")
         max_v = self.initial_data.get("rango_edad_maxima")
-        
+
         # Si es una actualización parcial y no vienen los datos, intentar usar la instancia
         instance = getattr(self, "instance", None)
-        min_edad = int(min_v) if min_v is not None else (instance.rango_edad_minima if instance else None)
-        max_edad = int(max_v) if max_v is not None else (instance.rango_edad_maxima if instance else None)
+        min_edad = (
+            int(min_v)
+            if min_v is not None
+            else (instance.rango_edad_minima if instance else None)
+        )
+        max_edad = (
+            int(max_v)
+            if max_v is not None
+            else (instance.rango_edad_maxima if instance else None)
+        )
 
         from ..models import Atleta
-        
+
         valid_ids = []
         for atleta_id in value:
             try:
                 aid = int(atleta_id)
                 atleta = Atleta.objects.filter(id=aid).first()
                 if not atleta:
-                    raise serializers.ValidationError(f"El atleta con ID {aid} no existe.")
-                
+                    raise serializers.ValidationError(
+                        f"El atleta con ID {aid} no existe."
+                    )
+
                 # Validar rango de edad si tenemos los datos necesarios
                 if min_edad is not None and max_edad is not None:
                     if not (min_edad <= atleta.edad <= max_edad):

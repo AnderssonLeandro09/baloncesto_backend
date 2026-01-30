@@ -27,7 +27,9 @@ class TestGrupoAtletaUpdate(SimpleTestCase):
         self.mock_atomic.return_value.__enter__.return_value = None
 
         self.factory = APIRequestFactory()
-        self.view = GrupoAtletaController.as_view({"put": "update", "patch": "partial_update"})
+        self.view = GrupoAtletaController.as_view(
+            {"put": "update", "patch": "partial_update"}
+        )
 
         payload = {"role": "ENTRENADOR", "sub": "entrenador-123"}
         self.token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
@@ -76,7 +78,9 @@ class TestGrupoAtletaUpdate(SimpleTestCase):
         real_service.dao.update.return_value = mock_grupo
         GrupoAtletaController.service = real_service
 
-        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = False
+        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = (
+            False
+        )
 
         data = {
             "nombre": "Grupo Actualizado",
@@ -129,15 +133,17 @@ class TestGrupoAtletaUpdate(SimpleTestCase):
         atletas_map = {1: mock_atleta1, 2: mock_atleta2}
 
         def atleta_filter_mock(**kwargs):
-            if 'id' in kwargs:
+            if "id" in kwargs:
                 # Para el serializer - filter(id=X).first()
                 mock_result = MagicMock()
-                mock_result.first.return_value = atletas_map.get(kwargs['id'])
+                mock_result.first.return_value = atletas_map.get(kwargs["id"])
                 return mock_result
-            elif 'id__in' in kwargs:
+            elif "id__in" in kwargs:
                 # Para el service - filter(id__in=[...])
-                ids_solicitados = kwargs['id__in']
-                filtered = [atletas_map[aid] for aid in ids_solicitados if aid in atletas_map]
+                ids_solicitados = kwargs["id__in"]
+                filtered = [
+                    atletas_map[aid] for aid in ids_solicitados if aid in atletas_map
+                ]
                 mock_qs = MagicMock()
                 mock_qs.__iter__.return_value = iter(filtered)
                 mock_qs.__len__.return_value = len(filtered)
@@ -165,7 +171,9 @@ class TestGrupoAtletaUpdate(SimpleTestCase):
         real_service.dao.update.return_value = mock_grupo
         GrupoAtletaController.service = real_service
 
-        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = False
+        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = (
+            False
+        )
 
         data = {
             "nombre": "Grupo Test",
@@ -222,7 +230,9 @@ class TestGrupoAtletaUpdate(SimpleTestCase):
         real_service.dao.update.return_value = mock_grupo
         GrupoAtletaController.service = real_service
 
-        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = False
+        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = (
+            False
+        )
 
         data = {"nombre": "Nuevo Nombre"}
 
@@ -300,7 +310,9 @@ class TestGrupoAtletaUpdate(SimpleTestCase):
         GrupoAtletaController.service = real_service
 
         # Simular que ya existe otro grupo con ese nombre
-        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = True
+        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = (
+            True
+        )
 
         data = {"nombre": "Nombre Existente"}
 
@@ -342,15 +354,17 @@ class TestGrupoAtletaUpdate(SimpleTestCase):
         atletas_map = {1: mock_atleta}
 
         def atleta_filter_mock(**kwargs):
-            if 'id' in kwargs:
+            if "id" in kwargs:
                 # Para el serializer - filter(id=X).first()
                 mock_result = MagicMock()
-                mock_result.first.return_value = atletas_map.get(kwargs['id'])
+                mock_result.first.return_value = atletas_map.get(kwargs["id"])
                 return mock_result
-            elif 'id__in' in kwargs:
+            elif "id__in" in kwargs:
                 # Para el service - filter(id__in=[...])
-                ids_solicitados = kwargs['id__in']
-                filtered = [atletas_map[aid] for aid in ids_solicitados if aid in atletas_map]
+                ids_solicitados = kwargs["id__in"]
+                filtered = [
+                    atletas_map[aid] for aid in ids_solicitados if aid in atletas_map
+                ]
                 mock_qs = MagicMock()
                 mock_qs.__iter__.return_value = iter(filtered)
                 mock_qs.__len__.return_value = len(filtered)
@@ -374,7 +388,9 @@ class TestGrupoAtletaUpdate(SimpleTestCase):
         real_service.dao.get_by_id_activo.return_value = mock_grupo
         GrupoAtletaController.service = real_service
 
-        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = False
+        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = (
+            False
+        )
 
         data = {
             "nombre": "Grupo Test",
@@ -398,7 +414,9 @@ class TestGrupoAtletaUpdate(SimpleTestCase):
 
     @patch("basketball.models.GrupoAtleta.objects")
     @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
-    def test_actualizar_grupo_de_otro_entrenador_falla(self, mock_entrenador_objects, mock_grupo_objects):
+    def test_actualizar_grupo_de_otro_entrenador_falla(
+        self, mock_entrenador_objects, mock_grupo_objects
+    ):
         """Test: Falla cuando se intenta actualizar el grupo de otro entrenador."""
         mock_entrenador = MagicMock(spec=Entrenador)
         mock_entrenador.id = 2
@@ -421,7 +439,9 @@ class TestGrupoAtletaUpdate(SimpleTestCase):
         )
         GrupoAtletaController.service = real_service
 
-        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = False
+        mock_grupo_objects.filter.return_value.exclude.return_value.exists.return_value = (
+            False
+        )
 
         data = {"nombre": "Nuevo Nombre"}
 
