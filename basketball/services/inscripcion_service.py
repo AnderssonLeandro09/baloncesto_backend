@@ -138,7 +138,10 @@ class InscripcionService:
             return None
 
     def _fetch_persona(
-        self, persona_external: str, token: str, allow_fail: bool = False
+        self,
+        persona_external: str,
+        token: str,
+        allow_fail: bool = False,
     ) -> Optional[Dict[str, Any]]:
         try:
             return self._call_user_module(
@@ -333,7 +336,10 @@ class InscripcionService:
 
             try:
                 persona_response = self._call_user_module(
-                    "post", "/api/person/save-account", token, persona_data
+                    "post",
+                    "/api/person/save-account",
+                    token,
+                    persona_data,
                 )
                 persona_external = self._extract_external(persona_response)
 
@@ -493,7 +499,10 @@ class InscripcionService:
 
                 try:
                     self._call_user_module(
-                        "post", "/api/person/update", token, persona_payload
+                        "post",
+                        "/api/person/update",
+                        token,
+                        persona_payload,
                     )
                 except Exception:
                     logger.warning(
