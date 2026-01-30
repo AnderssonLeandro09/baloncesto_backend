@@ -1,5 +1,6 @@
 """Tests del controlador de Prueba Antropométrica usando mocks."""
 
+import json
 import jwt
 from datetime import date, timedelta
 from decimal import Decimal
@@ -43,6 +44,42 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             "name": "Test User",
         }
         return jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+
+    def _print_response(self, status_code, response_data, test_name=""):
+        """Imprime la respuesta en formato JSON para debugging."""
+        http_status_map = {
+            200: "OK",
+            201: "CREATED",
+            400: "BAD_REQUEST",
+            403: "FORBIDDEN",
+            404: "NOT_FOUND",
+            500: "INTERNAL_SERVER_ERROR",
+        }
+        status_label = http_status_map.get(status_code, "UNKNOWN")
+
+        # Handle MagicMock objects (when a successful creation returns a mocked object)
+        if hasattr(response_data, "_mock_name"):
+            # It's a MagicMock, convert to dict representation
+            message = str(response_data)
+        elif isinstance(response_data, dict):
+            message = response_data
+        else:
+            message = str(response_data)
+
+        output = {
+            "test": test_name,
+            "status_code": status_code,
+            "status": status_label,
+            "message": message,
+        }
+
+        # Custom JSON encoder to handle non-serializable objects
+        try:
+            print(f"\n[TEST OUTPUT] {json.dumps(output, indent=2, ensure_ascii=False)}")
+        except TypeError:
+            # Fallback if object is still not serializable
+            output["message"] = str(message)
+            print(f"\n[TEST OUTPUT] {json.dumps(output, indent=2, ensure_ascii=False)}")
 
     def test_list_pruebas_success(self):
         mock_service = MagicMock()
@@ -100,6 +137,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
                 HTTP_AUTHORIZATION=f"Bearer {self.token_estudiante}",
             )
             response = self.view_list_create(request)
+            self._print_response(
+                response.status_code, response.data, "crear_prueba_exitosa"
+            )
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         finally:
             PruebaAntropometricaController.service = original_service
@@ -110,6 +150,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_invalid}",
         )
         response = self.view_list_create(request)
+        self._print_response(response.status_code, response.data, "permiso_denegado")
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
     def test_toggle_estado_success(self):
@@ -185,6 +226,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(response.status_code, response.data, "peso_negativo")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("peso", response.data)
 
@@ -206,6 +248,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(response.status_code, response.data, "peso_cero")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("peso", response.data)
 
@@ -227,6 +270,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(response.status_code, response.data, "peso_muy_bajo")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("peso", response.data)
 
@@ -248,6 +292,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(response.status_code, response.data, "peso_exorbitante")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("peso", response.data)
 
@@ -288,6 +333,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
                 HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
             )
             response = self.view_list_create(request)
+            self._print_response(
+                response.status_code, response.data, "peso_limite_inferior_valido"
+            )
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         finally:
             PruebaAntropometricaController.service = original_service
@@ -329,6 +377,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
                 HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
             )
             response = self.view_list_create(request)
+            self._print_response(
+                response.status_code, response.data, "peso_limite_superior_valido"
+            )
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         finally:
             PruebaAntropometricaController.service = original_service
@@ -355,6 +406,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(response.status_code, response.data, "estatura_negativa")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("estatura", response.data)
 
@@ -376,6 +428,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(response.status_code, response.data, "estatura_muy_baja")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("estatura", response.data)
 
@@ -397,6 +450,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(
+            response.status_code, response.data, "estatura_exorbitante"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("estatura", response.data)
 
@@ -422,6 +478,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(
+            response.status_code, response.data, "altura_sentado_negativa"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("altura_sentado", response.data)
 
@@ -443,6 +502,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(
+            response.status_code, response.data, "altura_sentado_muy_baja"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("altura_sentado", response.data)
 
@@ -464,6 +526,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(
+            response.status_code, response.data, "altura_sentado_muy_alta"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("altura_sentado", response.data)
 
@@ -485,6 +550,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(
+            response.status_code, response.data, "altura_sentado_mayor_estatura"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("altura_sentado", response.data)
 
@@ -506,6 +574,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(
+            response.status_code, response.data, "altura_sentado_desproporcionada"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("altura_sentado", response.data)
 
@@ -531,6 +602,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(
+            response.status_code, response.data, "envergadura_negativa"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("envergadura", response.data)
 
@@ -552,6 +626,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(
+            response.status_code, response.data, "envergadura_muy_baja"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("envergadura", response.data)
 
@@ -573,6 +650,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(
+            response.status_code, response.data, "envergadura_exorbitante"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("envergadura", response.data)
 
@@ -594,6 +674,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(
+            response.status_code, response.data, "envergadura_desproporcionada_baja"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("envergadura", response.data)
 
@@ -615,6 +698,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(
+            response.status_code, response.data, "envergadura_desproporcionada_alta"
+        )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("envergadura", response.data)
 
@@ -641,6 +727,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(response.status_code, response.data, "fecha_futura")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("fecha_registro", response.data)
 
@@ -663,6 +750,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
         )
         response = self.view_list_create(request)
+        self._print_response(response.status_code, response.data, "fecha_muy_antigua")
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("fecha_registro", response.data)
 
@@ -703,6 +791,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
                 HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
             )
             response = self.view_list_create(request)
+            self._print_response(
+                response.status_code, response.data, "fecha_hoy_valida"
+            )
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         finally:
             PruebaAntropometricaController.service = original_service
@@ -745,6 +836,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
                 HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
             )
             response = self.view_list_create(request)
+            self._print_response(
+                response.status_code, response.data, "fecha_limite_valida"
+            )
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         finally:
             PruebaAntropometricaController.service = original_service
@@ -791,6 +885,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
                 HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
             )
             response = self.view_list_create(request)
+            self._print_response(
+                response.status_code, response.data, "conversion_enteros"
+            )
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         finally:
             PruebaAntropometricaController.service = original_service
@@ -833,6 +930,9 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
                 HTTP_AUTHORIZATION=f"Bearer {self.token_entrenador}",
             )
             response = self.view_list_create(request)
+            self._print_response(
+                response.status_code, response.data, "conversion_strings"
+            )
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         finally:
             PruebaAntropometricaController.service = original_service
