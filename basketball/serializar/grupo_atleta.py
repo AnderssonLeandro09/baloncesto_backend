@@ -95,19 +95,33 @@ class GrupoAtletaSerializer(serializers.ModelSerializer):
         read_only_fields = ["id", "eliminado", "entrenador", "estado"]
 
     def validate_nombre(self, value):
-        """Valida el campo nombre."""
+        """Valida el campo nombre y asegura que no esté duplicado."""
         if not value or not value.strip():
             raise serializers.ValidationError("El nombre no puede estar vacío")
-        if len(value.strip()) < 3:
+
+        name_clean = value.strip()
+
+        if len(name_clean) < 3:
             raise serializers.ValidationError(
                 "El nombre debe tener al menos 3 caracteres"
             )
-        if len(value) > 100:
+        if len(name_clean) > 100:
             raise serializers.ValidationError(
                 "El nombre no puede exceder 100 caracteres"
             )
-        # Sanitizar: quitar espacios extra
-        return value.strip()
+
+        # Validación de duplicados (excluyendo el actual si es una actualización)
+        instance = getattr(self, "instance", None)
+        qs = GrupoAtleta.objects.filter(nombre__iexact=name_clean, eliminado=False)
+        if instance:
+            qs = qs.exclude(id=instance.id)
+
+        if qs.exists():
+            raise serializers.ValidationError(
+                f"Ya existe un grupo activo con el nombre '{name_clean}'"
+            )
+
+        return name_clean
 
     def validate_categoria(self, value):
         """Valida el campo categoría."""
@@ -163,28 +177,57 @@ class GrupoAtletaSerializer(serializers.ModelSerializer):
             )
 
     def validate_atletas(self, value):
-        """Valida la lista de IDs de atletas."""
+        """Valida la lista de IDs de atletas y su edad respecto al rango del grupo."""
         if not isinstance(value, list):
             raise serializers.ValidationError("Los atletas deben ser una lista")
 
         if len(value) > 100:
             raise serializers.ValidationError("No se pueden asignar más de 100 atletas")
 
-        # Validar que sean enteros positivos
+        # Intentar obtener el rango del payload o de la instancia existente
+        min_v = self.initial_data.get("rango_edad_minima")
+        max_v = self.initial_data.get("rango_edad_maxima")
+
+        # Si es una actualización parcial y no vienen los datos, intentar usar la instancia
+        instance = getattr(self, "instance", None)
+        min_edad = (
+            int(min_v)
+            if min_v is not None
+            else (instance.rango_edad_minima if instance else None)
+        )
+        max_edad = (
+            int(max_v)
+            if max_v is not None
+            else (instance.rango_edad_maxima if instance else None)
+        )
+
+        from ..models import Atleta
+
+        valid_ids = []
         for atleta_id in value:
             try:
                 aid = int(atleta_id)
-                if aid <= 0:
+                atleta = Atleta.objects.filter(id=aid).first()
+                if not atleta:
                     raise serializers.ValidationError(
-                        "Los IDs de atletas deben ser números positivos"
+                        f"El atleta con ID {aid} no existe."
                     )
-            except (ValueError, TypeError):
-                raise serializers.ValidationError(
-                    "Los IDs de atletas deben ser números válidos"
-                )
+
+                # Validar rango de edad si tenemos los datos necesarios
+                if min_edad is not None and max_edad is not None:
+                    if not (min_edad <= atleta.edad <= max_edad):
+                        raise serializers.ValidationError(
+                            f"El atleta {atleta.id} tiene {atleta.edad} años, está fuera del rango ({min_edad}-{max_edad})."
+                        )
+
+                valid_ids.append(aid)
+            except (ValueError, TypeError) as e:
+                if isinstance(e, serializers.ValidationError):
+                    raise e
+                raise serializers.ValidationError(f"El ID '{atleta_id}' no es válido.")
 
         # Eliminar duplicados
-        return list(set(value))
+        return list(set(valid_ids))
 
     def validate_estado(self, value):
         """Valida el campo estado (read-only, solo para compatibilidad)."""
