@@ -487,9 +487,9 @@ class InscripcionService:
 
                 # Relleno de seguridad para update
                 if "email" not in persona_payload:
-                    persona_payload[
-                        "email"
-                    ] = f"update_{atleta.persona_external}@sistema.local"
+                    persona_payload["email"] = (
+                        f"update_{atleta.persona_external}@sistema.local"
+                    )
 
                 try:
                     self._call_user_module(

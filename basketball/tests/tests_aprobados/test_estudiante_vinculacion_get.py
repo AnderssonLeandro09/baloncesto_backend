@@ -11,7 +11,9 @@ from rest_framework import status
 import jwt
 from django.conf import settings
 
-from basketball.controllers.estudiante_vinculacion_controller import EstudianteVinculacionController
+from basketball.controllers.estudiante_vinculacion_controller import (
+    EstudianteVinculacionController,
+)
 
 
 class TestEstudianteVinculacionGet(SimpleTestCase):
@@ -29,14 +31,14 @@ class TestEstudianteVinculacionGet(SimpleTestCase):
     # Tests de listado
     # =========================================================================
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_listar_estudiantes_exitoso(self, mock_get_token):
         """Test: Listar todos los estudiantes de vinculación."""
         mock_get_token.return_value = "admin-token-123"
 
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             mock_service.list_estudiantes.return_value = [
                 {
                     "estudiante": {
@@ -44,14 +46,14 @@ class TestEstudianteVinculacionGet(SimpleTestCase):
                         "persona_external": "persona-001",
                         "carrera": "Ingeniería en Sistemas",
                         "semestre": "5",
-                        "eliminado": False
+                        "eliminado": False,
                     },
                     "persona": {
                         "external": "persona-001",
                         "identification": "1103456784",
                         "first_name": "Juan",
-                        "last_name": "Pérez"
-                    }
+                        "last_name": "Pérez",
+                    },
                 },
                 {
                     "estudiante": {
@@ -59,15 +61,15 @@ class TestEstudianteVinculacionGet(SimpleTestCase):
                         "persona_external": "persona-002",
                         "carrera": "Ingeniería Civil",
                         "semestre": "3",
-                        "eliminado": False
+                        "eliminado": False,
                     },
                     "persona": {
                         "external": "persona-002",
                         "identification": "0912345675",
                         "first_name": "María",
-                        "last_name": "González"
-                    }
-                }
+                        "last_name": "González",
+                    },
+                },
             ]
 
             view = EstudianteVinculacionController.as_view({"get": "list"})
@@ -82,14 +84,14 @@ class TestEstudianteVinculacionGet(SimpleTestCase):
             self.assertEqual(len(response.data["data"]), 2)
             mock_service.list_estudiantes.assert_called_once()
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_listar_estudiantes_vacio(self, mock_get_token):
         """Test: Listar cuando no hay estudiantes."""
         mock_get_token.return_value = "admin-token-123"
 
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             mock_service.list_estudiantes.return_value = []
 
             view = EstudianteVinculacionController.as_view({"get": "list"})
@@ -107,28 +109,28 @@ class TestEstudianteVinculacionGet(SimpleTestCase):
     # Tests de retrieve (obtener uno)
     # =========================================================================
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_obtener_estudiante_exitoso(self, mock_get_token):
         """Test: Obtener un estudiante específico por ID."""
         mock_get_token.return_value = "admin-token-123"
 
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             mock_service.get_estudiante.return_value = {
                 "estudiante": {
                     "id": 1,
                     "persona_external": "persona-001",
                     "carrera": "Ingeniería en Sistemas",
                     "semestre": "5",
-                    "eliminado": False
+                    "eliminado": False,
                 },
                 "persona": {
                     "external": "persona-001",
                     "identification": "1103456784",
                     "first_name": "Juan",
-                    "last_name": "Pérez"
-                }
+                    "last_name": "Pérez",
+                },
             }
 
             view = EstudianteVinculacionController.as_view({"get": "retrieve"})
@@ -143,14 +145,14 @@ class TestEstudianteVinculacionGet(SimpleTestCase):
             self.assertIn("estudiante", response.data["data"])
             mock_service.get_estudiante.assert_called_once_with(1, "admin-token-123")
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_obtener_estudiante_inexistente(self, mock_get_token):
         """Test: Intentar obtener un estudiante que no existe."""
         mock_get_token.return_value = "admin-token-123"
 
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             mock_service.get_estudiante.return_value = None
 
             view = EstudianteVinculacionController.as_view({"get": "retrieve"})
@@ -164,14 +166,14 @@ class TestEstudianteVinculacionGet(SimpleTestCase):
             self.assertEqual(response.data["status"], "error")
             self.assertEqual(response.data["msg"], "Estudiante no encontrado")
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_obtener_estudiante_eliminado(self, mock_get_token):
         """Test: Intentar obtener un estudiante eliminado (servicio retorna None)."""
         mock_get_token.return_value = "admin-token-123"
 
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             # El servicio retorna None para estudiantes eliminados
             mock_service.get_estudiante.return_value = None
 
@@ -189,14 +191,14 @@ class TestEstudianteVinculacionGet(SimpleTestCase):
     # Tests de validación de ID
     # =========================================================================
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_obtener_estudiante_con_id_negativo(self, mock_get_token):
         """Test: Intentar obtener un estudiante con ID negativo."""
         mock_get_token.return_value = "admin-token-123"
 
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             mock_service.get_estudiante.return_value = None
 
             view = EstudianteVinculacionController.as_view({"get": "retrieve"})

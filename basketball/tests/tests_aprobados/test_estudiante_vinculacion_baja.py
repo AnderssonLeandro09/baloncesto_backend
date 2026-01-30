@@ -12,7 +12,9 @@ from rest_framework import status
 import jwt
 from django.conf import settings
 
-from basketball.controllers.estudiante_vinculacion_controller import EstudianteVinculacionController
+from basketball.controllers.estudiante_vinculacion_controller import (
+    EstudianteVinculacionController,
+)
 from basketball.models import EstudianteVinculacion
 
 
@@ -41,9 +43,7 @@ class TestEstudianteVinculacionBaja(SimpleTestCase):
 
     def test_dar_baja_estudiante_exitoso(self):
         """Test: Dar de baja un estudiante existente."""
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             mock_service.delete_estudiante.return_value = True
 
             request = self.factory.delete(
@@ -63,9 +63,7 @@ class TestEstudianteVinculacionBaja(SimpleTestCase):
 
     def test_dar_baja_estudiante_inexistente_retorna_404(self):
         """Test: Intentar dar de baja un estudiante que no existe."""
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             mock_service.delete_estudiante.return_value = False
 
             request = self.factory.delete(
@@ -80,9 +78,7 @@ class TestEstudianteVinculacionBaja(SimpleTestCase):
 
     def test_dar_baja_estudiante_ya_eliminado_retorna_404(self):
         """Test: Intentar dar de baja un estudiante ya eliminado."""
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             mock_service.delete_estudiante.return_value = False
 
             request = self.factory.delete(
@@ -101,9 +97,7 @@ class TestEstudianteVinculacionBaja(SimpleTestCase):
 
     def test_dar_baja_con_id_negativo_retorna_404(self):
         """Test: Intentar dar de baja con ID negativo."""
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             mock_service.delete_estudiante.return_value = False
 
             request = self.factory.delete(
@@ -117,9 +111,7 @@ class TestEstudianteVinculacionBaja(SimpleTestCase):
 
     def test_dar_baja_con_id_cero_retorna_404(self):
         """Test: Intentar dar de baja con ID cero."""
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             mock_service.delete_estudiante.return_value = False
 
             request = self.factory.delete(

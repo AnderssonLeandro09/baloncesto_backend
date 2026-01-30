@@ -11,7 +11,9 @@ from rest_framework import status
 import jwt
 from django.conf import settings
 
-from basketball.controllers.estudiante_vinculacion_controller import EstudianteVinculacionController
+from basketball.controllers.estudiante_vinculacion_controller import (
+    EstudianteVinculacionController,
+)
 
 
 class TestEstudianteVinculacionCreacion(SimpleTestCase):
@@ -30,14 +32,14 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
     # Tests de creación exitosa
     # =========================================================================
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_crear_estudiante_completo_exitoso(self, mock_get_token):
         """Test: Crear un estudiante de vinculación con todos los datos válidos."""
         mock_get_token.return_value = "admin-token-123"
 
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             # Configurar mock para retornar resultado exitoso
             mock_service.create_estudiante.return_value = {
                 "estudiante": {
@@ -45,15 +47,15 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
                     "persona_external": "persona-001",
                     "carrera": "Ingeniería en Sistemas",
                     "semestre": "5",
-                    "eliminado": False
+                    "eliminado": False,
                 },
                 "persona": {
                     "external": "persona-001",
                     "identification": "1103456784",
                     "first_name": "Juan",
                     "last_name": "Pérez",
-                    "email": "juan@unl.edu.ec"
-                }
+                    "email": "juan@unl.edu.ec",
+                },
             }
 
             data = {
@@ -62,7 +64,7 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
                     "first_name": "Juan",
                     "last_name": "Pérez",
                     "email": "juan@unl.edu.ec",
-                    "password": "Pass123!"
+                    "password": "Pass123!",
                 },
                 "estudiante": {
                     "carrera": "Ingeniería en Sistemas",
@@ -84,29 +86,29 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
             self.assertIn("estudiante", response.data["data"])
             mock_service.create_estudiante.assert_called_once()
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_crear_estudiante_con_semestre_letra_exitoso(self, mock_get_token):
         """Test: Crear un estudiante con semestre en formato letra (A-J)."""
         mock_get_token.return_value = "admin-token-123"
 
-        with patch.object(
-            EstudianteVinculacionController, "service"
-        ) as mock_service:
+        with patch.object(EstudianteVinculacionController, "service") as mock_service:
             mock_service.create_estudiante.return_value = {
                 "estudiante": {
                     "id": 2,
                     "persona_external": "persona-002",
                     "carrera": "Ingeniería Civil",
                     "semestre": "A",
-                    "eliminado": False
+                    "eliminado": False,
                 },
                 "persona": {
                     "external": "persona-002",
                     "identification": "0912345675",
                     "first_name": "María",
                     "last_name": "González",
-                    "email": "maria@unl.edu.ec"
-                }
+                    "email": "maria@unl.edu.ec",
+                },
             }
 
             data = {
@@ -115,7 +117,7 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
                     "first_name": "María",
                     "last_name": "González",
                     "email": "maria@unl.edu.ec",
-                    "password": "Pass123!"
+                    "password": "Pass123!",
                 },
                 "estudiante": {
                     "carrera": "Ingeniería Civil",
@@ -138,7 +140,9 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
     # Tests de validación de semestre
     # =========================================================================
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_crear_estudiante_con_semestre_invalido_falla(self, mock_get_token):
         """Test: Falla cuando se proporciona un semestre inválido."""
         mock_get_token.return_value = "admin-token-123"
@@ -149,7 +153,7 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
                 "first_name": "Pedro",
                 "last_name": "López",
                 "email": "pedro@unl.edu.ec",
-                "password": "Pass123!"
+                "password": "Pass123!",
             },
             "estudiante": {
                 "carrera": "Ingeniería Mecánica",
@@ -174,7 +178,9 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
     # Tests de validación de carrera
     # =========================================================================
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_crear_estudiante_con_carrera_corta_falla(self, mock_get_token):
         """Test: Falla cuando el nombre de la carrera es muy corto."""
         mock_get_token.return_value = "admin-token-123"
@@ -185,7 +191,7 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
                 "first_name": "Ana",
                 "last_name": "Martínez",
                 "email": "ana@unl.edu.ec",
-                "password": "Pass123!"
+                "password": "Pass123!",
             },
             "estudiante": {
                 "carrera": "Ing",  # Muy corto: mínimo 5 caracteres
@@ -209,7 +215,9 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
     # Tests de validación de persona
     # =========================================================================
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_crear_estudiante_sin_persona_falla(self, mock_get_token):
         """Test: Falla cuando no se proporcionan datos de persona."""
         mock_get_token.return_value = "admin-token-123"
@@ -232,7 +240,9 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["status"], "error")
 
-    @patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
+    )
     def test_crear_estudiante_sin_datos_estudiante_falla(self, mock_get_token):
         """Test: Falla cuando no se proporcionan datos del estudiante."""
         mock_get_token.return_value = "admin-token-123"
@@ -243,7 +253,7 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
                 "first_name": "Carlos",
                 "last_name": "Rodríguez",
                 "email": "carlos@unl.edu.ec",
-                "password": "Pass123!"
+                "password": "Pass123!",
             },
         }
 
@@ -270,7 +280,7 @@ class TestEstudianteVinculacionCreacion(SimpleTestCase):
                 "first_name": "Luis",
                 "last_name": "Hernández",
                 "email": "luis@unl.edu.ec",
-                "password": "Pass123!"
+                "password": "Pass123!",
             },
             "estudiante": {
                 "carrera": "Ingeniería de Sistemas",
