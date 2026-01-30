@@ -19,29 +19,24 @@ class PruebaFisicaInputSerializer(serializers.Serializer):
     """Serializador para la entrada de datos de Prueba Física."""
 
     atleta_id = serializers.IntegerField(required=True, min_value=1)
-    fecha_registro = serializers.DateField(required=True)
+    fecha_registro = serializers.DateField(required=False, allow_null=True)
     tipo_prueba = serializers.ChoiceField(choices=TipoPrueba.choices, required=True)
     resultado = serializers.DecimalField(
         max_digits=10,
         decimal_places=2,
         required=True,
-        min_value=Decimal("0.01"),
-        max_value=Decimal("999999.99"),
-    )
-    unidad_medida = serializers.CharField(
-        max_length=20, required=False, allow_blank=True, allow_null=True
     )
     observaciones = serializers.CharField(
         required=False,
         allow_blank=True,
         allow_null=True,
-        max_length=1000,  # Limitar tamaño
+        max_length=200,  # Limitar tamaño a 200 caracteres
     )
     estado = serializers.BooleanField(default=True)
 
     def validate_fecha_registro(self, value):
         """Validar que la fecha no sea futura."""
-        if value > date.today():
+        if value and value > date.today():
             raise serializers.ValidationError(
                 "La fecha de registro no puede ser futura"
             )

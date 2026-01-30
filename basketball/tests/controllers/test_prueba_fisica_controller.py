@@ -38,7 +38,7 @@ class PruebaFisicaControllerTests(SimpleTestCase):
 
     def test_list_pruebas_success(self):
         mock_service = MagicMock()
-        mock_service.get_all_pruebas_fisicas.return_value = []
+        mock_service.get_all_pruebas_fisicas_completas.return_value = []
 
         original_service = PruebaFisicaController.service
         PruebaFisicaController.service = mock_service
@@ -50,6 +50,8 @@ class PruebaFisicaControllerTests(SimpleTestCase):
             )
             response = self.view_list_create(request)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data["status"], "success")
+            self.assertIsInstance(response.data["data"], list)
         finally:
             PruebaFisicaController.service = original_service
 
@@ -66,6 +68,16 @@ class PruebaFisicaControllerTests(SimpleTestCase):
         mock_prueba.estado = True
 
         mock_service.create_prueba_fisica.return_value = mock_prueba
+        mock_service.get_prueba_fisica_completa.return_value = {
+            "id": 1,
+            "atleta": {"id": 1, "persona": {"nombre": "Atleta Test"}},
+            "fecha_registro": "2023-10-27",
+            "tipo_prueba": "FUERZA",
+            "resultado": 50.0,
+            "unidad_medida": "cm",
+            "observaciones": "Ok",
+            "estado": True,
+        }
 
         original_service = PruebaFisicaController.service
         PruebaFisicaController.service = mock_service
@@ -88,6 +100,8 @@ class PruebaFisicaControllerTests(SimpleTestCase):
             )
             response = self.view_list_create(request)
             self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+            self.assertEqual(response.data["status"], "success")
+            self.assertEqual(response.data["data"]["id"], 1)
         finally:
             PruebaFisicaController.service = original_service
 
@@ -127,7 +141,8 @@ class PruebaFisicaControllerTests(SimpleTestCase):
             )
             response = self.view_toggle(request, pk=1)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
-            self.assertEqual(response.data["estado"], False)
+            self.assertEqual(response.data["status"], "success")
+            self.assertEqual(response.data["data"]["estado"], False)
         finally:
             PruebaFisicaController.service = original_service
 
@@ -145,7 +160,8 @@ class PruebaFisicaControllerTests(SimpleTestCase):
             )
             response = self.view_by_atleta(request, atleta_id=1)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
-            self.assertIsInstance(response.data, list)
+            self.assertEqual(response.data["status"], "success")
+            self.assertIsInstance(response.data["data"], list)
         finally:
             PruebaFisicaController.service = original_service
 
@@ -163,6 +179,8 @@ class PruebaFisicaControllerTests(SimpleTestCase):
             )
             response = self.view_detail(request, pk=1)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data["status"], "success")
+            self.assertEqual(response.data["data"]["id"], 1)
         finally:
             PruebaFisicaController.service = original_service
 
@@ -185,6 +203,8 @@ class PruebaFisicaControllerTests(SimpleTestCase):
             )
             response = self.view_detail(request, pk=1)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data["status"], "success")
+            self.assertEqual(response.data["data"]["id"], 1)
         finally:
             PruebaFisicaController.service = original_service
 
@@ -204,6 +224,7 @@ class PruebaFisicaControllerTests(SimpleTestCase):
             )
             response = self.view_atletas_habilitados(request)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
-            self.assertEqual(len(response.data), 1)
+            self.assertEqual(response.data["status"], "success")
+            self.assertEqual(len(response.data["data"]), 1)
         finally:
             PruebaFisicaController.service = original_service
