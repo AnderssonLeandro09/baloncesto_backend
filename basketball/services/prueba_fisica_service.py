@@ -347,17 +347,17 @@ class PruebaFisicaService:
                         raise ValidationError(
                             "No se permiten valores negativos o cero. El resultado debe ser mayor a 0"
                         )
-                    
+
                     # Usar el tipo de prueba actual o el nuevo si se está cambiando
                     tipo_actual = data.get("tipo_prueba") or prueba.tipo_prueba
-                    
+
                     # Rangos máximos por tipo de prueba (deben coincidir con create)
                     RANGOS_MAXIMOS = {
                         "FUERZA": 300,
                         "VELOCIDAD": 15,
                         "AGILIDAD": 25,
                     }
-                    
+
                     rango_max = RANGOS_MAXIMOS.get(tipo_actual, 1000)
                     if resultado_float > rango_max:
                         raise ValidationError(

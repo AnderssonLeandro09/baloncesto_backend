@@ -1071,4 +1071,3 @@ class TestPruebaFisicaActualizacion(SimpleTestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertEqual(response.data["status"], "error")
         self.assertIn("excede el rango máximo", response.data["msg"])
-
