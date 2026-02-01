@@ -8,7 +8,8 @@ from django.conf import settings
 # lo capture automáticamente y devuelva 400 con el formato de error correcto.
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
-from rest_framework.test import APITestCase, APIRequestFactory
+from rest_framework.test import APIRequestFactory
+from django.test import SimpleTestCase
 
 from basketball.controllers.inscripcion_controller import InscripcionController
 
@@ -18,7 +19,7 @@ from basketball.controllers.inscripcion_controller import InscripcionController
     return_value="mock_token",
 )
 @patch("basketball.controllers.inscripcion_controller.InscripcionService")
-class InscripcionControllerTests(APITestCase):
+class InscripcionControllerTests(SimpleTestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         # Creamos la vista básica para list y create
@@ -49,7 +50,8 @@ class InscripcionControllerTests(APITestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data["data"]), 1)
+        self.assertEqual(response.data["status"], "success")
         mock_service.list_inscripciones_completas.assert_called_once_with("mock_token")
 
     def test_create_inscripcion_success(self, mock_service_class, mock_token):
@@ -75,7 +77,8 @@ class InscripcionControllerTests(APITestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertIn("atleta", response.data)
+        self.assertIn("atleta", response.data["data"])
+        self.assertEqual(response.data["status"], "success")
         self.assertTrue(mock_service.create_atleta_inscripcion.called)
 
     def test_create_inscripcion_duplicate_cedula(self, mock_service_class, mock_token):
@@ -102,7 +105,8 @@ class InscripcionControllerTests(APITestCase):
 
         # Validamos que el controlador capture el ValidationError y devuelva 400
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn(mensaje_error, response.data["detail"])
+        self.assertIn(mensaje_error, response.data["msg"])
+        self.assertEqual(response.data["status"], "error")
 
     def test_create_inscripcion_forbidden_role(self, mock_service_class, mock_token):
         """
@@ -142,8 +146,9 @@ class InscripcionControllerTests(APITestCase):
         response = view(request, pk=1)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(response.data["habilitada"])
-        self.assertIn("mensaje", response.data)
+        self.assertFalse(response.data["data"]["habilitada"])
+        self.assertIn("Inscripción deshabilitada correctamente", response.data["msg"])
+        self.assertEqual(response.data["status"], "success")
 
     @patch("basketball.controllers.inscripcion_controller.Inscripcion.objects.filter")
     def test_verificar_cedula_endpoint(
@@ -162,7 +167,8 @@ class InscripcionControllerTests(APITestCase):
         response = view(request)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["existe"])
+        self.assertTrue(response.data["data"]["existe"])
         self.assertEqual(
-            response.data["mensaje"], "El atleta ya se encuentra registrado"
+            response.data["msg"], "El atleta ya se encuentra registrado"
         )
+        self.assertEqual(response.data["status"], "success")

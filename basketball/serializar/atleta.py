@@ -73,9 +73,15 @@ class AtletaDataSerializer(serializers.ModelSerializer):
 
     def validate_telefono(self, value):
         """
-        Valida el teléfono del atleta:
+        Valida el teléfono del atleta (formato Ecuador):
         - Solo dígitos numéricos
-        - Longitud entre 9 y 15 caracteres
+        - Exactamente 10 dígitos (formato celular: 09XXXXXXXX)
+        
+        Returns:
+            str: Teléfono limpio y validado
+        
+        Raises:
+            ValidationError: Si el formato es inválido
         """
         if not value:
             return value
@@ -93,18 +99,24 @@ class AtletaDataSerializer(serializers.ModelSerializer):
                 "El teléfono debe contener solo dígitos numéricos."
             )
 
-        if len(value) < 9 or len(value) > 15:
+        if len(value) != 10:
             raise serializers.ValidationError(
-                "El teléfono debe tener entre 9 y 15 dígitos."
+                "El teléfono debe tener exactamente 10 dígitos."
             )
 
         return value
 
     def validate_telefono_representante(self, value):
         """
-        Valida el teléfono del representante:
+        Valida el teléfono del representante (formato Ecuador):
         - Solo dígitos numéricos
-        - Longitud entre 9 y 15 caracteres
+        - Exactamente 10 dígitos
+        
+        Returns:
+            str: Teléfono limpio y validado
+        
+        Raises:
+            ValidationError: Si el formato es inválido
         """
         if not value:
             return value
@@ -122,9 +134,9 @@ class AtletaDataSerializer(serializers.ModelSerializer):
                 "El teléfono del representante debe contener solo dígitos numéricos."
             )
 
-        if len(value) < 9 or len(value) > 15:
+        if len(value) != 10:
             raise serializers.ValidationError(
-                "El teléfono del representante debe tener entre 9 y 15 dígitos."
+                "El teléfono del representante debe tener exactamente 10 dígitos."
             )
 
         return value
