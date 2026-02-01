@@ -107,9 +107,7 @@ class TestFichaInscripcion(SimpleTestCase):
 
         # Assertions
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(
-            response.data.get("msg"), "Inscripción creada exitosamente"
-        )
+        self.assertEqual(response.data.get("msg"), "Inscripción creada exitosamente")
         self.assertEqual(response.data["status"], "success")
         mock_service.create_atleta_inscripcion.assert_called_once()
 
@@ -339,9 +337,7 @@ class TestFichaInscripcion(SimpleTestCase):
         # Assertions
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertFalse(response.data["data"]["habilitada"])
-        self.assertIn(
-            "Inscripción deshabilitada correctamente", response.data["msg"]
-        )
+        self.assertIn("Inscripción deshabilitada correctamente", response.data["msg"])
         self.assertEqual(response.data["status"], "success")
         mock_service.cambiar_estado_inscripcion.assert_called_once_with(1)
 

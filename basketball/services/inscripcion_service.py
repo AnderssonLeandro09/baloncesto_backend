@@ -23,13 +23,13 @@ logger = logging.getLogger(__name__)
 class InscripcionService:
     """
     Servicio de lógica de negocio para la gestión de inscripciones de atletas.
-    
+
     Responsabilidades:
     - Crear inscripciones con validación de duplicados
     - Actualizar datos de atleta/persona/inscripción
     - Gestionar estados de inscripción (habilitar/deshabilitar)
     - Comunicación con microservicio de usuarios (modo fail-safe)
-    
+
     Características de resiliencia:
     - Modo offline: genera IDs locales si el microservicio falla
     - Datos locales: siempre persiste información en BD local
@@ -250,7 +250,7 @@ class InscripcionService:
 
         Raises:
             ValidationError: Si hay datos duplicados o campos requeridos faltantes
-            
+
         Reglas de Negocio:
         - Valida duplicados por cédula (UC-004 Curso Alterno 8)
         - Persiste datos localmente (no depende del microservicio externo)
@@ -321,24 +321,26 @@ class InscripcionService:
             # ============================================================
             if not nombre or not nombre.strip():
                 raise ValidationError("El nombre del atleta es requerido")
-            
+
             if not apellido or not apellido.strip():
                 raise ValidationError("El apellido del atleta es requerido")
-            
+
             if not cedula or not cedula.strip():
                 raise ValidationError("La cédula es obligatoria para el registro")
-            
+
             # Validar formato de cédula (10 dígitos)
             cedula_limpia = cedula.strip().replace("-", "").replace(" ", "")
             if len(cedula_limpia) != 10 or not cedula_limpia.isdigit():
                 raise ValidationError(
                     "La cédula debe tener exactamente 10 dígitos numéricos"
                 )
-            
+
             # Validar teléfono si se proporciona (exactamente 10 dígitos)
             if telefono:
                 telefono_limpio = telefono.strip().replace("-", "").replace(" ", "")
-                if telefono_limpio and (len(telefono_limpio) != 10 or not telefono_limpio.isdigit()):
+                if telefono_limpio and (
+                    len(telefono_limpio) != 10 or not telefono_limpio.isdigit()
+                ):
                     raise ValidationError(
                         "El teléfono debe tener exactamente 10 dígitos numéricos"
                     )
@@ -548,9 +550,9 @@ class InscripcionService:
 
                 # Relleno de seguridad para update
                 if "email" not in persona_payload:
-                    persona_payload["email"] = (
-                        f"update_{atleta.persona_external}@sistema.local"
-                    )
+                    persona_payload[
+                        "email"
+                    ] = f"update_{atleta.persona_external}@sistema.local"
 
                 try:
                     self._call_user_module(

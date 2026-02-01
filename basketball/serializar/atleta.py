@@ -76,10 +76,10 @@ class AtletaDataSerializer(serializers.ModelSerializer):
         Valida el teléfono del atleta (formato Ecuador):
         - Solo dígitos numéricos
         - Exactamente 10 dígitos (formato celular: 09XXXXXXXX)
-        
+
         Returns:
             str: Teléfono limpio y validado
-        
+
         Raises:
             ValidationError: Si el formato es inválido
         """
@@ -111,10 +111,10 @@ class AtletaDataSerializer(serializers.ModelSerializer):
         Valida el teléfono del representante (formato Ecuador):
         - Solo dígitos numéricos
         - Exactamente 10 dígitos
-        
+
         Returns:
             str: Teléfono limpio y validado
-        
+
         Raises:
             ValidationError: Si el formato es inválido
         """

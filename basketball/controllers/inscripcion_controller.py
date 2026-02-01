@@ -22,13 +22,13 @@ logger = logging.getLogger(__name__)
 class InscripcionController(viewsets.ViewSet):
     """
     Controlador para gestionar las Inscripciones de los atletas.
-    
+
     Maneja las operaciones CRUD para inscripciones, incluyendo:
     - Creación de atleta con inscripción
     - Actualización de datos
     - Cambio de estado (habilitar/deshabilitar)
     - Verificación de cédulas duplicadas
-    
+
     Formato de respuesta estandarizado:
     {
         "msg": str,      # Mensaje descriptivo para el usuario

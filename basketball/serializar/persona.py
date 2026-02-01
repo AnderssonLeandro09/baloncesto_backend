@@ -185,10 +185,10 @@ class PersonaSerializer(serializers.Serializer):
         Valida el número de teléfono (formato Ecuador):
         - Solo dígitos numéricos
         - Exactamente 10 dígitos (celular: 09XXXXXXXX)
-        
+
         Returns:
             str: Teléfono limpio y validado
-        
+
         Raises:
             ValidationError: Si el formato es inválido
         """

@@ -168,7 +168,5 @@ class InscripcionControllerTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(response.data["data"]["existe"])
-        self.assertEqual(
-            response.data["msg"], "El atleta ya se encuentra registrado"
-        )
+        self.assertEqual(response.data["msg"], "El atleta ya se encuentra registrado")
         self.assertEqual(response.data["status"], "success")
