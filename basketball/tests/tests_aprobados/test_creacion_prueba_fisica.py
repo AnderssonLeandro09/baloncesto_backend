@@ -845,8 +845,8 @@ class TestPruebaFisicaCreacion(TestCase):
         self.assertEqual(response.data["status"], "error")
         # La validación de longitud viene en data o en msg
         self.assertTrue(
-            "observaciones" in response.data.get("data", {}) or
-            "200 caracteres" in str(response.data.get("msg", ""))
+            "observaciones" in response.data.get("data", {})
+            or "200 caracteres" in str(response.data.get("msg", ""))
         )
 
     # =========================================================================
