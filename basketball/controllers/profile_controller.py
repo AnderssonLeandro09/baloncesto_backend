@@ -30,7 +30,10 @@ class ProfileController(viewsets.ViewSet):
         if not token:
             return Response(
                 {
-                    "error": "No se pudo establecer comunicación con el servicio de usuarios"
+                    "msg": "No se pudo establecer comunicación con el servicio de usuarios",
+                    "data": None,
+                    "code": 503,
+                    "status": "error",
                 },
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
@@ -39,9 +42,30 @@ class ProfileController(viewsets.ViewSet):
             data = self.service.get_profile_data(request.user, token)
             if not data:
                 return Response(
-                    {"error": "Perfil no encontrado"},
+                    {
+                        "msg": "Perfil no encontrado",
+                        "data": None,
+                        "code": 404,
+                        "status": "error",
+                    },
                     status=status.HTTP_404_NOT_FOUND,
                 )
-            return Response(data, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "msg": "Perfil obtenido exitosamente",
+                    "data": data,
+                    "code": 200,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
         except Exception as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": str(exc),
+                    "data": None,
+                    "code": 400,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
