@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock, patch
-from django.test import SimpleTestCase
+from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 from rest_framework import status
 import jwt
@@ -12,7 +12,7 @@ from basketball.services.prueba_fisica_service import PruebaFisicaService
 from basketball.models import PruebaFisica, Atleta, Entrenador, Inscripcion
 
 
-class TestPruebaFisicaCreacion(SimpleTestCase):
+class TestPruebaFisicaCreacion(TestCase):
     """Tests para la creación de pruebas físicas."""
 
     def setUp(self):
@@ -976,7 +976,7 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         )
 
 
-class TestPruebaFisicaActualizacion(SimpleTestCase):
+class TestPruebaFisicaActualizacion(TestCase):
     """Tests para la actualización de pruebas físicas."""
 
     def setUp(self):

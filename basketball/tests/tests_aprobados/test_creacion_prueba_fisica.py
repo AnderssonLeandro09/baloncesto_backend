@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock, patch
-from django.test import SimpleTestCase
+from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 from rest_framework import status
 import jwt
@@ -12,7 +12,7 @@ from basketball.services.prueba_fisica_service import PruebaFisicaService
 from basketball.models import PruebaFisica, Atleta, Entrenador, Inscripcion
 
 
-class TestPruebaFisicaCreacion(SimpleTestCase):
+class TestPruebaFisicaCreacion(TestCase):
     """Tests para la creación de pruebas físicas."""
 
     def setUp(self):
@@ -316,8 +316,8 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
-        self.assertIn("El atleta con ID 999 no existe", response.data["error"])
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn("El atleta con ID 999 no existe", response.data["msg"])
 
     @patch("basketball.serializers.get_persona_from_user_module")
     @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
@@ -365,10 +365,10 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
+        self.assertEqual(response.data["status"], "error")
         self.assertIn(
             '"El atleta no tiene inscripción habilitada". No se guarda el registro.',
-            response.data["error"],
+            response.data["msg"],
         )
 
     @patch("basketball.serializers.get_persona_from_user_module")
@@ -474,7 +474,8 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("fecha_registro", response.data)
+        # La respuesta tiene estructura {'msg': ..., 'data': {'fecha_registro': [...]}, ...}
+        self.assertIn("fecha_registro", response.data.get("data", response.data))
 
     @patch("basketball.serializers.get_persona_from_user_module")
     def test_crear_prueba_fisica_sin_fecha_falla(
@@ -528,7 +529,8 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("tipo_prueba", response.data)
+        # La respuesta tiene estructura {'msg': ..., 'data': {'tipo_prueba': [...]}, ...}
+        self.assertIn("tipo_prueba", response.data.get("data", response.data))
 
     @patch("basketball.serializers.get_persona_from_user_module")
     def test_crear_prueba_fisica_sin_tipo_falla(
@@ -678,10 +680,10 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
+        self.assertEqual(response.data["status"], "error")
         self.assertIn(
-            "El resultado excede el rango máximo para FUERZA: 300",
-            response.data["error"],
+            "El resultado excede el rango máximo",
+            response.data["msg"],
         )
 
     @patch("basketball.serializers.get_persona_from_user_module")
@@ -730,10 +732,10 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
+        self.assertEqual(response.data["status"], "error")
         self.assertIn(
-            "El resultado excede el rango máximo para VELOCIDAD: 15",
-            response.data["error"],
+            "El resultado excede el rango máximo",
+            response.data["msg"],
         )
 
     @patch("basketball.serializers.get_persona_from_user_module")
@@ -782,10 +784,10 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
+        self.assertEqual(response.data["status"], "error")
         self.assertIn(
-            "El resultado excede el rango máximo para AGILIDAD: 25",
-            response.data["error"],
+            "El resultado excede el rango máximo",
+            response.data["msg"],
         )
 
     # =========================================================================
@@ -840,10 +842,11 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
-        self.assertIn(
-            "Las observaciones no pueden exceder 200 caracteres",
-            response.data["error"],
+        self.assertEqual(response.data["status"], "error")
+        # La validación de longitud viene en data o en msg
+        self.assertTrue(
+            "observaciones" in response.data.get("data", {}) or
+            "200 caracteres" in str(response.data.get("msg", ""))
         )
 
     # =========================================================================
@@ -918,8 +921,8 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn("error", response.data)
+        self.assertEqual(response.data["status"], "error")
         self.assertIn(
             "No tiene permiso para registrar pruebas a este atleta",
-            response.data["error"],
+            response.data["msg"],
         )

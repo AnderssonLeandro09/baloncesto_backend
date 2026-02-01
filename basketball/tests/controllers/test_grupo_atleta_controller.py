@@ -52,8 +52,10 @@ class GrupoAtletaControllerTests(TestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0]["nombre"], "Grupo A")
+        # La respuesta tiene estructura envolvente {"msg": ..., "data": [...], ...}
+        data = response.data.get("data", response.data)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0]["nombre"], "Grupo A")
 
     def test_create_success(self):
         mock_service = MagicMock()
@@ -97,11 +99,13 @@ class GrupoAtletaControllerTests(TestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["nombre"], "Nuevo Grupo")
+        # La respuesta tiene estructura envolvente {"msg": ..., "data": {...}, ...}
+        data = response.data.get("data", response.data)
+        self.assertEqual(data["nombre"], "Nuevo Grupo")
         # Ahora esperamos una lista de objetos, no de IDs
-        self.assertEqual(len(response.data["atletas"]), 2)
-        self.assertEqual(response.data["atletas"][0]["id"], 1)
-        self.assertEqual(response.data["atletas"][1]["id"], 2)
+        self.assertEqual(len(data["atletas"]), 2)
+        self.assertEqual(data["atletas"][0]["id"], 1)
+        self.assertEqual(data["atletas"][1]["id"], 2)
 
     def test_atletas_elegibles_grupo(self):
         view = GrupoAtletaController.as_view({"get": "atletas_elegibles_grupo"})
@@ -118,8 +122,10 @@ class GrupoAtletaControllerTests(TestCase):
         response = view(request, pk=1)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.data), 1)
-        self.assertEqual(response.data[0], 1)
+        # La respuesta tiene estructura envolvente {"msg": ..., "data": [...], ...}
+        data = response.data.get("data", response.data)
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0], 1)
 
     def test_create_handles_error(self):
         mock_service = MagicMock()
@@ -144,7 +150,7 @@ class GrupoAtletaControllerTests(TestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
+        self.assertIn("msg", response.data)
 
     def test_retrieve_not_found(self):
         view = GrupoAtletaController.as_view({"get": "retrieve"})
@@ -177,7 +183,9 @@ class GrupoAtletaControllerTests(TestCase):
         response = view(request, pk=1)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["nombre"], "Grupo Actualizado")
+        # La respuesta tiene estructura envolvente {"msg": ..., "data": {...}, ...}
+        data = response.data.get("data", response.data)
+        self.assertEqual(data["nombre"], "Grupo Actualizado")
 
     def test_destroy_success(self):
         view = GrupoAtletaController.as_view({"delete": "destroy"})
