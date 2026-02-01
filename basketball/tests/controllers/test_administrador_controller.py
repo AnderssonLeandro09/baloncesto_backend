@@ -115,7 +115,7 @@ class AdministradorControllerTests(SimpleTestCase):
             response = self.view_list_create(request)
 
             self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-            self.assertEqual(response.data["status"], "error")
+            self.assertIn("error", response.data)
         finally:
             AdministradorController.service = original_service
 

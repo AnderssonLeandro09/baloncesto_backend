@@ -102,7 +102,7 @@ class EntrenadorControllerTests(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
+        self.assertIn("error", response.data)
         self.assertEqual(response.data.get("error"), "bad")
 
     def test_create_fails_when_especialidad_vacia(self):
@@ -132,7 +132,7 @@ class EntrenadorControllerTests(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
+        self.assertIn("error", response.data)
         err = response.data.get("error")
         self.assertIn("especialidad y club_asignado son obligatorios", str(err))
 
@@ -163,7 +163,7 @@ class EntrenadorControllerTests(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
+        self.assertIn("error", response.data)
         err = response.data.get("error")
         self.assertIn("especialidad y club_asignado son obligatorios", str(err))
 

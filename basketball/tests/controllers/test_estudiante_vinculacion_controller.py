@@ -2,7 +2,7 @@
 
 import jwt
 from django.conf import settings
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from django.test import TestCase
 from rest_framework import status
@@ -13,6 +13,7 @@ from basketball.controllers.estudiante_vinculacion_controller import (
 )
 
 
+@patch("basketball.controllers.estudiante_vinculacion_controller.get_user_module_token")
 class EstudianteVinculacionControllerTests(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
@@ -33,7 +34,8 @@ class EstudianteVinculacionControllerTests(TestCase):
         )
         self.auth_header = f"Bearer {self.token}"
 
-    def test_list_returns_data(self):
+    def test_list_returns_data(self, mock_get_token):
+        mock_get_token.return_value = "fake_token"
         mock_service = MagicMock()
         mock_service.list_estudiantes.return_value = [
             {"estudiante": {"id": 1}},
@@ -50,7 +52,8 @@ class EstudianteVinculacionControllerTests(TestCase):
         # La respuesta tiene estructura envolvente {"msg": ..., "data": [...], ...}
         self.assertEqual(len(response.data.get("data", response.data)), 1)
 
-    def test_create_success(self):
+    def test_create_success(self, mock_get_token):
+        mock_get_token.return_value = "fake_token"
         mock_service = MagicMock()
         mock_service.create_estudiante.return_value = {"estudiante": {"id": 1}}
         self.view.cls.service = mock_service
@@ -76,7 +79,8 @@ class EstudianteVinculacionControllerTests(TestCase):
         # La respuesta tiene estructura envolvente {"msg": ..., "data": {...}, ...}
         self.assertIn("data", response.data)
 
-    def test_create_handles_error(self):
+    def test_create_handles_error(self, mock_get_token):
+        mock_get_token.return_value = "fake_token"
         mock_service = MagicMock()
         mock_service.create_estudiante.side_effect = Exception("bad")
         self.view.cls.service = mock_service
@@ -92,7 +96,8 @@ class EstudianteVinculacionControllerTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("msg", response.data)
 
-    def test_retrieve_not_found(self):
+    def test_retrieve_not_found(self, mock_get_token):
+        mock_get_token.return_value = "fake_token"
         view = EstudianteVinculacionController.as_view({"get": "retrieve"})
         mock_service = MagicMock()
         mock_service.get_estudiante.return_value = None
@@ -105,7 +110,8 @@ class EstudianteVinculacionControllerTests(TestCase):
 
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-    def test_update_success(self):
+    def test_update_success(self, mock_get_token):
+        mock_get_token.return_value = "fake_token"
         view = EstudianteVinculacionController.as_view({"put": "update"})
         mock_service = MagicMock()
         mock_service.update_estudiante.return_value = {
@@ -126,7 +132,8 @@ class EstudianteVinculacionControllerTests(TestCase):
         data = response.data.get("data", response.data)
         self.assertEqual(data["estudiante"]["semestre"], "2")
 
-    def test_destroy_success(self):
+    def test_destroy_success(self, mock_get_token):
+        mock_get_token.return_value = "fake_token"
         view = EstudianteVinculacionController.as_view({"delete": "destroy"})
         mock_service = MagicMock()
         mock_service.delete_estudiante.return_value = True

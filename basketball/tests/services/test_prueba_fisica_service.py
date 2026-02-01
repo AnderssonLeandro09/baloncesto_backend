@@ -478,12 +478,34 @@ class TestPruebaFisicaCreacion(TestCase):
         self.assertIn("fecha_registro", response.data["data"])
 
     @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
     def test_crear_prueba_fisica_sin_fecha_falla(
         self,
+        mock_entrenador_objects,
         mock_get_persona,
     ):
         """Test: Falla cuando no se proporciona la fecha de registro."""
         mock_get_persona.return_value = {"first_name": "Test"}
+
+        # Mock del entrenador para pasar validación de permisos
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        # Mock del servicio con atleta mockeado
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.id = 1
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        real_service = PruebaFisicaService()
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        PruebaFisicaController.service = real_service
 
         data = {
             "atleta_id": 1,
