@@ -9,7 +9,7 @@ from django.conf import settings
 from rest_framework.exceptions import ValidationError
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
-from django.test import SimpleTestCase
+from django.test import TestCase
 
 from basketball.controllers.inscripcion_controller import InscripcionController
 
@@ -19,7 +19,7 @@ from basketball.controllers.inscripcion_controller import InscripcionController
     return_value="mock_token",
 )
 @patch("basketball.controllers.inscripcion_controller.InscripcionService")
-class InscripcionControllerTests(SimpleTestCase):
+class InscripcionControllerTests(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         # Creamos la vista básica para list y create

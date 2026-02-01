@@ -4,14 +4,14 @@ import jwt
 from django.conf import settings
 from unittest.mock import MagicMock
 
-from django.test import SimpleTestCase
+from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APIRequestFactory
 
 from basketball.controllers.grupo_atleta_controller import GrupoAtletaController
 
 
-class GrupoAtletaControllerTests(SimpleTestCase):
+class GrupoAtletaControllerTests(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         self.view = GrupoAtletaController.as_view(
