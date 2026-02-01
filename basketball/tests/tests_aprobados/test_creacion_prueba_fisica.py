@@ -479,12 +479,14 @@ class TestPruebaFisicaCreacion(TestCase):
 
     @patch("basketball.serializers.get_persona_from_user_module")
     @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
-    def test_crear_prueba_fisica_sin_fecha_falla(
+    @patch.object(PruebaFisicaService, "get_prueba_fisica_completa")
+    def test_crear_prueba_fisica_sin_fecha_usa_fecha_actual(
         self,
+        mock_get_prueba_completa,
         mock_entrenador_objects,
         mock_get_persona,
     ):
-        """Test: Falla cuando no se proporciona la fecha de registro."""
+        """Test: Si no se proporciona fecha, el servicio usa la fecha actual."""
         mock_get_persona.return_value = {"first_name": "Test"}
 
         # Mock del entrenador para pasar validación de permisos
@@ -502,9 +504,25 @@ class TestPruebaFisicaCreacion(TestCase):
         mock_atleta.inscripcion = mock_inscripcion
         mock_atleta.grupos.filter.return_value.exists.return_value = True
 
+        # Mock de la prueba creada
+        mock_prueba = MagicMock(spec=PruebaFisica)
+        mock_prueba.id = 1
+        mock_prueba.pk = 1
+
+        mock_get_prueba_completa.return_value = {
+            "id": 1,
+            "atleta": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+        }
+
         real_service = PruebaFisicaService()
         real_service.atleta_dao = MagicMock()
         real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        real_service.dao = MagicMock()
+        real_service.dao.create.return_value = mock_prueba
+        real_service.get_prueba_fisica_completa = mock_get_prueba_completa
         PruebaFisicaController.service = real_service
 
         data = {
@@ -521,7 +539,8 @@ class TestPruebaFisicaCreacion(TestCase):
         )
         response = self.view(request)
 
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        # El servicio asigna la fecha actual automáticamente si no se proporciona
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
     # =========================================================================
     # Tests de validación de tipo de prueba

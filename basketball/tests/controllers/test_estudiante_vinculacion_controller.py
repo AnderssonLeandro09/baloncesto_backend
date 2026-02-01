@@ -52,8 +52,26 @@ class EstudianteVinculacionControllerTests(TestCase):
         # La respuesta tiene estructura envolvente {"msg": ..., "data": [...], ...}
         self.assertEqual(len(response.data.get("data", response.data)), 1)
 
-    def test_create_success(self, mock_get_token):
+    @patch(
+        "basketball.controllers.estudiante_vinculacion_controller.EstudianteVinculacionInputSerializer"
+    )
+    def test_create_success(self, mock_serializer_class, mock_get_token):
         mock_get_token.return_value = "fake_token"
+
+        # Mock del serializer para saltar validación
+        mock_serializer = MagicMock()
+        mock_serializer.is_valid.return_value = True
+        mock_serializer.validated_data = {
+            "persona": {
+                "identification": "1234567890",
+                "first_name": "Test",
+                "last_name": "User",
+                "email": "test@unl.edu.ec",
+            },
+            "estudiante": {"carrera": "Ing. en Sistemas", "semestre": "1"},
+        }
+        mock_serializer_class.return_value = mock_serializer
+
         mock_service = MagicMock()
         mock_service.create_estudiante.return_value = {"estudiante": {"id": 1}}
         self.view.cls.service = mock_service
