@@ -5,7 +5,7 @@ Las personas se referencian al módulo externo de usuarios mediante `persona_ext
 """
 
 from django.db import models
-from django.core.validators import MinLengthValidator, MaxLengthValidator
+from django.core.validators import MinLengthValidator
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
 from django.core.exceptions import ValidationError
@@ -199,7 +199,11 @@ class Atleta(models.Model):
     )
     email = models.EmailField(blank=True, null=True, verbose_name="Email")
     direccion = models.CharField(
-        max_length=255, blank=True, null=True, verbose_name="Dirección"
+        max_length=75,
+        blank=True,
+        null=True,
+        verbose_name="Dirección",
+        help_text="Máximo 75 caracteres",
     )
     genero = models.CharField(
         max_length=20, blank=True, null=True, verbose_name="Género"
@@ -216,14 +220,38 @@ class Atleta(models.Model):
         max_length=20, blank=True, null=True, verbose_name="Teléfono"
     )
 
-    # Información de Salud
+    # Información de Salud - Máximo 100 caracteres cada campo
     tipo_sangre = models.CharField(
         max_length=10, blank=True, null=True, verbose_name="Tipo de sangre (RH)"
     )
-    alergias = models.TextField(blank=True, null=True, verbose_name="Alergias")
-    enfermedades = models.TextField(blank=True, null=True, verbose_name="Enfermedades")
-    medicamentos = models.TextField(blank=True, null=True, verbose_name="Medicamentos")
-    lesiones = models.TextField(blank=True, null=True, verbose_name="Lesiones")
+    alergias = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Alergias",
+        help_text="Máximo 100 caracteres",
+    )
+    enfermedades = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Enfermedades",
+        help_text="Máximo 100 caracteres",
+    )
+    medicamentos = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Medicamentos",
+        help_text="Máximo 100 caracteres",
+    )
+    lesiones = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Lesiones",
+        help_text="Máximo 100 caracteres",
+    )
 
     # Datos del Representante
     nombre_representante = models.CharField(
@@ -245,7 +273,11 @@ class Atleta(models.Model):
         blank=True, null=True, verbose_name="Correo representante"
     )
     direccion_representante = models.CharField(
-        max_length=255, blank=True, null=True, verbose_name="Dirección representante"
+        max_length=75,
+        blank=True,
+        null=True,
+        verbose_name="Dirección representante",
+        help_text="Máximo 75 caracteres",
     )
     ocupacion_representante = models.CharField(
         max_length=100, blank=True, null=True, verbose_name="Ocupación representante"

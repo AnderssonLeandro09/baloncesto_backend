@@ -1,8 +1,37 @@
 import re
 from datetime import date
 from rest_framework import serializers
-from ..models import Atleta, Inscripcion, Sexo
+from ..models import Atleta, Inscripcion
 from .persona import PersonaSerializer
+
+# =============================================================================
+# CONSTANTES DE VALIDACIÓN - Sincronizadas con el frontend
+# =============================================================================
+
+# Límites de caracteres para campos médicos
+LIMITES_CAMPOS_MEDICOS = {
+    "MAX_LENGTH": 100,
+    "CAMPOS": ["alergias", "enfermedades", "medicamentos", "lesiones"],
+}
+
+# Límites de caracteres para campos de dirección
+LIMITES_DIRECCION = {"MAX_LENGTH": 75}
+
+# Mensajes de error del backend - Usados en las respuestas JSON
+_MAX_MED = LIMITES_CAMPOS_MEDICOS["MAX_LENGTH"]
+_MAX_DIR = LIMITES_DIRECCION["MAX_LENGTH"]
+MENSAJES_ERROR_BACKEND = {
+    # Campos médicos
+    "ALERGIAS_MAX_LENGTH": f"El campo alergias no puede exceder {_MAX_MED} caracteres.",
+    "ENFERMEDADES_MAX_LENGTH": f"El campo enfermedades no puede exceder {_MAX_MED} caracteres.",
+    "MEDICAMENTOS_MAX_LENGTH": f"El campo medicamentos no puede exceder {_MAX_MED} caracteres.",
+    "LESIONES_MAX_LENGTH": f"El campo lesiones no puede exceder {_MAX_MED} caracteres.",
+    # Direcciones
+    "DIRECCION_MAX_LENGTH": f"El campo dirección no puede exceder {_MAX_DIR} caracteres.",
+    "DIRECCION_REPRESENTANTE_MAX_LENGTH": (
+        f"La dirección del representante no puede exceder {_MAX_DIR} caracteres."
+    ),
+}
 
 
 class AtletaSerializer(serializers.ModelSerializer):
@@ -194,6 +223,99 @@ class AtletaDataSerializer(serializers.ModelSerializer):
 
         # Capitalizar cada palabra
         return " ".join(word.capitalize() for word in value.split())
+
+    # =========================================================================
+    # VALIDACIONES DE CAMPOS MÉDICOS - Máximo 100 caracteres
+    # =========================================================================
+
+    def validate_alergias(self, value):
+        """
+        Valida el campo alergias:
+        - Máximo 100 caracteres
+        """
+        if not value:
+            return value
+
+        value = value.strip()
+
+        if len(value) > LIMITES_CAMPOS_MEDICOS["MAX_LENGTH"]:
+            raise serializers.ValidationError(
+                MENSAJES_ERROR_BACKEND["ALERGIAS_MAX_LENGTH"]
+            )
+
+        return value
+
+    def validate_enfermedades(self, value):
+        """
+        Valida el campo enfermedades:
+        - Máximo 100 caracteres
+        """
+        if not value:
+            return value
+
+        value = value.strip()
+
+        if len(value) > LIMITES_CAMPOS_MEDICOS["MAX_LENGTH"]:
+            raise serializers.ValidationError(
+                MENSAJES_ERROR_BACKEND["ENFERMEDADES_MAX_LENGTH"]
+            )
+
+        return value
+
+    def validate_medicamentos(self, value):
+        """
+        Valida el campo medicamentos:
+        - Máximo 100 caracteres
+        """
+        if not value:
+            return value
+
+        value = value.strip()
+
+        if len(value) > LIMITES_CAMPOS_MEDICOS["MAX_LENGTH"]:
+            raise serializers.ValidationError(
+                MENSAJES_ERROR_BACKEND["MEDICAMENTOS_MAX_LENGTH"]
+            )
+
+        return value
+
+    def validate_lesiones(self, value):
+        """
+        Valida el campo lesiones:
+        - Máximo 100 caracteres
+        """
+        if not value:
+            return value
+
+        value = value.strip()
+
+        if len(value) > LIMITES_CAMPOS_MEDICOS["MAX_LENGTH"]:
+            raise serializers.ValidationError(
+                MENSAJES_ERROR_BACKEND["LESIONES_MAX_LENGTH"]
+            )
+
+        return value
+
+    # =========================================================================
+    # VALIDACIONES DE DIRECCIONES - Máximo 75 caracteres
+    # =========================================================================
+
+    def validate_direccion_representante(self, value):
+        """
+        Valida la dirección del representante:
+        - Máximo 75 caracteres
+        """
+        if not value:
+            return value
+
+        value = value.strip()
+
+        if len(value) > LIMITES_DIRECCION["MAX_LENGTH"]:
+            raise serializers.ValidationError(
+                MENSAJES_ERROR_BACKEND["DIRECCION_REPRESENTANTE_MAX_LENGTH"]
+            )
+
+        return value
 
     class Meta:
         model = Atleta

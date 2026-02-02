@@ -6,7 +6,8 @@ from django.db import migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ("basketball", "0018_merge_20260131_1853"),
+        ("basketball", "0017_alter_entrenador_club_asignado_and_more"),
+        ("basketball", "0017_alter_pruebafisica_resultado"),
     ]
 
     operations = []
