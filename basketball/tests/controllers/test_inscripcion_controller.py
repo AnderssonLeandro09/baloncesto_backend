@@ -40,9 +40,16 @@ class InscripcionControllerTests(TestCase):
         # Inyectamos el mock directamente en el controlador para asegurar robustez
         InscripcionController.service = mock_service
 
-        mock_service.list_inscripciones_completas.return_value = [
-            {"atleta": {"id": 1}, "inscripcion": {"id": 1}}
-        ]
+        # El controlador ahora usa el método paginado
+        mock_service.list_inscripciones_completas_paginado.return_value = {
+            "data": [{"atleta": {"id": 1}, "inscripcion": {"id": 1}}],
+            "page": 1,
+            "page_size": 50,
+            "total_items": 1,
+            "total_pages": 1,
+            "has_next": False,
+            "has_previous": False,
+        }
 
         request = self.factory.get(
             "/inscripciones/", HTTP_AUTHORIZATION=self.auth_header
@@ -52,7 +59,10 @@ class InscripcionControllerTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data["data"]), 1)
         self.assertEqual(response.data["status"], "success")
-        mock_service.list_inscripciones_completas.assert_called_once_with("mock_token")
+        # Verificar que se incluye la paginación
+        self.assertIn("pagination", response.data)
+        self.assertEqual(response.data["pagination"]["total_items"], 1)
+        mock_service.list_inscripciones_completas_paginado.assert_called_once()
 
     def test_create_inscripcion_success(self, mock_service_class, mock_token):
         """Prueba la creación exitosa de un atleta e inscripción."""
