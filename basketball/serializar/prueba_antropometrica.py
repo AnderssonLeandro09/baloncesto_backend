@@ -20,7 +20,7 @@ class PruebaAntropometricaInputSerializer(serializers.Serializer):
     # Soportar tanto 'atleta' como 'atleta_id' del frontend
     atleta = serializers.IntegerField(required=False)
     atleta_id = serializers.IntegerField(required=False)
-    fecha_registro = serializers.DateField(required=True)
+    fecha_registro = serializers.DateField(required=False)
 
     peso = serializers.DecimalField(
         max_digits=5,
@@ -49,7 +49,7 @@ class PruebaAntropometricaInputSerializer(serializers.Serializer):
         allow_null=True,
     )
 
-    estado = serializers.BooleanField(default=True)
+    estado = serializers.BooleanField(required=False, default=True)
 
     def to_internal_value(self, data):
         """Convertir enteros a decimales antes de validar."""

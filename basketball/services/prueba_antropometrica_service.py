@@ -83,13 +83,15 @@ class PruebaAntropometricaService:
             if not prueba:
                 raise ValidationError("Prueba antropométrica no encontrada")
 
-            # Soportar tanto 'atleta_id' como 'atleta' del frontend
-            atleta_id = data.pop("atleta_id", None) or data.pop("atleta", None)
-            if atleta_id:
-                if not Atleta.objects.filter(id=atleta_id).exists():
-                    raise ValidationError("El atleta no existe")
-                data["atleta_id"] = atleta_id
+            # No permitir cambios en atleta (removemos si viene en los datos)
+            data.pop("atleta_id", None)
+            data.pop("atleta", None)
+            
+            # No permitir cambios en fecha de registro (removemos si viene vacía)
+            if "fecha_registro" in data and not data["fecha_registro"]:
+                data.pop("fecha_registro", None)
 
+            # Actualizar solo los campos que vinieron en data
             return self.dao.update(pk, **data)
 
         except ValidationError:
