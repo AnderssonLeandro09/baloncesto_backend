@@ -8,6 +8,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from rest_framework.exceptions import PermissionDenied
 
+from ..constants import ErrorMessages
 from ..dao.entrenador_dao import EntrenadorDAO
 from ..models import Entrenador
 
@@ -151,36 +152,52 @@ class EntrenadorService:
     # ======================================================================
     # CRUD operations
     # ======================================================================
-    def create_entrenador(
-        self,
-        persona_data: Dict[str, Any],
-        entrenador_data: Dict[str, Any],
-        token: str,
-    ) -> Dict[str, Any]:
+    def _validate_persona_data(self, persona_data: Dict[str, Any]) -> None:
+        """Valida que los datos de persona sean completos."""
         if not persona_data:
-            raise ValidationError("Datos de persona son obligatorios")
+            raise ValidationError(ErrorMessages.ENTRENADOR_PERSONA_DATA_REQUIRED)
+        
+        if not persona_data.get("email"):
+            raise ValidationError(ErrorMessages.ENTRENADOR_EMAIL_REQUIRED)
+        
+        if not persona_data.get("password"):
+            raise ValidationError(ErrorMessages.ENTRENADOR_PASSWORD_REQUIRED)
 
+    def _validate_entrenador_data(self, entrenador_data: Dict[str, Any]) -> None:
+        """Valida que los datos del entrenador sean completos."""
         especialidad = entrenador_data.get("especialidad")
         club_asignado = entrenador_data.get("club_asignado")
+        
         if not especialidad or not club_asignado:
-            raise ValidationError("especialidad y club_asignado son obligatorios")
+            raise ValidationError(ErrorMessages.ENTRENADOR_ESPECIALIDAD_REQUIRED)
 
-        email = persona_data.get("email")
-        if not email:
-            raise ValidationError("Email es obligatorio")
+    def _get_or_create_persona_external(
+        self,
+        persona_data: Dict[str, Any],
+        token: str,
+    ) -> str:
+        """Obtiene o crea el external_id de persona."""
+        # Intentar crear/registrar persona
+        persona_external = self._try_create_persona(persona_data, token)
+        
+        # Si falla, buscar persona existente
+        if not persona_external:
+            persona_external = self._find_existing_persona(persona_data, token)
+        
+        if not persona_external:
+            raise ValidationError(ErrorMessages.ENTRENADOR_EXTERNAL_NOT_RETURNED)
+        
+        return persona_external
 
-        if not persona_data.get("password"):
-            raise ValidationError("Password es obligatorio")
-
-        persona_response = None
-        persona_external = None
-
+    def _try_create_persona(self, persona_data: Dict[str, Any], token: str) -> Optional[str]:
+        """Intenta crear una persona en el módulo de usuarios."""
         try:
             persona_response = self._call_user_module(
                 "post", "/api/person/save-account", token, persona_data
             )
             persona_external = self._extract_external(persona_response)
-
+            
+            # Si no obtuvimos external pero tenemos cédula, buscar por cédula
             if not persona_external and persona_data.get("identification"):
                 lookup_response = self._search_by_identification(
                     persona_data.get("identification"), token
@@ -188,38 +205,60 @@ class EntrenadorService:
                 persona_external = (
                     self._extract_external(lookup_response) if lookup_response else None
                 )
+            
+            return persona_external
+        except ValidationError:
+            return None
 
-        except ValidationError as exc:
-            if persona_data.get("identification"):
-                lookup_response = self._search_by_identification(
-                    persona_data.get("identification"), token
-                )
-                if lookup_response:
-                    persona_external = self._extract_external(lookup_response)
+    def _find_existing_persona(self, persona_data: Dict[str, Any], token: str) -> Optional[str]:
+        """Busca una persona existente por identificación."""
+        identification = persona_data.get("identification")
+        if not identification:
+            return None
+        
+        # Buscar por cédula
+        lookup_response = self._search_by_identification(identification, token)
+        if lookup_response:
+            return self._extract_external(lookup_response)
+        
+        # Buscar en todos los registros
+        fallback_person = self._search_in_all_filter(identification, token)
+        if fallback_person:
+            return self._extract_external(fallback_person)
+        
+        return None
 
-            if not persona_external:
-                fallback_person = self._search_in_all_filter(
-                    persona_data.get("identification"), token
-                )
-                if fallback_person:
-                    persona_external = self._extract_external(fallback_person)
-
-            if not persona_external:
-                raise exc
-
-        if not persona_external:
-            raise ValidationError("El módulo de usuarios no retornó external_id")
-
+    def _check_entrenador_exists(self, persona_external: str) -> None:
+        """Verifica si ya existe un entrenador con ese external."""
         if self.dao.exists(persona_external=persona_external, eliminado=False):
-            raise ValidationError("Ya existe un entrenador con ese external")
+            raise ValidationError(ErrorMessages.ENTRENADOR_ALREADY_EXISTS)
 
+    def create_entrenador(
+        self,
+        persona_data: Dict[str, Any],
+        entrenador_data: Dict[str, Any],
+        token: str,
+    ) -> Dict[str, Any]:
+        """Crea un nuevo entrenador."""
+        # Validaciones iniciales (guard clauses)
+        self._validate_persona_data(persona_data)
+        self._validate_entrenador_data(entrenador_data)
+        
+        # Obtener persona_external
+        persona_external = self._get_or_create_persona_external(persona_data, token)
+        
+        # Verificar que no exista
+        self._check_entrenador_exists(persona_external)
+        
+        # Crear entrenador
         entrenador = self.dao.create(
             persona_external=persona_external,
-            especialidad=especialidad,
-            club_asignado=club_asignado,
+            especialidad=entrenador_data["especialidad"],
+            club_asignado=entrenador_data["club_asignado"],
             eliminado=False,
         )
-
+        
+        # Obtener información de persona y construir respuesta
         persona_info = self._fetch_persona(persona_external, token, allow_fail=True)
         return self._build_response(entrenador, persona_info)
 
@@ -235,7 +274,7 @@ class EntrenadorService:
             return None
 
         if not persona_data:
-            raise ValidationError("Datos de persona son obligatorios")
+            raise ValidationError(ErrorMessages.ENTRENADOR_PERSONA_DATA_REQUIRED)
 
         persona_data = persona_data.copy()
         persona_data.setdefault("external", entrenador.persona_external)
@@ -257,9 +296,7 @@ class EntrenadorService:
         if new_external != entrenador.persona_external and self.dao.exists(
             persona_external=new_external, eliminado=False
         ):
-            raise ValidationError(
-                "El external_id retornado ya está en uso por otro entrenador"
-            )
+            raise ValidationError(ErrorMessages.ENTRENADOR_EXTERNAL_IN_USE)
 
         especialidad = entrenador_data.get("especialidad", entrenador.especialidad)
         club_asignado = entrenador_data.get("club_asignado", entrenador.club_asignado)

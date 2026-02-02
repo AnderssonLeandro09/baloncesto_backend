@@ -1,12 +1,15 @@
 """Controlador para Prueba Antropométrica."""
 
 import logging
+from typing import Any, Dict, Optional
 from rest_framework import status, viewsets
 from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework.decorators import action
 from django.core.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema
 
+from ..constants import ErrorMessages
 from ..services.prueba_antropometrica_service import PruebaAntropometricaService
 from ..serializers import (
     PruebaAntropometricaInputSerializer,
@@ -24,7 +27,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
     service = PruebaAntropometricaService()
 
     @extend_schema(responses={200: PruebaAntropometricaResponseSerializer(many=True)})
-    def list(self, request):
+    def list(self, request: Request) -> Response:
         """Lista todas las pruebas antropométricas con filtros y paginación."""
         try:
             # Obtener parámetros de filtrado y paginación
@@ -62,7 +65,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         except Exception as exc:
             logger.error(f"Error en list pruebas antropométricas: {exc}")
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ErrorMessages.INTERNAL_SERVER_ERROR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -70,7 +73,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         request=PruebaAntropometricaInputSerializer,
         responses={201: PruebaAntropometricaResponseSerializer},
     )
-    def create(self, request):
+    def create(self, request: Request) -> Response:
         """Crea una nueva prueba antropométrica."""
         serializer = PruebaAntropometricaInputSerializer(data=request.data)
         if not serializer.is_valid():
@@ -88,18 +91,18 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         except Exception as exc:
             logger.error(f"Error en create prueba antropométrica: {exc}")
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ErrorMessages.INTERNAL_SERVER_ERROR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(responses={200: PruebaAntropometricaResponseSerializer})
-    def retrieve(self, request, pk=None):
+    def retrieve(self, request: Request, pk: Optional[int] = None) -> Response:
         """Obtiene una prueba antropométrica por ID."""
         try:
             prueba = self.service.get_prueba_antropometrica_by_id(pk)
             if not prueba:
                 return Response(
-                    {"error": "Prueba antropométrica no encontrada"},
+                    {"error": ErrorMessages.PRUEBA_ANTROPOMETRICA_NOT_FOUND},
                     status=status.HTTP_404_NOT_FOUND,
                 )
             serializer = PruebaAntropometricaResponseSerializer(prueba)
@@ -107,7 +110,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         except Exception as exc:
             logger.error(f"Error en retrieve prueba antropométrica: {exc}")
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ErrorMessages.INTERNAL_SERVER_ERROR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -115,7 +118,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         request=PruebaAntropometricaInputSerializer,
         responses={200: PruebaAntropometricaResponseSerializer},
     )
-    def update(self, request, pk=None):
+    def update(self, request: Request, pk: Optional[int] = None) -> Response:
         """Actualiza una prueba antropométrica existente (PUT - completo)."""
         serializer = PruebaAntropometricaInputSerializer(
             data=request.data, partial=True
@@ -127,7 +130,6 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             prueba = self.service.update_prueba_antropometrica(
                 pk,
                 serializer.validated_data,
-                request.user,
             )
             response_serializer = PruebaAntropometricaResponseSerializer(prueba)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
@@ -136,7 +138,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         except Exception as exc:
             logger.error(f"Error en update prueba antropométrica: {exc}")
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ErrorMessages.INTERNAL_SERVER_ERROR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -144,7 +146,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         request=PruebaAntropometricaInputSerializer,
         responses={200: PruebaAntropometricaResponseSerializer},
     )
-    def partial_update(self, request, pk=None):
+    def partial_update(self, request: Request, pk: Optional[int] = None) -> Response:
         """Actualiza parcialmente una prueba antropométrica (PATCH)."""
         serializer = PruebaAntropometricaInputSerializer(
             data=request.data, partial=True
@@ -156,7 +158,6 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             prueba = self.service.update_prueba_antropometrica(
                 pk,
                 serializer.validated_data,
-                request.user,
             )
             response_serializer = PruebaAntropometricaResponseSerializer(prueba)
             return Response(response_serializer.data, status=status.HTTP_200_OK)
@@ -165,13 +166,13 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         except Exception as exc:
             logger.error(f"Error en partial_update prueba antropométrica: {exc}")
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ErrorMessages.INTERNAL_SERVER_ERROR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(responses={200: PruebaAntropometricaResponseSerializer})
     @action(detail=True, methods=["patch"], url_path="toggle-estado")
-    def toggle_estado(self, request, pk=None):
+    def toggle_estado(self, request: Request, pk: Optional[int] = None) -> Response:
         """Cambia el estado de la prueba antropométrica."""
         try:
             prueba = self.service.toggle_estado(pk)
@@ -182,13 +183,13 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         except Exception as exc:
             logger.error(f"Error en toggle_estado prueba antropométrica: {exc}")
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ErrorMessages.INTERNAL_SERVER_ERROR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
     @extend_schema(responses={200: PruebaAntropometricaResponseSerializer(many=True)})
     @action(detail=False, methods=["get"], url_path="atleta/(?P<atleta_id>[^/.]+)")
-    def by_atleta(self, request, atleta_id=None):
+    def by_atleta(self, request: Request, atleta_id: Optional[int] = None) -> Response:
         """Obtiene todas las pruebas antropométricas de un atleta específico."""
         try:
             pruebas = self.service.get_pruebas_antropometricas_by_atleta(atleta_id)
@@ -197,6 +198,6 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         except Exception as exc:
             logger.error(f"Error en by_atleta pruebas antropométricas: {exc}")
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ErrorMessages.INTERNAL_SERVER_ERROR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

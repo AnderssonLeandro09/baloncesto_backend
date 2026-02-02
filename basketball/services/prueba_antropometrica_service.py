@@ -119,7 +119,7 @@ class PruebaAntropometricaService:
             )
 
     def update_prueba_antropometrica(
-        self, pk: int, data: dict, user
+        self, pk: int, data: dict
     ) -> PruebaAntropometrica:
         """Actualiza una prueba antropométrica existente."""
         try:

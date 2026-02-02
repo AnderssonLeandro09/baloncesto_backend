@@ -1,9 +1,12 @@
 """Serializadores para Prueba Antropométrica."""
 
-from decimal import Decimal
+import logging
+from decimal import Decimal, InvalidOperation
 from datetime import date, timedelta
 from rest_framework import serializers
 from ..models import PruebaAntropometrica, Atleta
+
+logger = logging.getLogger(__name__)
 
 
 class PruebaAntropometricaSerializer(serializers.ModelSerializer):
@@ -60,8 +63,12 @@ class PruebaAntropometricaInputSerializer(serializers.Serializer):
                 try:
                     # Asegurar que sea Decimal con 2 decimales
                     data[campo] = Decimal(str(data[campo])).quantize(Decimal("0.01"))
-                except:
-                    pass  # Dejar que la validación normal maneje el error
+                except (InvalidOperation, ValueError, TypeError) as exc:
+                    # Registrar el error para debugging pero dejar que la validación normal lo maneje
+                    logger.debug(
+                        f"No se pudo convertir {campo}={data[campo]} a Decimal: {exc}"
+                    )
+                    # No hacer nada, la validación normal del serializador mostrará el error apropiado
 
         return super().to_internal_value(data)
 
