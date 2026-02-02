@@ -87,7 +87,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         responses={200: PruebaAntropometricaResponseSerializer},
     )
     def update(self, request, pk=None):
-        """Actualiza una prueba antropométrica existente."""
+        """Actualiza una prueba antropométrica existente (PUT - completo)."""
         serializer = PruebaAntropometricaInputSerializer(
             data=request.data, partial=True
         )
@@ -106,6 +106,35 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
             logger.error(f"Error en update prueba antropométrica: {exc}")
+            return Response(
+                {"error": "Error interno del servidor"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @extend_schema(
+        request=PruebaAntropometricaInputSerializer,
+        responses={200: PruebaAntropometricaResponseSerializer},
+    )
+    def partial_update(self, request, pk=None):
+        """Actualiza parcialmente una prueba antropométrica (PATCH)."""
+        serializer = PruebaAntropometricaInputSerializer(
+            data=request.data, partial=True
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            prueba = self.service.update_prueba_antropometrica(
+                pk,
+                serializer.validated_data,
+                request.user,
+            )
+            response_serializer = PruebaAntropometricaResponseSerializer(prueba)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        except ValidationError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.error(f"Error en partial_update prueba antropométrica: {exc}")
             return Response(
                 {"error": "Error interno del servidor"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
