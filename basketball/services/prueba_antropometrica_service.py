@@ -83,15 +83,13 @@ class PruebaAntropometricaService:
             if not prueba:
                 raise ValidationError("Prueba antropométrica no encontrada")
 
-            # No permitir cambios en atleta (removemos si viene en los datos)
+            # No permitir cambios en atleta ni fecha de registro en actualizaciones
+            # Estos campos no deben modificarse después de la creación
             data.pop("atleta_id", None)
             data.pop("atleta", None)
-            
-            # No permitir cambios en fecha de registro (removemos si viene vacía)
-            if "fecha_registro" in data and not data["fecha_registro"]:
-                data.pop("fecha_registro", None)
+            data.pop("fecha_registro", None)
 
-            # Actualizar solo los campos que vinieron en data
+            # Actualizar solo los campos permitidos (medidas y observaciones)
             return self.dao.update(pk, **data)
 
         except ValidationError:

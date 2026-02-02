@@ -132,11 +132,13 @@ class PruebaAntropometricaInputSerializer(serializers.Serializer):
 
     def validate(self, data):
         """Validaciones cruzadas entre campos."""
-        # Validación existente
-        if not data.get("atleta") and not data.get("atleta_id"):
-            raise serializers.ValidationError(
-                {"atleta": "El ID del atleta es requerido"}
-            )
+        # Solo validar atleta si es creación (cuando viene en los datos)
+        # En actualización parcial, el atleta no debe venir y no debe validarse
+        if not self.partial:  # Solo en creación completa
+            if not data.get("atleta") and not data.get("atleta_id"):
+                raise serializers.ValidationError(
+                    {"atleta": "El ID del atleta es requerido"}
+                )
 
         # Validar que altura_sentado no sea mayor que estatura
         estatura = data.get("estatura")
