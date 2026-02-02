@@ -5,6 +5,9 @@ MODO FAIL-SAFE: El sistema continúa funcionando aunque el microservicio de usua
 """
 
 import logging
+import re
+import secrets
+import string
 import time
 from typing import Any, Dict, List, Optional
 from datetime import date
@@ -322,8 +325,19 @@ class InscripcionService:
             if not nombre or not nombre.strip():
                 raise ValidationError("El nombre del atleta es requerido")
 
+            # Validar que el nombre solo contenga letras y espacios
+            patron_nombre = r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s']+$"
+            if not re.match(patron_nombre, nombre.strip()):
+                raise ValidationError("El nombre solo puede contener letras y espacios")
+
             if not apellido or not apellido.strip():
                 raise ValidationError("El apellido del atleta es requerido")
+
+            # Validar que el apellido solo contenga letras y espacios
+            if not re.match(patron_nombre, apellido.strip()):
+                raise ValidationError(
+                    "El apellido solo puede contener letras y espacios"
+                )
 
             if not cedula or not cedula.strip():
                 raise ValidationError("La cédula es obligatoria para el registro")
@@ -379,14 +393,17 @@ class InscripcionService:
                 logger.info(f"[FAIL-SAFE] Email dummy generado: {email}")
 
             if not persona_data.get("password"):
-                persona_data["password"] = "System_Auto_Pass_123$"
+                # Generar contraseña segura aleatoria
+                alphabet = string.ascii_letters + string.digits + "!@#$%&*"
+                persona_data["password"] = "".join(
+                    secrets.choice(alphabet) for _ in range(16)
+                )
 
             # Actualizar persona_data con email generado
             persona_data["email"] = email
 
             # ============================================================
             # 5. OBTENCIÓN DE ID EXTERNO (Opcional - Fail-Safe)
-            # Intentamos registrar en el microservicio, pero continuamos si falla
             # ============================================================
             persona_external = None
 
@@ -663,6 +680,56 @@ class InscripcionService:
             )
             results.append(self._build_response(atleta, ins, persona_info))
         return results
+
+    def list_inscripciones_completas_paginado(
+        self, token: str, page: int = 1, page_size: int = 50
+    ) -> Dict[str, Any]:
+        """
+        Lista inscripciones con paginación.
+
+        Args:
+            token: Token de autenticación
+            page: Número de página (comienza en 1)
+            page_size: Cantidad de elementos por página
+
+        Returns:
+            Dict con datos paginados y metadatos de paginación
+        """
+        # Obtener total de inscripciones
+        all_inscripciones = self.inscripcion_dao.get_all()
+        total_items = all_inscripciones.count()
+
+        # Calcular paginación
+        total_pages = (
+            (total_items + page_size - 1) // page_size if total_items > 0 else 1
+        )
+        if page > total_pages:
+            page = total_pages
+        if page < 1:
+            page = 1
+
+        # Calcular offset y límite
+        offset = (page - 1) * page_size
+        inscripciones = all_inscripciones[offset : offset + page_size]
+
+        # Construir resultados
+        results = []
+        for ins in inscripciones:
+            atleta = ins.atleta
+            persona_info = self._fetch_persona(
+                atleta.persona_external, token, allow_fail=True
+            )
+            results.append(self._build_response(atleta, ins, persona_info))
+
+        return {
+            "data": results,
+            "page": page,
+            "page_size": page_size,
+            "total_items": total_items,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_previous": page > 1,
+        }
 
     def cambiar_estado_inscripcion(self, inscripcion_id: int) -> Optional[Inscripcion]:
         """Alterna el estado de habilitación de una inscripción."""

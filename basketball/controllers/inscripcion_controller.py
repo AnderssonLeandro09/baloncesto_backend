@@ -4,8 +4,9 @@ from rest_framework import status, viewsets
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny
-from rest_framework.exceptions import ValidationError
-from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ValidationError as DRFValidationError
+from django.core.exceptions import ValidationError as DjangoValidationError
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 
 from ..models import Inscripcion
 from ..services.inscripcion_service import InscripcionService
@@ -17,6 +18,9 @@ from ..serializers import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Configuración de paginación
+PAGE_SIZE = 50
 
 
 class InscripcionController(viewsets.ViewSet):
@@ -44,16 +48,58 @@ class InscripcionController(viewsets.ViewSet):
     serializer_class = InscripcionSerializer
     service = InscripcionService()
 
-    @extend_schema(responses={200: AtletaInscripcionResponseSerializer(many=True)})
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="page",
+                type=int,
+                location=OpenApiParameter.QUERY,
+                description="Número de página (comienza en 1)",
+                required=False,
+            ),
+            OpenApiParameter(
+                name="page_size",
+                type=int,
+                location=OpenApiParameter.QUERY,
+                description="Cantidad de elementos por página (default: 50)",
+                required=False,
+            ),
+        ],
+        responses={200: AtletaInscripcionResponseSerializer(many=True)},
+    )
     def list(self, request):
-        """Lista todas las inscripciones con datos de persona y atleta."""
+        """Lista todas las inscripciones con datos de persona y atleta (paginado)."""
         token = get_user_module_token()
         try:
-            data = self.service.list_inscripciones_completas(token)
+            # Obtener parámetros de paginación
+            page = int(request.query_params.get("page", 1))
+            page_size = int(request.query_params.get("page_size", PAGE_SIZE))
+
+            # Validar parámetros
+            if page < 1:
+                page = 1
+            if page_size < 1:
+                page_size = PAGE_SIZE
+            if page_size > 100:  # Límite máximo para evitar sobrecarga
+                page_size = 100
+
+            # Obtener datos paginados del servicio
+            result = self.service.list_inscripciones_completas_paginado(
+                token, page=page, page_size=page_size
+            )
+
             return Response(
                 {
                     "msg": "Inscripciones listadas correctamente",
-                    "data": data,
+                    "data": result["data"],
+                    "pagination": {
+                        "page": result["page"],
+                        "page_size": result["page_size"],
+                        "total_items": result["total_items"],
+                        "total_pages": result["total_pages"],
+                        "has_next": result["has_next"],
+                        "has_previous": result["has_previous"],
+                    },
                     "code": status.HTTP_200_OK,
                     "status": "success",
                 },
@@ -112,7 +158,7 @@ class InscripcionController(viewsets.ViewSet):
                 status=status.HTTP_201_CREATED,
             )
 
-        except ValidationError as exc:
+        except (DRFValidationError, DjangoValidationError) as exc:
             # Error de validación controlado (datos inválidos, duplicados, etc.)
             # Se envía el mensaje directamente al usuario sin prefijos técnicos
             logger.warning(f"Validación fallida en create inscripcion: {exc}")
@@ -220,7 +266,7 @@ class InscripcionController(viewsets.ViewSet):
                 status=status.HTTP_200_OK,
             )
 
-        except ValidationError as exc:
+        except (DRFValidationError, DjangoValidationError) as exc:
             # Error de validación en actualización - mensaje limpio al usuario
             logger.warning(f"Validación fallida en update inscripcion: {exc}")
             mensaje_error = str(exc)
