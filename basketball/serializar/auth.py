@@ -8,40 +8,40 @@ class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(
         required=True,
         error_messages={
-            'required': 'El correo electrónico es requerido.',
-            'blank': 'El correo electrónico no puede estar vacío.',
-            'invalid': 'Ingrese un correo electrónico válido (debe contener @).',
-        }
+            "required": "El correo electrónico es requerido.",
+            "blank": "El correo electrónico no puede estar vacío.",
+            "invalid": "Ingrese un correo electrónico válido (debe contener @).",
+        },
     )
     password = serializers.CharField(
         required=True,
         write_only=True,
         error_messages={
-            'required': 'La contraseña es requerida.',
-            'blank': 'La contraseña no puede estar vacía.',
-        }
+            "required": "La contraseña es requerida.",
+            "blank": "La contraseña no puede estar vacía.",
+        },
     )
 
     def validate_email(self, value):
         """Validación adicional del formato de correo electrónico."""
         if not value:
-            raise serializers.ValidationError('El correo electrónico es requerido.')
-        
+            raise serializers.ValidationError("El correo electrónico es requerido.")
+
         # Validar que contenga @ y tenga formato válido
-        email_regex = r'^[^\s@]+@[^\s@]+\.[^\s@]+$'
+        email_regex = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
         if not re.match(email_regex, value):
             raise serializers.ValidationError(
-                'Ingrese un correo electrónico válido (debe contener @).'
+                "Ingrese un correo electrónico válido (debe contener @)."
             )
-        
+
         return value.lower().strip()
 
     def validate_password(self, value):
         """Validación de la contraseña."""
         if not value:
-            raise serializers.ValidationError('La contraseña es requerida.')
-        
+            raise serializers.ValidationError("La contraseña es requerida.")
+
         if len(value.strip()) == 0:
-            raise serializers.ValidationError('La contraseña no puede estar vacía.')
-        
+            raise serializers.ValidationError("La contraseña no puede estar vacía.")
+
         return value
