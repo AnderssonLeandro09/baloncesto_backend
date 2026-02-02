@@ -21,7 +21,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-key-change-in-production")
+# La SECRET_KEY DEBE ser configurada como variable de entorno en producción
+_default_secret = (
+    None
+    if not os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
+    else "dev-only-insecure-key"
+)  # noqa: E501
+SECRET_KEY = os.getenv("SECRET_KEY", _default_secret)
+if not SECRET_KEY:
+    raise ValueError(
+        "La variable de entorno SECRET_KEY es obligatoria en producción. "
+        "Configure SECRET_KEY en su archivo .env o variables de entorno."
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
