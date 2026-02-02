@@ -30,7 +30,7 @@ API REST para la gestión de atletas, entrenadores, estudiantes de vinculación 
 ## 📦 Requisitos Previos
 
 ### Para instalación local:
-- **Python 3.11** o superior
+- **Python 3.11 o 3.12** (recomendado): con *Python 3.13* en Windows la instalación de psycopg2-binary puede fallar
 - **pip** (gestor de paquetes de Python)
 - **Git** (opcional, para clonar el repositorio)
 
@@ -54,17 +54,29 @@ API REST para la gestión de atletas, entrenadores, estudiantes de vinculación 
 
 ## 🚀 Instalación y Configuración
 
+### Clonar el repositorio
+
+> ⚠️ **Importante:** Clonar o descargar el proyecto desde la rama `develop`
+
+```bash
+git clone -b develop https://github.com/AnderssonLeandro09/baloncesto_backend.git
+cd baloncesto_backend
+```
+
+O si ya tienes el repositorio clonado:
+
+```bash
+git checkout develop
+git pull origin develop
+```
+
+---
+
 ### Opción 1: Instalación Local (sin Docker)
 
 Esta opción usa **SQLite** como base de datos y no requiere Docker.
 
-#### 1. Clonar o ubicarse en el directorio del proyecto
-
-```bash
-cd baloncesto_backend
-```
-
-#### 2. Crear un entorno virtual
+#### 1. Crear un entorno virtual
 
 **Windows:**
 ```powershell
@@ -78,13 +90,13 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-#### 3. Instalar dependencias
+#### 2. Instalar dependencias
 
 ```bash
 pip install -r requirements.txt
 ```
 
-#### 4. Configurar variables de entorno
+#### 3. Configurar variables de entorno
 
 Crear un archivo `.env` en la raíz del proyecto (puede copiar `.env.example`):
 
@@ -112,10 +124,10 @@ ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
 # User module (Spring) - Opcional para desarrollo
 USER_MODULE_URL=http://localhost:8096
 USER_MODULE_ADMIN_EMAIL=admin@admin.com
-USER_MODULE_ADMIN_PASSWORD=admin123
+USER_MODULE_ADMIN_PASSWORD=12345678
 ```
 
-#### 5. Aplicar migraciones
+#### 4. Aplicar migraciones
 
 ```bash
 python manage.py migrate
@@ -133,13 +145,15 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-El servidor estará disponible en: **http://localhost:8000**
+El servidor estará disponible en: **http://localhost:8000 o http://127.0.0.1:8000/**
 
 ---
 
 ### Opción 2: Instalación con Docker
 
 Esta opción usa **PostgreSQL** como base de datos y levanta todo el stack en contenedores.
+
+> ⚠️ **Importante:** Asegúrate de estar en la rama `develop` antes de continuar.
 
 #### 1. Configurar variables de entorno
 
@@ -174,7 +188,7 @@ ALLOWED_HOSTS=localhost,127.0.0.1,0.0.0.0
 # User module (Spring)
 USER_MODULE_URL=http://host.docker.internal:8096
 USER_MODULE_ADMIN_EMAIL=admin@admin.com
-USER_MODULE_ADMIN_PASSWORD=admin123
+USER_MODULE_ADMIN_PASSWORD=12345678
 ```
 
 #### 2. Construir y levantar los contenedores
@@ -235,82 +249,37 @@ docker-compose down -v
 
 ## 🧪 Ejecución de Tests
 
-El proyecto incluye tests unitarios en la carpeta `basketball/tests/tests_aprobados/`. Los tests utilizan **mocks** para evitar dependencias externas (base de datos, módulo de usuarios).
+El proyecto incluye tests unitarios en las carpetas `basketball/tests/test_aprobados/` y `basketball/tests/tests_aprobados/`. Los tests utilizan **mocks** para evitar dependencias externas (base de datos, módulo de usuarios).
 
-### Ejecutar todos los tests aprobados
+### Ejecutar TODOS los tests
 
 **Instalación Local:**
 
 ```bash
 # Activar el entorno virtual primero
-pytest basketball/tests/tests_aprobados/ -v
+# Asegúrate de tener el archivo pytest.ini creado
+pytest basketball/tests -v
 ```
 
 **Con Docker:**
 
 ```bash
-docker-compose exec web pytest basketball/tests/tests_aprobados/ -v
+docker-compose exec web sh -c "export DJANGO_SETTINGS_MODULE=basketball_project.settings && pytest basketball/tests"
 ```
 
-### Ejecutar un archivo de test específico
-
-**Test de Entrenadores:**
-
-```bash
-# Local
-pytest basketball/tests/tests_aprobados/test_entrenador.py -v
-
-# Docker
-docker-compose exec web pytest basketball/tests/tests_aprobados/test_entrenador.py -v
-```
-
-**Test de Pruebas Antropométricas:**
-
-```bash
-# Local
-pytest basketball/tests/tests_aprobados/test_prueba_antropometrica.py -v
-
-# Docker
-docker-compose exec web pytest basketball/tests/tests_aprobados/test_prueba_antropometrica.py -v
-```
-
-### Ver cobertura de tests
+### Ejecutar solo los tests aprobados
 
 **Instalación Local:**
 
 ```bash
-# Ejecutar tests con cobertura
-coverage run -m pytest basketball/tests/tests_aprobados/
-
-# Ver reporte en terminal
-coverage report
-
-# Generar reporte HTML
-coverage html
-# Abrir htmlcov/index.html en el navegador
+pytest basketball/tests/test_aprobados basketball/tests/tests_aprobados -v
 ```
 
 **Con Docker:**
 
 ```bash
-docker-compose exec web coverage run -m pytest basketball/tests/tests_aprobados/
-docker-compose exec web coverage report
+docker-compose exec web sh -c "export DJANGO_SETTINGS_MODULE=basketball_project.settings && pytest basketball/tests/test_aprobados basketball/tests/tests_aprobados -v"
 ```
-
-### Opciones adicionales de pytest
-
-```bash
-# Ejecutar tests con más detalle
-pytest basketball/tests/tests_aprobados/ -vv
-
-# Ejecutar y detener en el primer fallo
-pytest basketball/tests/tests_aprobados/ -x
-
-# Mostrar print statements
-pytest basketball/tests/tests_aprobados/ -v -s
-```
-
----
 
 ## 📚 Documentación de la API
 
@@ -318,15 +287,8 @@ pytest basketball/tests/tests_aprobados/ -v -s
 
 Accede a la documentación interactiva de la API:
 
-**Local:** http://localhost:8000/api/schema/swagger-ui/  
-**Docker:** http://localhost:8023/api/schema/swagger-ui/
-
-### ReDoc (Lectura)
-
-Documentación en formato ReDoc:
-
-**Local:** http://localhost:8000/api/schema/redoc/  
-**Docker:** http://localhost:8023/api/schema/redoc/
+- **Local:** http://localhost:8000/docs/ o http://127.0.0.1:8000/docs/
+- **Docker:** http://localhost:8023/docs/
 
 ### Panel de Administración Django
 

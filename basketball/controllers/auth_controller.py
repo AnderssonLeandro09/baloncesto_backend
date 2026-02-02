@@ -96,9 +96,11 @@ class AuthController(viewsets.ViewSet):
 
             return Response(
                 {"error": error_msg},
-                status=response.status_code
-                if response.status_code < 500
-                else status.HTTP_502_BAD_GATEWAY,
+                status=(
+                    response.status_code
+                    if response.status_code < 500
+                    else status.HTTP_502_BAD_GATEWAY
+                ),
             )
 
         # 2. Extraer información del usuario

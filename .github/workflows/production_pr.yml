@@ -1,0 +1,56 @@
+name: Production Release CI (Staging to Main)
+
+on:
+  pull_request:
+    branches:
+      - main
+    types: [opened, synchronize, reopened]
+
+jobs:
+  production-readiness:
+    if: github.head_ref == 'stagin'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install bandit safety
+
+      - name: Run Security Audit (Bandit)
+        run: bandit -r . -x ./.venv,./tests,./basketball/tests
+
+      - name: Run Formatter Check (Black)
+        run: black --check .
+
+      - name: Run Linter (Flake8)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Check for missing migrations
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: Run All Tests with Strict Coverage
+        run: |
+          coverage run --rcfile=.coveragerc manage.py test basketball/tests
+          coverage report --rcfile=.coveragerc --fail-under=65
+          coverage xml --rcfile=.coveragerc
+
+      - name: Security Audit (Safety)
+        run: |
+          safety check || echo "Vulnerabilidades encontradas, revisar reporte."
+
+      - name: Production Build Check
+        env:
+          SECRET_KEY: "temporary-secret-key-for-ci"
+          DEBUG: "False"
+        run: |
+          python manage.py check --deploy

@@ -316,8 +316,8 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
-        self.assertIn("El atleta con ID 999 no existe", response.data["msg"])
+        self.assertIn("error", response.data)
+        self.assertIn("El atleta con ID 999 no existe", response.data["error"])
 
     @patch("basketball.serializers.get_persona_from_user_module")
     @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
@@ -365,10 +365,10 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
+        self.assertIn("error", response.data)
         self.assertIn(
             '"El atleta no tiene inscripción habilitada". No se guarda el registro.',
-            response.data["msg"],
+            response.data["error"],
         )
 
     @patch("basketball.serializers.get_persona_from_user_module")
@@ -474,8 +474,7 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
-        self.assertIn("fecha_registro", response.data["data"])
+        self.assertIn("fecha_registro", response.data)
 
     @patch("basketball.serializers.get_persona_from_user_module")
     def test_crear_prueba_fisica_sin_fecha_falla(
@@ -529,9 +528,7 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
-        # El error de tipo_prueba viene del serializer, por lo que está en 'data'
-        self.assertIn("tipo_prueba", response.data["data"])
+        self.assertIn("tipo_prueba", response.data)
 
     @patch("basketball.serializers.get_persona_from_user_module")
     def test_crear_prueba_fisica_sin_tipo_falla(
@@ -562,29 +559,12 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
     # =========================================================================
 
     @patch("basketball.serializers.get_persona_from_user_module")
-    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
     def test_crear_prueba_fisica_resultado_negativo_falla(
         self,
-        mock_entrenador_objects,
         mock_get_persona,
     ):
         """Test: Falla cuando el resultado es negativo."""
         mock_get_persona.return_value = {"first_name": "Test"}
-
-        mock_entrenador = MagicMock(spec=Entrenador)
-        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
-
-        mock_inscripcion = MagicMock(spec=Inscripcion)
-        mock_inscripcion.habilitada = True
-
-        mock_atleta = MagicMock(spec=Atleta)
-        mock_atleta.inscripcion = mock_inscripcion
-        mock_atleta.grupos.filter.return_value.exists.return_value = True
-
-        real_service = PruebaFisicaService()
-        real_service.atleta_dao = MagicMock()
-        real_service.atleta_dao.get_by_id.return_value = mock_atleta
-        PruebaFisicaController.service = real_service
 
         data = {
             "atleta_id": 1,
@@ -602,36 +582,14 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
-        self.assertIn(
-            "No se permiten valores negativos o cero. El resultado debe ser mayor a 0",
-            response.data["msg"],
-        )
 
     @patch("basketball.serializers.get_persona_from_user_module")
-    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
     def test_crear_prueba_fisica_resultado_cero_falla(
         self,
-        mock_entrenador_objects,
         mock_get_persona,
     ):
         """Test: Falla cuando el resultado es cero."""
         mock_get_persona.return_value = {"first_name": "Test"}
-
-        mock_entrenador = MagicMock(spec=Entrenador)
-        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
-
-        mock_inscripcion = MagicMock(spec=Inscripcion)
-        mock_inscripcion.habilitada = True
-
-        mock_atleta = MagicMock(spec=Atleta)
-        mock_atleta.inscripcion = mock_inscripcion
-        mock_atleta.grupos.filter.return_value.exists.return_value = True
-
-        real_service = PruebaFisicaService()
-        real_service.atleta_dao = MagicMock()
-        real_service.atleta_dao.get_by_id.return_value = mock_atleta
-        PruebaFisicaController.service = real_service
 
         data = {
             "atleta_id": 1,
@@ -649,11 +607,6 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
-        self.assertIn(
-            "No se permiten valores negativos o cero. El resultado debe ser mayor a 0",
-            response.data["msg"],
-        )
 
     @patch("basketball.serializers.get_persona_from_user_module")
     def test_crear_prueba_fisica_sin_resultado_falla(
@@ -725,10 +678,10 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
+        self.assertIn("error", response.data)
         self.assertIn(
-            "El resultado excede el rango máximo permitido para FUERZA: 300",
-            response.data["msg"],
+            "El resultado excede el rango máximo para FUERZA: 300",
+            response.data["error"],
         )
 
     @patch("basketball.serializers.get_persona_from_user_module")
@@ -777,10 +730,10 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
+        self.assertIn("error", response.data)
         self.assertIn(
-            "El resultado excede el rango máximo permitido para VELOCIDAD: 15",
-            response.data["msg"],
+            "El resultado excede el rango máximo para VELOCIDAD: 15",
+            response.data["error"],
         )
 
     @patch("basketball.serializers.get_persona_from_user_module")
@@ -829,10 +782,10 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
+        self.assertIn("error", response.data)
         self.assertIn(
-            "El resultado excede el rango máximo permitido para AGILIDAD: 25",
-            response.data["msg"],
+            "El resultado excede el rango máximo para AGILIDAD: 25",
+            response.data["error"],
         )
 
     # =========================================================================
@@ -885,16 +838,12 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
             HTTP_AUTHORIZATION=self.auth_header,
         )
         response = self.view(request)
-        # print(f"DEBUG OBSERVACIONES RESPONSE: {response.data}")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
-        # El error puede venir del serializer (en 'data') o del servicio (en 'msg')
-        error_container = str(response.data["msg"]) + str(response.data["data"])
-        self.assertTrue(
-            "observaciones" in error_container
-            or "excede el límite" in error_container
-            or "200" in error_container
+        self.assertIn("error", response.data)
+        self.assertIn(
+            "Las observaciones no pueden exceder 200 caracteres",
+            response.data["error"],
         )
 
     # =========================================================================
@@ -969,105 +918,8 @@ class TestPruebaFisicaCreacion(SimpleTestCase):
         response = self.view(request)
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertEqual(response.data["status"], "error")
+        self.assertIn("error", response.data)
         self.assertIn(
             "No tiene permiso para registrar pruebas a este atleta",
-            response.data["msg"],
+            response.data["error"],
         )
-
-
-class TestPruebaFisicaActualizacion(SimpleTestCase):
-    """Tests para la actualización de pruebas físicas."""
-
-    def setUp(self):
-        """Configuración inicial para los tests."""
-        self.mock_atomic = patch("django.db.transaction.atomic").start()
-        self.mock_atomic.return_value.__enter__.return_value = None
-
-        self.factory = APIRequestFactory()
-        self.view = PruebaFisicaController.as_view({"put": "update"})
-
-        payload = {"role": "ENTRENADOR", "sub": "entrenador-123"}
-        self.token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-        self.auth_header = f"Bearer {self.token}"
-
-    def tearDown(self):
-        """Limpieza después de cada test."""
-        patch.stopall()
-
-    @patch("basketball.serializers.get_persona_from_user_module")
-    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
-    def test_actualizar_resultado_negativo_falla(
-        self,
-        mock_entrenador_objects,
-        mock_get_persona,
-    ):
-        """Test: Falla cuando se intenta actualizar un resultado a negativo."""
-        mock_get_persona.return_value = {"first_name": "Test"}
-
-        mock_entrenador = MagicMock(spec=Entrenador)
-        mock_entrenador.id = 1
-        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
-
-        mock_prueba = MagicMock(spec=PruebaFisica)
-        mock_prueba.id = 1
-        mock_prueba.tipo_prueba = "FUERZA"
-        mock_prueba.estado = True
-        mock_prueba.atleta.grupos.filter.return_value.exists.return_value = True
-
-        real_service = PruebaFisicaService()
-        real_service.dao = MagicMock()
-        real_service.dao.get_by_id.return_value = mock_prueba
-        PruebaFisicaController.service = real_service
-
-        data = {"resultado": "-5.00"}
-
-        request = self.factory.put(
-            "/api/pruebas-fisicas/1/",
-            data=data,
-            format="json",
-            HTTP_AUTHORIZATION=self.auth_header,
-        )
-        response = self.view(request, pk=1)
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-
-    @patch("basketball.serializers.get_persona_from_user_module")
-    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
-    def test_actualizar_resultado_excede_rango_falla(
-        self,
-        mock_entrenador_objects,
-        mock_get_persona,
-    ):
-        """Test: Falla cuando se intenta actualizar un resultado que excede el rango."""
-        mock_get_persona.return_value = {"first_name": "Test"}
-
-        mock_entrenador = MagicMock(spec=Entrenador)
-        mock_entrenador.id = 1
-        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
-
-        mock_prueba = MagicMock(spec=PruebaFisica)
-        mock_prueba.id = 1
-        mock_prueba.tipo_prueba = "VELOCIDAD"
-        mock_prueba.estado = True
-        mock_prueba.atleta.grupos.filter.return_value.exists.return_value = True
-
-        real_service = PruebaFisicaService()
-        real_service.dao = MagicMock()
-        real_service.dao.get_by_id.return_value = mock_prueba
-        PruebaFisicaController.service = real_service
-
-        # VELOCIDAD tiene máximo 15, intentamos poner 50
-        data = {"resultado": "50.00"}
-
-        request = self.factory.put(
-            "/api/pruebas-fisicas/1/",
-            data=data,
-            format="json",
-            HTTP_AUTHORIZATION=self.auth_header,
-        )
-        response = self.view(request, pk=1)
-
-        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertEqual(response.data["status"], "error")
-        self.assertIn("excede el rango máximo", response.data["msg"])

@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny
 from django.core.exceptions import ValidationError
 from drf_spectacular.utils import extend_schema
 
+from ..models import Inscripcion
 from ..services.inscripcion_service import InscripcionService
 from ..serializers import (
     InscripcionSerializer,
@@ -206,8 +207,6 @@ class InscripcionController(viewsets.ViewSet):
             )
 
         # Buscar inscripción activa por cédula del atleta
-        from ..models import Inscripcion
-
         existe = Inscripcion.objects.filter(
             atleta__cedula=dni, habilitada=True
         ).exists()

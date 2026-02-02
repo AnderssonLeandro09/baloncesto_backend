@@ -138,7 +138,10 @@ class InscripcionService:
             return None
 
     def _fetch_persona(
-        self, persona_external: str, token: str, allow_fail: bool = False
+        self,
+        persona_external: str,
+        token: str,
+        allow_fail: bool = False,
     ) -> Optional[Dict[str, Any]]:
         try:
             return self._call_user_module(
@@ -285,7 +288,8 @@ class InscripcionService:
             )
 
             logger.info(
-                f"[CREATE] Datos mapeados: cedula={cedula}, nombre={nombre}, apellido={apellido}"
+                f"[CREATE] Datos mapeados: cedula={cedula}, "
+                f"nombre={nombre}, apellido={apellido}"
             )
 
             # ============================================================
@@ -308,7 +312,8 @@ class InscripcionService:
                             f"inscripción activa ID={inscripcion_activa.id}"
                         )
                         raise ValidationError(
-                            "El atleta ya se encuentra registrado con una inscripción activa."
+                            "El atleta ya se encuentra registrado con una "
+                            "inscripción activa."
                         )
 
             # ============================================================
@@ -333,7 +338,10 @@ class InscripcionService:
 
             try:
                 persona_response = self._call_user_module(
-                    "post", "/api/person/save-account", token, persona_data
+                    "post",
+                    "/api/person/save-account",
+                    token,
+                    persona_data,
                 )
                 persona_external = self._extract_external(persona_response)
 
@@ -452,7 +460,8 @@ class InscripcionService:
             # ============================================================
             persona_info = self._fetch_persona(persona_external, token, allow_fail=True)
             logger.info(
-                f"[SUCCESS] Inscripción creada exitosamente. Atleta ID={atleta.id}, Inscripción ID={inscripcion.id}"
+                f"[SUCCESS] Inscripción creada exitosamente. "
+                f"Atleta ID={atleta.id}, Inscripción ID={inscripcion.id}"
             )
             return self._build_response(atleta, inscripcion, persona_info)
 
@@ -487,20 +496,24 @@ class InscripcionService:
 
                 # Relleno de seguridad para update
                 if "email" not in persona_payload:
-                    persona_payload[
-                        "email"
-                    ] = f"update_{atleta.persona_external}@sistema.local"
+                    persona_payload["email"] = (
+                        f"update_{atleta.persona_external}@sistema.local"
+                    )
 
                 try:
                     self._call_user_module(
-                        "post", "/api/person/update", token, persona_payload
+                        "post",
+                        "/api/person/update",
+                        token,
+                        persona_payload,
                     )
                 except Exception:
                     logger.warning(
                         "[UPDATE] Fallo API externa, solo se actualizará localmente"
                     )
 
-                # CRÍTICO: Actualizar TODOS los datos personales LOCALMENTE con MAPEO ROBUSTO
+                # CRÍTICO: Actualizar TODOS los datos personales LOCALMENTE
+                # con MAPEO ROBUSTO
                 nombre_real = (
                     persona_data.get("first_name")
                     or persona_data.get("firts_name")

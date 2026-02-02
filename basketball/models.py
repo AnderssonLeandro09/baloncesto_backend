@@ -30,11 +30,17 @@ class TipoPrueba(models.TextChoices):
 
 
 class Sexo(models.TextChoices):
-    """Enum para sexo"""
+    """
+    Enum para sexo - Referencia para el frontend.
 
-    MASCULINO = "M", "Masculino"
-    FEMENINO = "F", "Femenino"
-    OTRO = "O", "Otro"
+    NOTA: El campo 'sexo' en Atleta permite valores personalizados.
+    Si el usuario selecciona 'Otro', puede escribir texto libre (max 20 chars).
+    Valores estándar: 'Masculino', 'Femenino', o texto personalizado.
+    """
+
+    MASCULINO = "Masculino", "Masculino"
+    FEMENINO = "Femenino", "Femenino"
+    OTRO = "Otro", "Otro"
 
 
 class Administrador(models.Model):
@@ -500,7 +506,7 @@ class PruebaFisica(models.Model):
     resultado = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.00"))],
+        validators=[MinValueValidator(Decimal("0.01"))],
         verbose_name="Resultado",
     )
     unidad_medida = models.CharField(max_length=20, verbose_name="Unidad de medida")
