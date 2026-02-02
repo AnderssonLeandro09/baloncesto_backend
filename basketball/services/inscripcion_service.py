@@ -22,7 +22,18 @@ logger = logging.getLogger(__name__)
 
 class InscripcionService:
     """
-    Lógica de negocio para la gestión de inscripciones.
+    Servicio de lógica de negocio para la gestión de inscripciones de atletas.
+
+    Responsabilidades:
+    - Crear inscripciones con validación de duplicados
+    - Actualizar datos de atleta/persona/inscripción
+    - Gestionar estados de inscripción (habilitar/deshabilitar)
+    - Comunicación con microservicio de usuarios (modo fail-safe)
+
+    Características de resiliencia:
+    - Modo offline: genera IDs locales si el microservicio falla
+    - Datos locales: siempre persiste información en BD local
+    - Mapeo robusto: soporta múltiples nombres de campo del frontend
     """
 
     def __init__(self):
@@ -228,8 +239,20 @@ class InscripcionService:
         """
         Crea una inscripción de atleta cumpliendo con UC-004 y UC-005.
 
+        Args:
+            persona_data: Datos personales (nombre, cédula, teléfono, dirección)
+            atleta_data: Datos deportivos (fecha_nacimiento, sexo, tipo_sangre, etc.)
+            inscripcion_data: Datos de inscripción (fecha, tipo)
+            token: Token JWT para autenticación con microservicio externo
+
+        Returns:
+            Dict con estructura: {atleta: {...}, inscripcion: {...}, persona: {...}}
+
+        Raises:
+            ValidationError: Si hay datos duplicados o campos requeridos faltantes
+
         Reglas de Negocio:
-        - Valida duplicados por cédula (Curso Alterno 8)
+        - Valida duplicados por cédula (UC-004 Curso Alterno 8)
         - Persiste datos localmente (no depende del microservicio externo)
         - Modo Fail-Safe: genera credenciales dummy si faltan
         """
@@ -293,6 +316,36 @@ class InscripcionService:
             )
 
             # ============================================================
+            # 2.1 VALIDACIÓN DE CAMPOS REQUERIDOS
+            # Sincronizado con validaciones del frontend
+            # ============================================================
+            if not nombre or not nombre.strip():
+                raise ValidationError("El nombre del atleta es requerido")
+
+            if not apellido or not apellido.strip():
+                raise ValidationError("El apellido del atleta es requerido")
+
+            if not cedula or not cedula.strip():
+                raise ValidationError("La cédula es obligatoria para el registro")
+
+            # Validar formato de cédula (10 dígitos)
+            cedula_limpia = cedula.strip().replace("-", "").replace(" ", "")
+            if len(cedula_limpia) != 10 or not cedula_limpia.isdigit():
+                raise ValidationError(
+                    "La cédula debe tener exactamente 10 dígitos numéricos"
+                )
+
+            # Validar teléfono si se proporciona (exactamente 10 dígitos)
+            if telefono:
+                telefono_limpio = telefono.strip().replace("-", "").replace(" ", "")
+                if telefono_limpio and (
+                    len(telefono_limpio) != 10 or not telefono_limpio.isdigit()
+                ):
+                    raise ValidationError(
+                        "El teléfono debe tener exactamente 10 dígitos numéricos"
+                    )
+
+            # ============================================================
             # 3. VALIDACIÓN DE DUPLICADOS (UC-004 Curso Alterno 8)
             # Verificar si ya existe una inscripción ACTIVA con esta cédula
             # ============================================================
@@ -311,9 +364,10 @@ class InscripcionService:
                             f"[DUPLICADO] Atleta con cédula {cedula} ya tiene "
                             f"inscripción activa ID={inscripcion_activa.id}"
                         )
+                        # Mensaje claro y amigable para el usuario final
                         raise ValidationError(
-                            "El atleta ya se encuentra registrado con una "
-                            "inscripción activa."
+                            "Este atleta ya tiene una inscripción activa. "
+                            "Verifica el número de cédula o contacta al administrador."
                         )
 
             # ============================================================
@@ -496,9 +550,9 @@ class InscripcionService:
 
                 # Relleno de seguridad para update
                 if "email" not in persona_payload:
-                    persona_payload["email"] = (
-                        f"update_{atleta.persona_external}@sistema.local"
-                    )
+                    persona_payload[
+                        "email"
+                    ] = f"update_{atleta.persona_external}@sistema.local"
 
                 try:
                     self._call_user_module(

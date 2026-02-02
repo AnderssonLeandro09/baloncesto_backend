@@ -107,9 +107,8 @@ class TestFichaInscripcion(SimpleTestCase):
 
         # Assertions
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(
-            response.data.get("mensaje"), "Inscripción creada exitosamente"
-        )
+        self.assertEqual(response.data.get("msg"), "Inscripción creada exitosamente")
+        self.assertEqual(response.data["status"], "success")
         mock_service.create_atleta_inscripcion.assert_called_once()
 
     @patch("basketball.controllers.inscripcion_controller.traceback.print_exc")
@@ -152,8 +151,9 @@ class TestFichaInscripcion(SimpleTestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn(
             "ya se encuentra registrado con una inscripción activa",
-            str(response.data),
+            str(response.data["msg"]),
         )
+        self.assertEqual(response.data["status"], "error")
 
     def test_tc_ins_03_crear_inscripcion_datos_persona_vacios(self, mock_token):
         """
@@ -182,7 +182,8 @@ class TestFichaInscripcion(SimpleTestCase):
 
         # Assertions
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("Datos de persona son requeridos", str(response.data))
+        self.assertIn("Datos de persona son requeridos", str(response.data["msg"]))
+        self.assertEqual(response.data["status"], "error")
 
     def test_tc_ins_04_crear_inscripcion_calculo_fecha_automatica(self, mock_token):
         """
@@ -267,7 +268,7 @@ class TestFichaInscripcion(SimpleTestCase):
 
         # Assertions
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data["atleta"]["sexo"], sexo_personalizado)
+        self.assertEqual(response.data["data"]["atleta"]["sexo"], sexo_personalizado)
 
     def test_tc_ins_07_crear_inscripcion_cedula_con_letras_rechazada(self, mock_token):
         """
@@ -335,10 +336,9 @@ class TestFichaInscripcion(SimpleTestCase):
 
         # Assertions
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertFalse(response.data["habilitada"])
-        self.assertIn(
-            "Inscripción deshabilitada correctamente", response.data["mensaje"]
-        )
+        self.assertFalse(response.data["data"]["habilitada"])
+        self.assertIn("Inscripción deshabilitada correctamente", response.data["msg"])
+        self.assertEqual(response.data["status"], "success")
         mock_service.cambiar_estado_inscripcion.assert_called_once_with(1)
 
     def test_tc_ins_02_cambiar_estado_habilitacion_exitosa(self, mock_token):
@@ -365,6 +365,7 @@ class TestFichaInscripcion(SimpleTestCase):
 
         # Assertions
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["habilitada"])
-        self.assertIn("Inscripción habilitada correctamente", response.data["mensaje"])
+        self.assertTrue(response.data["data"]["habilitada"])
+        self.assertIn("Inscripción habilitada correctamente", response.data["msg"])
+        self.assertEqual(response.data["status"], "success")
         mock_service.cambiar_estado_inscripcion.assert_called_once_with(1)
