@@ -1,7 +1,7 @@
 """Pruebas unitarias para ProfileController."""
 
 from unittest.mock import MagicMock, patch
-from django.test import SimpleTestCase
+from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 from rest_framework import status
 
@@ -9,7 +9,7 @@ from basketball.controllers.profile_controller import ProfileController
 from basketball.authentication import AuthenticatedUser
 
 
-class TestProfileController(SimpleTestCase):
+class TestProfileController(TestCase):
     def setUp(self):
         self.factory = APIRequestFactory()
         self.controller = ProfileController()
@@ -40,7 +40,9 @@ class TestProfileController(SimpleTestCase):
         response = self.controller.me(request)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, expected_data)
+        # La respuesta tiene estructura envolvente con 'data' que contiene los datos del perfil
+        actual_data = response.data.get("data", response.data)
+        self.assertEqual(actual_data, expected_data)
         self.controller.service.get_profile_data.assert_called_with(
             self.user, "fake-token"
         )

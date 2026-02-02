@@ -1,83 +1,1114 @@
-"""Pruebas unitarias para PruebaFisicaService."""
-
+from unittest.mock import MagicMock, patch
 from django.test import TestCase
-from ...models import (
-    Atleta,
-    TipoPrueba,
-    Sexo,
-    Inscripcion,
-    TipoInscripcion,
-    GrupoAtleta,
-    Entrenador,
-)
-from ...services.prueba_fisica_service import PruebaFisicaService
-from ...dao.prueba_fisica_dao import PruebaFisicaDAO
-from datetime import date
+from rest_framework.test import APIRequestFactory
+from rest_framework import status
+import jwt
+from django.conf import settings
+from datetime import date, timedelta
+from decimal import Decimal
+
+from basketball.controllers.prueba_fisica_controller import PruebaFisicaController
+from basketball.services.prueba_fisica_service import PruebaFisicaService
+from basketball.models import PruebaFisica, Atleta, Entrenador, Inscripcion
 
 
-class PruebaFisicaServiceTest(TestCase):
+class TestPruebaFisicaCreacion(TestCase):
+    """Tests para la creación de pruebas físicas."""
+
     def setUp(self):
-        self.service = PruebaFisicaService()
+        """Configuración inicial para los tests."""
+        self.mock_atomic = patch("django.db.transaction.atomic").start()
+        self.mock_atomic.return_value.__enter__.return_value = None
 
-        # Crear entrenador
-        self.entrenador = Entrenador.objects.create(
-            persona_external="uuid-entrenador-test",
-            especialidad="Baloncesto",
-        )
+        self.factory = APIRequestFactory()
+        self.view = PruebaFisicaController.as_view({"post": "create"})
 
-        # Crear grupo
-        self.grupo = GrupoAtleta.objects.create(
-            nombre="Grupo Test",
-            rango_edad_minima=10,
-            rango_edad_maxima=15,
-            categoria="Sub-15",
-            entrenador=self.entrenador,
-        )
+        payload = {"role": "ENTRENADOR", "sub": "entrenador-123"}
+        self.token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+        self.auth_header = f"Bearer {self.token}"
 
-        # Crear atleta
-        self.atleta = Atleta.objects.create(
-            persona_external="uuid-maria-lopez",
-            fecha_nacimiento=date(2012, 5, 20),
-            edad=13,
-            sexo=Sexo.FEMENINO,
-        )
+    def tearDown(self):
+        """Limpieza después de cada test."""
+        patch.stopall()
 
-        # Crear inscripción habilitada
-        self.inscripcion = Inscripcion.objects.create(
-            atleta=self.atleta,
-            tipo_inscripcion=TipoInscripcion.MENOR_EDAD,
-            fecha_inscripcion=date.today(),
-            habilitada=True,
-        )
+    # =========================================================================
+    # Tests de creación exitosa
+    # =========================================================================
 
-        # Asignar el atleta al grupo
-        self.atleta.grupos.add(self.grupo)
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    @patch.object(PruebaFisicaService, "get_prueba_fisica_completa")
+    def test_crear_prueba_fisica_fuerza_exitoso(
+        self,
+        mock_get_prueba_completa,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Crear una prueba física de fuerza con todos los datos válidos."""
+        mock_get_persona.return_value = {"first_name": "Test"}
 
-    def test_create_prueba_fisica_service(self):
-        data = {
-            "atleta_id": self.atleta.id,
-            "fecha_registro": date.today(),
-            "tipo_prueba": TipoPrueba.FUERZA,
-            "resultado": 40.0,
-            "unidad_medida": "kg",
-            "observaciones": "Test service",
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.id = 1
+        mock_atleta.persona_external = "atleta-001"
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        mock_prueba = MagicMock(spec=PruebaFisica)
+        mock_prueba.id = 1
+        mock_prueba.atleta = mock_atleta
+        mock_prueba.fecha_registro = date.today()
+        mock_prueba.tipo_prueba = "FUERZA"
+        mock_prueba.resultado = Decimal("150.50")
+        mock_prueba.unidad_medida = "Centímetros (cm)"
+        mock_prueba.observaciones = "Buen salto horizontal"
+        mock_prueba.estado = True
+
+        mock_get_prueba_completa.return_value = {
+            "id": 1,
+            "atleta": 1,
+            "persona": {
+                "nombre": "Juan",
+                "apellido": "Pérez",
+                "identificacion": "1234567890",
+            },
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.50",
+            "unidad_medida": "Centímetros (cm)",
+            "observaciones": "Buen salto horizontal",
+            "estado": True,
+            "semestre": "2026-1",
         }
-        prueba = self.service.create_prueba_fisica(data)
-        self.assertIsNotNone(prueba.id)
-        self.assertEqual(prueba.atleta.id, self.atleta.id)
 
-    def test_get_pruebas_by_atleta_service(self):
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.dao.create.return_value = mock_prueba
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        real_service.get_prueba_fisica_completa = mock_get_prueba_completa
+        PruebaFisicaController.service = real_service
+
         data = {
-            "atleta_id": self.atleta.id,
-            "fecha_registro": date.today(),
-            "tipo_prueba": TipoPrueba.VELOCIDAD,
-            "resultado": 11.0,
-            "unidad_medida": "s",
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.50",
+            "observaciones": "Buen salto horizontal",
         }
-        self.service.create_prueba_fisica(data)
-        # Usar el DAO directamente para verificar
-        dao = PruebaFisicaDAO()
-        pruebas = dao.get_by_atleta(self.atleta.id)
-        self.assertEqual(len(pruebas), 1)
-        self.assertEqual(pruebas[0].tipo_prueba, TipoPrueba.VELOCIDAD)
-        self.assertEqual(pruebas[0].tipo_prueba, TipoPrueba.VELOCIDAD)
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        real_service.dao.create.assert_called_once()
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    @patch.object(PruebaFisicaService, "get_prueba_fisica_completa")
+    def test_crear_prueba_fisica_velocidad_exitoso(
+        self,
+        mock_get_prueba_completa,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Crear una prueba física de velocidad con datos válidos."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.id = 2
+        mock_atleta.persona_external = "atleta-002"
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        mock_prueba = MagicMock(spec=PruebaFisica)
+        mock_prueba.id = 2
+        mock_prueba.atleta = mock_atleta
+        mock_prueba.fecha_registro = date.today()
+        mock_prueba.tipo_prueba = "VELOCIDAD"
+        mock_prueba.resultado = Decimal("5.45")
+        mock_prueba.unidad_medida = "Segundos (seg)"
+        mock_prueba.observaciones = "Buena velocidad en 30m"
+        mock_prueba.estado = True
+
+        mock_get_prueba_completa.return_value = {
+            "id": 2,
+            "atleta": 2,
+            "persona": {
+                "nombre": "María",
+                "apellido": "García",
+                "identificacion": "0987654321",
+            },
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "VELOCIDAD",
+            "resultado": "5.45",
+            "unidad_medida": "Segundos (seg)",
+            "observaciones": "Buena velocidad en 30m",
+            "estado": True,
+            "semestre": "2026-1",
+        }
+
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.dao.create.return_value = mock_prueba
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        real_service.get_prueba_fisica_completa = mock_get_prueba_completa
+        PruebaFisicaController.service = real_service
+
+        data = {
+            "atleta_id": 2,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "VELOCIDAD",
+            "resultado": "5.45",
+            "observaciones": "Buena velocidad en 30m",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        real_service.dao.create.assert_called_once()
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    @patch.object(PruebaFisicaService, "get_prueba_fisica_completa")
+    def test_crear_prueba_fisica_agilidad_exitoso(
+        self,
+        mock_get_prueba_completa,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Crear una prueba física de agilidad (zigzag) con datos válidos."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.id = 3
+        mock_atleta.persona_external = "atleta-003"
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        mock_prueba = MagicMock(spec=PruebaFisica)
+        mock_prueba.id = 3
+        mock_prueba.atleta = mock_atleta
+        mock_prueba.fecha_registro = date.today()
+        mock_prueba.tipo_prueba = "AGILIDAD"
+        mock_prueba.resultado = Decimal("12.30")
+        mock_prueba.unidad_medida = "Segundos (seg)"
+        mock_prueba.observaciones = "Prueba de zigzag"
+        mock_prueba.estado = True
+
+        mock_get_prueba_completa.return_value = {
+            "id": 3,
+            "atleta": 3,
+            "persona": {
+                "nombre": "Carlos",
+                "apellido": "López",
+                "identificacion": "1122334455",
+            },
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "AGILIDAD",
+            "resultado": "12.30",
+            "unidad_medida": "Segundos (seg)",
+            "observaciones": "Prueba de zigzag",
+            "estado": True,
+            "semestre": "2026-1",
+        }
+
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.dao.create.return_value = mock_prueba
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        real_service.get_prueba_fisica_completa = mock_get_prueba_completa
+        PruebaFisicaController.service = real_service
+
+        data = {
+            "atleta_id": 3,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "AGILIDAD",
+            "resultado": "12.30",
+            "observaciones": "Prueba de zigzag",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        real_service.dao.create.assert_called_once()
+
+    # =========================================================================
+    # Tests de validación de atleta
+    # =========================================================================
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    def test_crear_prueba_fisica_atleta_inexistente_falla(
+        self,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando el atleta no existe."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = None  # Atleta no existe
+        PruebaFisicaController.service = real_service
+
+        data = {
+            "atleta_id": 999,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn("El atleta con ID 999 no existe", response.data["msg"])
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    def test_crear_prueba_fisica_atleta_sin_inscripcion_habilitada_falla(
+        self,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando el atleta no tiene inscripción habilitada."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = False  # Inscripción NO habilitada
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.id = 1
+        mock_atleta.persona_external = "atleta-001"
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        PruebaFisicaController.service = real_service
+
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn(
+            '"El atleta no tiene inscripción habilitada". No se guarda el registro.',
+            response.data["msg"],
+        )
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    def test_crear_prueba_fisica_sin_atleta_id_falla(
+        self,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando no se proporciona el ID del atleta."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        data = {
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    def test_crear_prueba_fisica_atleta_id_invalido_falla(
+        self,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando el ID del atleta no es un número válido."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        data = {
+            "atleta_id": "abc",
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    def test_crear_prueba_fisica_atleta_id_negativo_falla(
+        self,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando el ID del atleta es negativo."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        data = {
+            "atleta_id": -1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # =========================================================================
+    # Tests de validación de fecha
+    # =========================================================================
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    def test_crear_prueba_fisica_fecha_futura_falla(
+        self,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando la fecha de registro es futura."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        fecha_futura = date.today() + timedelta(days=10)
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(fecha_futura),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn("fecha_registro", response.data["data"])
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    @patch.object(PruebaFisicaService, "get_prueba_fisica_completa")
+    def test_crear_prueba_fisica_sin_fecha_usa_fecha_actual(
+        self,
+        mock_get_prueba_completa,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Si no se proporciona fecha, el servicio usa la fecha actual."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        # Mock del entrenador para pasar validación de permisos
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        # Mock del servicio con atleta mockeado
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.id = 1
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        # Mock de la prueba creada
+        mock_prueba = MagicMock(spec=PruebaFisica)
+        mock_prueba.id = 1
+        mock_prueba.pk = 1
+
+        mock_get_prueba_completa.return_value = {
+            "id": 1,
+            "atleta": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+        }
+
+        real_service = PruebaFisicaService()
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        real_service.dao = MagicMock()
+        real_service.dao.create.return_value = mock_prueba
+        real_service.get_prueba_fisica_completa = mock_get_prueba_completa
+        PruebaFisicaController.service = real_service
+
+        data = {
+            "atleta_id": 1,
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        # El servicio asigna la fecha actual automáticamente si no se proporciona
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+    # =========================================================================
+    # Tests de validación de tipo de prueba
+    # =========================================================================
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    def test_crear_prueba_fisica_tipo_invalido_falla(
+        self,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando el tipo de prueba no es válido."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "TIPO_INVALIDO",
+            "resultado": "150.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], "error")
+        # El error de tipo_prueba viene del serializer, por lo que está en 'data'
+        self.assertIn("tipo_prueba", response.data["data"])
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    def test_crear_prueba_fisica_sin_tipo_falla(
+        self,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando no se proporciona el tipo de prueba."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "resultado": "150.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    # =========================================================================
+    # Tests de validación de resultado
+    # =========================================================================
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    def test_crear_prueba_fisica_resultado_negativo_falla(
+        self,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando el resultado es negativo."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        real_service = PruebaFisicaService()
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        PruebaFisicaController.service = real_service
+
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "-10.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn(
+            "No se permiten valores negativos o cero. El resultado debe ser mayor a 0",
+            response.data["msg"],
+        )
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    def test_crear_prueba_fisica_resultado_cero_falla(
+        self,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando el resultado es cero."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        real_service = PruebaFisicaService()
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        PruebaFisicaController.service = real_service
+
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "0.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn(
+            "No se permiten valores negativos o cero. El resultado debe ser mayor a 0",
+            response.data["msg"],
+        )
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    def test_crear_prueba_fisica_sin_resultado_falla(
+        self,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando no se proporciona el resultado."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    def test_crear_prueba_fisica_resultado_excede_rango_fuerza_falla(
+        self,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando el resultado de fuerza excede el rango máximo (300 cm)."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.id = 1
+        mock_atleta.persona_external = "atleta-001"
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        PruebaFisicaController.service = real_service
+
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "350.00",  # Excede el máximo de 300 para FUERZA
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn(
+            "El resultado excede el rango máximo permitido para FUERZA: 300",
+            response.data["msg"],
+        )
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    def test_crear_prueba_fisica_resultado_excede_rango_velocidad_falla(
+        self,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando el resultado de velocidad excede el rango máximo (15 seg)."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.id = 1
+        mock_atleta.persona_external = "atleta-001"
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        PruebaFisicaController.service = real_service
+
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "VELOCIDAD",
+            "resultado": "20.00",  # Excede el máximo de 15 para VELOCIDAD
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn(
+            "El resultado excede el rango máximo permitido para VELOCIDAD: 15",
+            response.data["msg"],
+        )
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    def test_crear_prueba_fisica_resultado_excede_rango_agilidad_falla(
+        self,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando el resultado de agilidad excede el rango máximo (25 seg)."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.id = 1
+        mock_atleta.persona_external = "atleta-001"
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        PruebaFisicaController.service = real_service
+
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "AGILIDAD",
+            "resultado": "30.00",  # Excede el máximo de 25 para AGILIDAD
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn(
+            "El resultado excede el rango máximo permitido para AGILIDAD: 25",
+            response.data["msg"],
+        )
+
+    # =========================================================================
+    # Tests de validación de observaciones
+    # =========================================================================
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    def test_crear_prueba_fisica_observaciones_exceden_limite_falla(
+        self,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando las observaciones exceden 200 caracteres."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.id = 1
+        mock_atleta.persona_external = "atleta-001"
+        mock_atleta.inscripcion = mock_inscripcion
+        mock_atleta.grupos.filter.return_value.exists.return_value = True
+
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        PruebaFisicaController.service = real_service
+
+        observaciones_largas = "A" * 250  # 250 caracteres, excede el límite de 200
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+            "observaciones": observaciones_largas,
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+        # print(f"DEBUG OBSERVACIONES RESPONSE: {response.data}")
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], "error")
+        # El error puede venir del serializer (en 'data') o del servicio (en 'msg')
+        error_container = str(response.data["msg"]) + str(response.data["data"])
+        self.assertTrue(
+            "observaciones" in error_container
+            or "excede el límite" in error_container
+            or "200" in error_container
+        )
+
+    # =========================================================================
+    # Tests de autenticación y permisos
+    # =========================================================================
+
+    def test_crear_prueba_fisica_sin_token_falla(self):
+        """Test: Falla cuando no se proporciona token de autenticación."""
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+        )
+        response = self.view(request)
+
+        self.assertIn(
+            response.status_code,
+            [status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN],
+        )
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    def test_crear_prueba_fisica_entrenador_sin_permiso_atleta_falla(
+        self,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando el entrenador no tiene permiso sobre el atleta."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador.persona_external = "entrenador-123"
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_inscripcion = MagicMock(spec=Inscripcion)
+        mock_inscripcion.habilitada = True
+
+        mock_atleta = MagicMock(spec=Atleta)
+        mock_atleta.id = 1
+        mock_atleta.persona_external = "atleta-001"
+        mock_atleta.inscripcion = mock_inscripcion
+        # El atleta NO pertenece a los grupos del entrenador
+        mock_atleta.grupos.filter.return_value.exists.return_value = False
+
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.atleta_dao = MagicMock()
+        real_service.atleta_dao.get_by_id.return_value = mock_atleta
+        PruebaFisicaController.service = real_service
+
+        data = {
+            "atleta_id": 1,
+            "fecha_registro": str(date.today()),
+            "tipo_prueba": "FUERZA",
+            "resultado": "150.00",
+        }
+
+        request = self.factory.post(
+            "/api/pruebas-fisicas/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn(
+            "No tiene permiso para registrar pruebas a este atleta",
+            response.data["msg"],
+        )
+
+
+class TestPruebaFisicaActualizacion(TestCase):
+    """Tests para la actualización de pruebas físicas."""
+
+    def setUp(self):
+        """Configuración inicial para los tests."""
+        self.mock_atomic = patch("django.db.transaction.atomic").start()
+        self.mock_atomic.return_value.__enter__.return_value = None
+
+        self.factory = APIRequestFactory()
+        self.view = PruebaFisicaController.as_view({"put": "update"})
+
+        payload = {"role": "ENTRENADOR", "sub": "entrenador-123"}
+        self.token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+        self.auth_header = f"Bearer {self.token}"
+
+    def tearDown(self):
+        """Limpieza después de cada test."""
+        patch.stopall()
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    def test_actualizar_resultado_negativo_falla(
+        self,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando se intenta actualizar un resultado a negativo."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_prueba = MagicMock(spec=PruebaFisica)
+        mock_prueba.id = 1
+        mock_prueba.tipo_prueba = "FUERZA"
+        mock_prueba.estado = True
+        mock_prueba.atleta.grupos.filter.return_value.exists.return_value = True
+
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.dao.get_by_id.return_value = mock_prueba
+        PruebaFisicaController.service = real_service
+
+        data = {"resultado": "-5.00"}
+
+        request = self.factory.put(
+            "/api/pruebas-fisicas/1/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request, pk=1)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    @patch("basketball.serializers.get_persona_from_user_module")
+    @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
+    def test_actualizar_resultado_excede_rango_falla(
+        self,
+        mock_entrenador_objects,
+        mock_get_persona,
+    ):
+        """Test: Falla cuando se intenta actualizar un resultado que excede el rango."""
+        mock_get_persona.return_value = {"first_name": "Test"}
+
+        mock_entrenador = MagicMock(spec=Entrenador)
+        mock_entrenador.id = 1
+        mock_entrenador_objects.filter.return_value.first.return_value = mock_entrenador
+
+        mock_prueba = MagicMock(spec=PruebaFisica)
+        mock_prueba.id = 1
+        mock_prueba.tipo_prueba = "VELOCIDAD"
+        mock_prueba.estado = True
+        mock_prueba.atleta.grupos.filter.return_value.exists.return_value = True
+
+        real_service = PruebaFisicaService()
+        real_service.dao = MagicMock()
+        real_service.dao.get_by_id.return_value = mock_prueba
+        PruebaFisicaController.service = real_service
+
+        # VELOCIDAD tiene máximo 15, intentamos poner 50
+        data = {"resultado": "50.00"}
+
+        request = self.factory.put(
+            "/api/pruebas-fisicas/1/",
+            data=data,
+            format="json",
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        response = self.view(request, pk=1)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["status"], "error")
+        self.assertIn("excede el rango máximo", response.data["msg"])

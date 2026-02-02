@@ -5,6 +5,9 @@ MODO FAIL-SAFE: El sistema continúa funcionando aunque el microservicio de usua
 """
 
 import logging
+import re
+import secrets
+import string
 import time
 from typing import Any, Dict, List, Optional
 from datetime import date
@@ -22,7 +25,18 @@ logger = logging.getLogger(__name__)
 
 class InscripcionService:
     """
-    Lógica de negocio para la gestión de inscripciones.
+    Servicio de lógica de negocio para la gestión de inscripciones de atletas.
+
+    Responsabilidades:
+    - Crear inscripciones con validación de duplicados
+    - Actualizar datos de atleta/persona/inscripción
+    - Gestionar estados de inscripción (habilitar/deshabilitar)
+    - Comunicación con microservicio de usuarios (modo fail-safe)
+
+    Características de resiliencia:
+    - Modo offline: genera IDs locales si el microservicio falla
+    - Datos locales: siempre persiste información en BD local
+    - Mapeo robusto: soporta múltiples nombres de campo del frontend
     """
 
     def __init__(self):
@@ -138,7 +152,10 @@ class InscripcionService:
             return None
 
     def _fetch_persona(
-        self, persona_external: str, token: str, allow_fail: bool = False
+        self,
+        persona_external: str,
+        token: str,
+        allow_fail: bool = False,
     ) -> Optional[Dict[str, Any]]:
         try:
             return self._call_user_module(
@@ -225,8 +242,20 @@ class InscripcionService:
         """
         Crea una inscripción de atleta cumpliendo con UC-004 y UC-005.
 
+        Args:
+            persona_data: Datos personales (nombre, cédula, teléfono, dirección)
+            atleta_data: Datos deportivos (fecha_nacimiento, sexo, tipo_sangre, etc.)
+            inscripcion_data: Datos de inscripción (fecha, tipo)
+            token: Token JWT para autenticación con microservicio externo
+
+        Returns:
+            Dict con estructura: {atleta: {...}, inscripcion: {...}, persona: {...}}
+
+        Raises:
+            ValidationError: Si hay datos duplicados o campos requeridos faltantes
+
         Reglas de Negocio:
-        - Valida duplicados por cédula (Curso Alterno 8)
+        - Valida duplicados por cédula (UC-004 Curso Alterno 8)
         - Persiste datos localmente (no depende del microservicio externo)
         - Modo Fail-Safe: genera credenciales dummy si faltan
         """
@@ -285,8 +314,50 @@ class InscripcionService:
             )
 
             logger.info(
-                f"[CREATE] Datos mapeados: cedula={cedula}, nombre={nombre}, apellido={apellido}"
+                f"[CREATE] Datos mapeados: cedula={cedula}, "
+                f"nombre={nombre}, apellido={apellido}"
             )
+
+            # ============================================================
+            # 2.1 VALIDACIÓN DE CAMPOS REQUERIDOS
+            # Sincronizado con validaciones del frontend
+            # ============================================================
+            if not nombre or not nombre.strip():
+                raise ValidationError("El nombre del atleta es requerido")
+
+            # Validar que el nombre solo contenga letras y espacios
+            patron_nombre = r"^[a-zA-ZáéíóúÁÉÍÓÚñÑüÜ\s']+$"
+            if not re.match(patron_nombre, nombre.strip()):
+                raise ValidationError("El nombre solo puede contener letras y espacios")
+
+            if not apellido or not apellido.strip():
+                raise ValidationError("El apellido del atleta es requerido")
+
+            # Validar que el apellido solo contenga letras y espacios
+            if not re.match(patron_nombre, apellido.strip()):
+                raise ValidationError(
+                    "El apellido solo puede contener letras y espacios"
+                )
+
+            if not cedula or not cedula.strip():
+                raise ValidationError("La cédula es obligatoria para el registro")
+
+            # Validar formato de cédula (10 dígitos)
+            cedula_limpia = cedula.strip().replace("-", "").replace(" ", "")
+            if len(cedula_limpia) != 10 or not cedula_limpia.isdigit():
+                raise ValidationError(
+                    "La cédula debe tener exactamente 10 dígitos numéricos"
+                )
+
+            # Validar teléfono si se proporciona (exactamente 10 dígitos)
+            if telefono:
+                telefono_limpio = telefono.strip().replace("-", "").replace(" ", "")
+                if telefono_limpio and (
+                    len(telefono_limpio) != 10 or not telefono_limpio.isdigit()
+                ):
+                    raise ValidationError(
+                        "El teléfono debe tener exactamente 10 dígitos numéricos"
+                    )
 
             # ============================================================
             # 3. VALIDACIÓN DE DUPLICADOS (UC-004 Curso Alterno 8)
@@ -307,8 +378,10 @@ class InscripcionService:
                             f"[DUPLICADO] Atleta con cédula {cedula} ya tiene "
                             f"inscripción activa ID={inscripcion_activa.id}"
                         )
+                        # Mensaje claro y amigable para el usuario final
                         raise ValidationError(
-                            "El atleta ya se encuentra registrado con una inscripción activa."
+                            "Este atleta ya tiene una inscripción activa. "
+                            "Verifica el número de cédula o contacta al administrador."
                         )
 
             # ============================================================
@@ -320,20 +393,26 @@ class InscripcionService:
                 logger.info(f"[FAIL-SAFE] Email dummy generado: {email}")
 
             if not persona_data.get("password"):
-                persona_data["password"] = "System_Auto_Pass_123$"
+                # Generar contraseña segura aleatoria
+                alphabet = string.ascii_letters + string.digits + "!@#$%&*"
+                persona_data["password"] = "".join(
+                    secrets.choice(alphabet) for _ in range(16)
+                )
 
             # Actualizar persona_data con email generado
             persona_data["email"] = email
 
             # ============================================================
             # 5. OBTENCIÓN DE ID EXTERNO (Opcional - Fail-Safe)
-            # Intentamos registrar en el microservicio, pero continuamos si falla
             # ============================================================
             persona_external = None
 
             try:
                 persona_response = self._call_user_module(
-                    "post", "/api/person/save-account", token, persona_data
+                    "post",
+                    "/api/person/save-account",
+                    token,
+                    persona_data,
                 )
                 persona_external = self._extract_external(persona_response)
 
@@ -452,7 +531,8 @@ class InscripcionService:
             # ============================================================
             persona_info = self._fetch_persona(persona_external, token, allow_fail=True)
             logger.info(
-                f"[SUCCESS] Inscripción creada exitosamente. Atleta ID={atleta.id}, Inscripción ID={inscripcion.id}"
+                f"[SUCCESS] Inscripción creada exitosamente. "
+                f"Atleta ID={atleta.id}, Inscripción ID={inscripcion.id}"
             )
             return self._build_response(atleta, inscripcion, persona_info)
 
@@ -493,14 +573,18 @@ class InscripcionService:
 
                 try:
                     self._call_user_module(
-                        "post", "/api/person/update", token, persona_payload
+                        "post",
+                        "/api/person/update",
+                        token,
+                        persona_payload,
                     )
                 except Exception:
                     logger.warning(
                         "[UPDATE] Fallo API externa, solo se actualizará localmente"
                     )
 
-                # CRÍTICO: Actualizar TODOS los datos personales LOCALMENTE con MAPEO ROBUSTO
+                # CRÍTICO: Actualizar TODOS los datos personales LOCALMENTE
+                # con MAPEO ROBUSTO
                 nombre_real = (
                     persona_data.get("first_name")
                     or persona_data.get("firts_name")
@@ -596,6 +680,56 @@ class InscripcionService:
             )
             results.append(self._build_response(atleta, ins, persona_info))
         return results
+
+    def list_inscripciones_completas_paginado(
+        self, token: str, page: int = 1, page_size: int = 50
+    ) -> Dict[str, Any]:
+        """
+        Lista inscripciones con paginación.
+
+        Args:
+            token: Token de autenticación
+            page: Número de página (comienza en 1)
+            page_size: Cantidad de elementos por página
+
+        Returns:
+            Dict con datos paginados y metadatos de paginación
+        """
+        # Obtener total de inscripciones
+        all_inscripciones = self.inscripcion_dao.get_all()
+        total_items = all_inscripciones.count()
+
+        # Calcular paginación
+        total_pages = (
+            (total_items + page_size - 1) // page_size if total_items > 0 else 1
+        )
+        if page > total_pages:
+            page = total_pages
+        if page < 1:
+            page = 1
+
+        # Calcular offset y límite
+        offset = (page - 1) * page_size
+        inscripciones = all_inscripciones[offset : offset + page_size]
+
+        # Construir resultados
+        results = []
+        for ins in inscripciones:
+            atleta = ins.atleta
+            persona_info = self._fetch_persona(
+                atleta.persona_external, token, allow_fail=True
+            )
+            results.append(self._build_response(atleta, ins, persona_info))
+
+        return {
+            "data": results,
+            "page": page,
+            "page_size": page_size,
+            "total_items": total_items,
+            "total_pages": total_pages,
+            "has_next": page < total_pages,
+            "has_previous": page > 1,
+        }
 
     def cambiar_estado_inscripcion(self, inscripcion_id: int) -> Optional[Inscripcion]:
         """Alterna el estado de habilitación de una inscripción."""

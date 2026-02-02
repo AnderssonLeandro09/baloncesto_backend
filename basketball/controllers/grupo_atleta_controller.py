@@ -29,14 +29,35 @@ class GrupoAtletaController(viewsets.ViewSet):
         try:
             data = self.service.list_grupos_by_user(request.user)
             serializer = GrupoAtletaResponseSerializer(data, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "msg": "Grupos listados exitosamente",
+                    "data": serializer.data,
+                    "code": status.HTTP_200_OK,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
         except ValidationError as exc:
             logger.warning(f"Validation error en list grupos: {exc}")
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": str(exc),
+                    "data": None,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as exc:
             logger.error(f"Error inesperado en list grupos: {exc}")
             return Response(
-                {"error": "Error al listar grupos"},
+                {
+                    "msg": "Error al listar grupos",
+                    "data": None,
+                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "status": "error",
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -58,14 +79,35 @@ class GrupoAtletaController(viewsets.ViewSet):
                 min_edad=min_edad, max_edad=max_edad
             )
             ids = [atleta.id for atleta in data]
-            return Response(ids, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "msg": "Atletas elegibles listados",
+                    "data": ids,
+                    "code": status.HTTP_200_OK,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
         except ValidationError as exc:
             logger.warning(f"Validation error en atletas elegibles: {exc}")
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": str(exc),
+                    "data": None,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as exc:
             logger.error(f"Error inesperado en atletas elegibles: {exc}")
             return Response(
-                {"error": "Error al obtener atletas elegibles"},
+                {
+                    "msg": "Error al obtener atletas elegibles",
+                    "data": None,
+                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "status": "error",
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -78,14 +120,35 @@ class GrupoAtletaController(viewsets.ViewSet):
         try:
             data = self.service.list_atletas_elegibles(grupo_id=pk)
             ids = [atleta.id for atleta in data]
-            return Response(ids, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "msg": "Atletas elegibles para el grupo listados",
+                    "data": ids,
+                    "code": status.HTTP_200_OK,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
         except ValidationError as exc:
             logger.warning(f"Validation error en atletas elegibles grupo: {exc}")
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": str(exc),
+                    "data": None,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as exc:
             logger.error(f"Error inesperado en atletas elegibles grupo: {exc}")
             return Response(
-                {"error": "Error al obtener atletas elegibles"},
+                {
+                    "msg": "Error al obtener atletas elegibles",
+                    "data": None,
+                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "status": "error",
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -99,19 +162,45 @@ class GrupoAtletaController(viewsets.ViewSet):
             grupo = self.service.get_grupo(pk, user=request.user)
             if not grupo:
                 return Response(
-                    {"error": "Grupo no encontrado"},
+                    {
+                        "msg": "Grupo no encontrado",
+                        "data": None,
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "status": "error",
+                    },
                     status=status.HTTP_404_NOT_FOUND,
                 )
 
             serializer = GrupoAtletaResponseSerializer(grupo)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "msg": "Grupo obtenido exitosamente",
+                    "data": serializer.data,
+                    "code": status.HTTP_200_OK,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
         except ValidationError as exc:
             logger.warning(f"Validation error en retrieve grupo: {exc}")
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": str(exc),
+                    "data": None,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as exc:
             logger.error(f"Error inesperado en retrieve grupo: {exc}")
             return Response(
-                {"error": "Error al obtener el grupo"},
+                {
+                    "msg": "Error al obtener el grupo",
+                    "data": None,
+                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "status": "error",
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -137,17 +226,46 @@ class GrupoAtletaController(viewsets.ViewSet):
             logger.info(
                 f"Grupo creado exitosamente: {grupo.id} por usuario {request.user.pk}"
             )
-            return Response(response_serializer.data, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    "msg": "Grupo creado exitosamente",
+                    "data": response_serializer.data,
+                    "code": status.HTTP_201_CREATED,
+                    "status": "success",
+                },
+                status=status.HTTP_201_CREATED,
+            )
         except serializers.ValidationError as exc:
             logger.warning(f"Serializer validation error en create grupo: {exc}")
-            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": "Error de validación",
+                    "data": exc.detail,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except ValidationError as exc:
             logger.warning(f"Service validation error en create grupo: {exc}")
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": str(exc),
+                    "data": None,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as exc:
             logger.error(f"Error inesperado en create grupo: {exc}")
             return Response(
-                {"error": "Error al crear el grupo"},
+                {
+                    "msg": "Error al crear el grupo",
+                    "data": None,
+                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "status": "error",
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -161,31 +279,70 @@ class GrupoAtletaController(viewsets.ViewSet):
         Solo el entrenador dueño del grupo puede actualizarlo.
         """
         try:
-            # Validar datos con serializer (partial para PATCH)
-            serializer = GrupoAtletaSerializer(data=request.data, partial=True)
+            # Obtener el grupo primero
+            grupo_existente = self.service.get_grupo(pk)
+            if not grupo_existente:
+                return Response(
+                    {
+                        "msg": "Grupo no encontrado",
+                        "data": None,
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "status": "error",
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            # Validar datos con serializer pasando la instancia actual
+            serializer = GrupoAtletaSerializer(
+                grupo_existente, data=request.data, partial=True
+            )
             serializer.is_valid(raise_exception=True)
 
             grupo = self.service.update_grupo(
                 pk, serializer.validated_data, user=request.user
             )
-            if not grupo:
-                return Response(
-                    {"error": "Grupo no encontrado"},
-                    status=status.HTTP_404_NOT_FOUND,
-                )
             response_serializer = GrupoAtletaResponseSerializer(grupo)
             logger.info(f"Grupo actualizado exitosamente por usuario {request.user.pk}")
-            return Response(response_serializer.data, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "msg": "Grupo actualizado exitosamente",
+                    "data": response_serializer.data,
+                    "code": status.HTTP_200_OK,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
         except serializers.ValidationError as exc:
             logger.warning(f"Serializer validation error en update grupo: {exc}")
-            return Response(exc.detail, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": "Error de validación",
+                    "data": exc.detail,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except ValidationError as exc:
             logger.warning(f"Service validation error en update grupo: {exc}")
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": str(exc),
+                    "data": None,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as exc:
             logger.error(f"Error inesperado en update grupo: {exc}")
             return Response(
-                {"error": "Error al actualizar el grupo"},
+                {
+                    "msg": "Error al actualizar el grupo",
+                    "data": None,
+                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "status": "error",
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -206,19 +363,45 @@ class GrupoAtletaController(viewsets.ViewSet):
             success = self.service.delete_grupo(pk, user=request.user)
             if not success:
                 return Response(
-                    {"error": "Grupo no encontrado"},
+                    {
+                        "msg": "Grupo no encontrado",
+                        "data": None,
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "status": "error",
+                    },
                     status=status.HTTP_404_NOT_FOUND,
                 )
             logger.info(
                 f"Grupo eliminado (lógicamente) exitosamente por usuario {request.user.pk}"
             )
-            return Response(status=status.HTTP_204_NO_CONTENT)
+            return Response(
+                {
+                    "msg": "Grupo eliminado exitosamente",
+                    "data": None,
+                    "code": status.HTTP_204_NO_CONTENT,
+                    "status": "success",
+                },
+                status=status.HTTP_204_NO_CONTENT,
+            )
         except ValidationError as exc:
             logger.warning(f"Validation error en delete grupo: {exc}")
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": str(exc),
+                    "data": None,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         except Exception as exc:
             logger.error(f"Error inesperado en delete grupo: {exc}")
             return Response(
-                {"error": "Error al eliminar el grupo"},
+                {
+                    "msg": "Error al eliminar el grupo",
+                    "data": None,
+                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "status": "error",
+                },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
