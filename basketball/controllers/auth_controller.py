@@ -138,12 +138,28 @@ class AuthController(viewsets.ViewSet):
 
         if is_admin:
             role = "ADMIN"
-        elif Entrenador.objects.filter(persona_external=external_id).exists():
-            role = "ENTRENADOR"
-        elif EstudianteVinculacion.objects.filter(
-            persona_external=external_id, eliminado=False
-        ).exists():
-            role = "ESTUDIANTE_VINCULACION"
+        else:
+            # Verificar si es Entrenador
+            entrenador = Entrenador.objects.filter(persona_external=external_id).first()
+            if entrenador:
+                if entrenador.eliminado:
+                    return Response(
+                        {"error": "La cuenta está inactiva."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                role = "ENTRENADOR"
+            else:
+                # Verificar si es Estudiante de Vinculación
+                estudiante = EstudianteVinculacion.objects.filter(
+                    persona_external=external_id
+                ).first()
+                if estudiante:
+                    if estudiante.eliminado:
+                        return Response(
+                            {"error": "La cuenta está inactiva."},
+                            status=status.HTTP_403_FORBIDDEN,
+                        )
+                    role = "ESTUDIANTE_VINCULACION"
 
         # 4. Generar Nuestro JWT Local
         # Usamos la SECRET_KEY de Django para firmar
