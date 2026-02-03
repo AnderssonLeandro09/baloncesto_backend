@@ -20,7 +20,7 @@ class PruebaAntropometricaInputSerializer(serializers.Serializer):
     # Soportar tanto 'atleta' como 'atleta_id' del frontend
     atleta = serializers.IntegerField(required=False)
     atleta_id = serializers.IntegerField(required=False)
-    fecha_registro = serializers.DateField(required=True)
+    fecha_registro = serializers.DateField(required=False)
 
     peso = serializers.DecimalField(
         max_digits=5,
@@ -49,7 +49,7 @@ class PruebaAntropometricaInputSerializer(serializers.Serializer):
         allow_null=True,
     )
 
-    estado = serializers.BooleanField(default=True)
+    estado = serializers.BooleanField(required=False, default=True)
 
     def to_internal_value(self, data):
         """Convertir enteros a decimales antes de validar."""
@@ -132,11 +132,13 @@ class PruebaAntropometricaInputSerializer(serializers.Serializer):
 
     def validate(self, data):
         """Validaciones cruzadas entre campos."""
-        # Validación existente
-        if not data.get("atleta") and not data.get("atleta_id"):
-            raise serializers.ValidationError(
-                {"atleta": "El ID del atleta es requerido"}
-            )
+        # Solo validar atleta si es creación (cuando viene en los datos)
+        # En actualización parcial, el atleta no debe venir y no debe validarse
+        if not self.partial:  # Solo en creación completa
+            if not data.get("atleta") and not data.get("atleta_id"):
+                raise serializers.ValidationError(
+                    {"atleta": "El ID del atleta es requerido"}
+                )
 
         # Validar que altura_sentado no sea mayor que estatura
         estatura = data.get("estatura")
