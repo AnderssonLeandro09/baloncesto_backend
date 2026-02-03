@@ -49,12 +49,15 @@ def get_user_module_token():
 
     try:
         import os
+
         user_module_url = settings.USER_MODULE_URL
-        
+
         # En Linux, host.docker.internal no se resuelve, usar localhost
         if os.name != "nt" and "host.docker.internal" in user_module_url:
-            user_module_url = user_module_url.replace("host.docker.internal", "localhost")
-        
+            user_module_url = user_module_url.replace(
+                "host.docker.internal", "localhost"
+            )
+
         admin_email = settings.USER_MODULE_ADMIN_EMAIL
         admin_password = settings.USER_MODULE_ADMIN_PASSWORD
 
