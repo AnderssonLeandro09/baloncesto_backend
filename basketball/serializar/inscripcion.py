@@ -26,13 +26,18 @@ class InscripcionSerializer(serializers.ModelSerializer):
     def validate_fecha_inscripcion(self, value):
         """
         Valida que la fecha de inscripción no sea futura.
-        """
-        if not value:
-            return value
 
-        if value > date.today():
+        Args:
+            value: Fecha de inscripción a validar
+
+        Returns:
+            La fecha validada
+
+        Raises:
+            ValidationError: Si la fecha es futura
+        """
+        if value and value > date.today():
             raise serializers.ValidationError(
                 "La fecha de inscripción no puede ser una fecha futura."
             )
-
         return value

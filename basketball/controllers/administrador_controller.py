@@ -18,6 +18,10 @@ from ..permissions import IsAdmin
 
 logger = logging.getLogger(__name__)
 
+# Constantes para mensajes de error
+ERROR_INTERNO_SERVIDOR = "Error interno del servidor"
+ERROR_ADMINISTRADOR_NO_ENCONTRADO = "Administrador no encontrado"
+
 
 class AdministradorController(viewsets.ViewSet):
     permission_classes = [IsAdmin]
@@ -33,9 +37,9 @@ class AdministradorController(viewsets.ViewSet):
         except (ValidationError, PermissionDenied) as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
-            logger.error(f"Error interno en list administradores: {exc}")
+            logger.error("Error interno en list administradores: %s", exc)
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ERROR_INTERNO_SERVIDOR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -58,9 +62,9 @@ class AdministradorController(viewsets.ViewSet):
         except (ValidationError, PermissionDenied) as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
-            logger.error(f"Error interno en create administrador: {exc}")
+            logger.error("Error interno en create administrador: %s", exc)
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ERROR_INTERNO_SERVIDOR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -71,16 +75,16 @@ class AdministradorController(viewsets.ViewSet):
             data = self.service.get_administrador_by_id(pk, token)
             if not data:
                 return Response(
-                    {"error": "Administrador no encontrado"},
+                    {"error": ERROR_ADMINISTRADOR_NO_ENCONTRADO},
                     status=status.HTTP_404_NOT_FOUND,
                 )
             return Response(data, status=status.HTTP_200_OK)
         except (ValidationError, PermissionDenied) as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
-            logger.error(f"Error interno en retrieve administrador: {exc}")
+            logger.error("Error interno en retrieve administrador: %s", exc)
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ERROR_INTERNO_SERVIDOR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -101,16 +105,16 @@ class AdministradorController(viewsets.ViewSet):
             )
             if not result:
                 return Response(
-                    {"error": "Administrador no encontrado"},
+                    {"error": ERROR_ADMINISTRADOR_NO_ENCONTRADO},
                     status=status.HTTP_404_NOT_FOUND,
                 )
             return Response(result, status=status.HTTP_200_OK)
         except (ValidationError, PermissionDenied) as exc:
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
-            logger.error(f"Error interno en update administrador: {exc}")
+            logger.error("Error interno en update administrador: %s", exc)
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ERROR_INTERNO_SERVIDOR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -120,13 +124,13 @@ class AdministradorController(viewsets.ViewSet):
             success = self.service.delete_administrador(pk)
             if not success:
                 return Response(
-                    {"error": "Administrador no encontrado"},
+                    {"error": ERROR_ADMINISTRADOR_NO_ENCONTRADO},
                     status=status.HTTP_404_NOT_FOUND,
                 )
             return Response(status=status.HTTP_204_NO_CONTENT)
         except Exception as exc:
-            logger.error(f"Error interno en destroy administrador: {exc}")
+            logger.error("Error interno en destroy administrador: %s", exc)
             return Response(
-                {"error": "Error interno del servidor"},
+                {"error": ERROR_INTERNO_SERVIDOR},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
