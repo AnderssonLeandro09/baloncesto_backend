@@ -104,59 +104,74 @@ class EntrenadorService:
 
     def _extract_external(self, payload: Dict[str, Any]) -> Optional[str]:
         """Extrae el external_id de la respuesta del módulo de usuarios.
-        
+
         Busca en múltiples ubicaciones posibles y niveles para encontrar un ID válido.
         """
         if not payload or not isinstance(payload, dict):
             logger.warning(f"Payload inválido para extraer external: {payload}")
             return None
-        
+
         # Campos posibles donde el ID puede estar
-        possible_keys = ("external", "external_id", "external_person", "uuid", "id", "pk")
-        
+        possible_keys = (
+            "external",
+            "external_id",
+            "external_person",
+            "uuid",
+            "id",
+            "pk",
+        )
+
         # 1. Buscar directamente en payload
         for key in possible_keys:
             value = payload.get(key)
             if value:
                 logger.info(f"External encontrado en payload['{key}']: {value}")
                 return str(value)
-        
+
         # 2. Buscar dentro de payload["data"]
         data = payload.get("data")
         if isinstance(data, dict):
             for key in possible_keys:
                 value = data.get(key)
                 if value:
-                    logger.info(f"External encontrado en payload['data']['{key}']: {value}")
+                    logger.info(
+                        f"External encontrado en payload['data']['{key}']: {value}"
+                    )
                     return str(value)
-        
+
         # 3. Buscar dentro de payload["user"] (posible estructura alternativa)
         user = payload.get("user")
         if isinstance(user, dict):
             for key in possible_keys:
                 value = user.get(key)
                 if value:
-                    logger.info(f"External encontrado en payload['user']['{key}']: {value}")
+                    logger.info(
+                        f"External encontrado en payload['user']['{key}']: {value}"
+                    )
                     return str(value)
-        
+
         # 4. Buscar dentro de payload["persona"] (posible estructura alternativa)
         persona = payload.get("persona")
         if isinstance(persona, dict):
             for key in possible_keys:
                 value = persona.get(key)
                 if value:
-                    logger.info(f"External encontrado en payload['persona']['{key}']: {value}")
+                    logger.info(
+                        f"External encontrado en payload['persona']['{key}']: {value}"
+                    )
                     return str(value)
-        
+
         # 5. Búsqueda recursiva en todos los valores del diccionario
         for key, value in payload.items():
             if isinstance(value, dict):
                 # Si el valor es un diccionario, buscar recursivamente
                 result = self._extract_external(value)
                 if result:
-                    logger.info(f"External encontrado recursivamente en payload['{key}']: {result}")
+                    logger.info(
+                        f"External encontrado recursivamente en payload['{key}']: {result}"
+                    )
                     return result
-        
+
         logger.warning(f"No se pudo extraer external_id de la respuesta: {payload}")
         return None
 
@@ -198,10 +213,10 @@ class EntrenadorService:
         """Valida que los datos de persona sean completos."""
         if not persona_data:
             raise ValidationError(ErrorMessages.ENTRENADOR_PERSONA_DATA_REQUIRED)
-        
+
         if not persona_data.get("email"):
             raise ValidationError(ErrorMessages.ENTRENADOR_EMAIL_REQUIRED)
-        
+
         if not persona_data.get("password"):
             raise ValidationError(ErrorMessages.ENTRENADOR_PASSWORD_REQUIRED)
 
@@ -209,7 +224,7 @@ class EntrenadorService:
         """Valida que los datos del entrenador sean completos."""
         especialidad = entrenador_data.get("especialidad")
         club_asignado = entrenador_data.get("club_asignado")
-        
+
         if not especialidad or not club_asignado:
             raise ValidationError(ErrorMessages.ENTRENADOR_ESPECIALIDAD_REQUIRED)
 
@@ -219,53 +234,69 @@ class EntrenadorService:
         token: str,
     ) -> str:
         """Obtiene o crea el external_id de persona."""
-        logger.info(f"Obteniendo o creando persona externa para identificación: {persona_data.get('identification')}")
-        
+        logger.info(
+            f"Obteniendo o creando persona externa para identificación: {persona_data.get('identification')}"
+        )
+
         # Intentar crear/registrar persona
         persona_external = self._try_create_persona(persona_data, token)
-        
+
         # Si falla, buscar persona existente
         if not persona_external:
-            logger.info(f"Buscando persona existente con identificación: {persona_data.get('identification')}")
+            logger.info(
+                f"Buscando persona existente con identificación: {persona_data.get('identification')}"
+            )
             persona_external = self._find_existing_persona(persona_data, token)
-        
+
         if not persona_external:
-            identification = persona_data.get('identification', 'desconocida')
+            identification = persona_data.get("identification", "desconocida")
             error_msg = f"{ErrorMessages.ENTRENADOR_EXTERNAL_NOT_RETURNED}. Identificación: {identification}"
             logger.error(f"No se pudo obtener external_id: {error_msg}")
             raise ValidationError(error_msg)
-        
+
         logger.info(f"External_id obtenido exitosamente: {persona_external}")
         return persona_external
 
-    def _try_create_persona(self, persona_data: Dict[str, Any], token: str) -> Optional[str]:
+    def _try_create_persona(
+        self, persona_data: Dict[str, Any], token: str
+    ) -> Optional[str]:
         """Intenta crear una persona en el módulo de usuarios."""
         try:
-            logger.info(f"Intentando crear persona con identificación: {persona_data.get('identification')}")
+            logger.info(
+                f"Intentando crear persona con identificación: {persona_data.get('identification')}"
+            )
             persona_response = self._call_user_module(
                 "post", "/api/person/save-account", token, persona_data
             )
             logger.info(f"Respuesta de save-account: {persona_response}")
-            
+
             persona_external = self._extract_external(persona_response)
-            
+
             # Si no obtuvimos external pero tenemos cédula, buscar por cédula
             if not persona_external and persona_data.get("identification"):
-                logger.info(f"No se encontró external en save-account, buscando por identificación: {persona_data.get('identification')}")
+                logger.info(
+                    f"No se encontró external en save-account, buscando por identificación: {persona_data.get('identification')}"
+                )
                 lookup_response = self._search_by_identification(
                     persona_data.get("identification"), token
                 )
                 if lookup_response:
-                    logger.info(f"Respuesta de búsqueda por identificación: {lookup_response}")
+                    logger.info(
+                        f"Respuesta de búsqueda por identificación: {lookup_response}"
+                    )
                     persona_external = self._extract_external(lookup_response)
                 else:
-                    logger.warning("No se obtuvo respuesta de búsqueda por identificación")
-            
+                    logger.warning(
+                        "No se obtuvo respuesta de búsqueda por identificación"
+                    )
+
             if persona_external:
                 logger.info(f"Persona externa obtenida: {persona_external}")
             else:
-                logger.error(f"No se pudo obtener external_id para persona con identificación: {persona_data.get('identification')}")
-            
+                logger.error(
+                    f"No se pudo obtener external_id para persona con identificación: {persona_data.get('identification')}"
+                )
+
             return persona_external
         except ValidationError as e:
             logger.error(f"Error de validación al crear persona: {str(e)}")
@@ -274,38 +305,48 @@ class EntrenadorService:
             logger.error(f"Error inesperado al crear persona: {str(e)}")
             return None
 
-    def _find_existing_persona(self, persona_data: Dict[str, Any], token: str) -> Optional[str]:
+    def _find_existing_persona(
+        self, persona_data: Dict[str, Any], token: str
+    ) -> Optional[str]:
         """Busca una persona existente por identificación."""
         identification = persona_data.get("identification")
         if not identification:
-            logger.warning("No se proporcionó identificación para buscar persona existente")
+            logger.warning(
+                "No se proporcionó identificación para buscar persona existente"
+            )
             return None
-        
+
         logger.info(f"Buscando persona por identificación: {identification}")
-        
+
         # Buscar por cédula
         try:
             lookup_response = self._search_by_identification(identification, token)
             if lookup_response:
-                logger.info(f"Persona encontrada por búsqueda de identificación: {lookup_response}")
+                logger.info(
+                    f"Persona encontrada por búsqueda de identificación: {lookup_response}"
+                )
                 external = self._extract_external(lookup_response)
                 if external:
                     return external
         except Exception as e:
             logger.warning(f"Error buscando por identificación: {str(e)}")
-        
+
         # Buscar en todos los registros
         try:
-            logger.info(f"Buscando en todos los registros para identificación: {identification}")
+            logger.info(
+                f"Buscando en todos los registros para identificación: {identification}"
+            )
             fallback_person = self._search_in_all_filter(identification, token)
             if fallback_person:
-                logger.info(f"Persona encontrada en todos los registros: {fallback_person}")
+                logger.info(
+                    f"Persona encontrada en todos los registros: {fallback_person}"
+                )
                 external = self._extract_external(fallback_person)
                 if external:
                     return external
         except Exception as e:
             logger.warning(f"Error buscando en todos los registros: {str(e)}")
-        
+
         logger.warning(f"No se encontró persona con identificación: {identification}")
         return None
 
@@ -324,13 +365,13 @@ class EntrenadorService:
         # Validaciones iniciales (guard clauses)
         self._validate_persona_data(persona_data)
         self._validate_entrenador_data(entrenador_data)
-        
+
         # Obtener persona_external
         persona_external = self._get_or_create_persona_external(persona_data, token)
-        
+
         # Verificar que no exista
         self._check_entrenador_exists(persona_external)
-        
+
         # Crear entrenador
         entrenador = self.dao.create(
             persona_external=persona_external,
@@ -338,7 +379,7 @@ class EntrenadorService:
             club_asignado=entrenador_data["club_asignado"],
             eliminado=False,
         )
-        
+
         # Obtener información de persona y construir respuesta
         persona_info = self._fetch_persona(persona_external, token, allow_fail=True)
         return self._build_response(entrenador, persona_info)

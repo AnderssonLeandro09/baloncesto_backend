@@ -18,51 +18,48 @@ class PruebaAntropometricaService:
         self.dao = PruebaAntropometricaDAO()
 
     def get_all_pruebas_antropometricas(
-        self, 
-        page: int = 1, 
-        page_size: int = 10,
-        **filtros
+        self, page: int = 1, page_size: int = 10, **filtros
     ) -> tuple[List[PruebaAntropometrica], int]:
         """
         Obtiene todas las pruebas antropométricas con paginación y filtros.
-        
+
         Args:
             page: Número de página
             page_size: Tamaño de página
             **filtros: Filtros opcionales (atleta_id, estado, fecha_inicio, fecha_fin)
-            
+
         Returns:
             Tupla con (lista de pruebas, total de registros)
         """
         from django.db.models import Q
         from datetime import datetime
-        
+
         queryset = PruebaAntropometrica.objects.all()
-        
+
         # Aplicar filtros
-        if 'atleta_id' in filtros:
-            queryset = queryset.filter(atleta_id=filtros['atleta_id'])
-            
-        if 'estado' in filtros:
-            queryset = queryset.filter(estado=filtros['estado'])
-            
-        if 'fecha_inicio' in filtros and filtros['fecha_inicio']:
-            queryset = queryset.filter(fecha_registro__gte=filtros['fecha_inicio'])
-            
-        if 'fecha_fin' in filtros and filtros['fecha_fin']:
-            queryset = queryset.filter(fecha_registro__lte=filtros['fecha_fin'])
-        
+        if "atleta_id" in filtros:
+            queryset = queryset.filter(atleta_id=filtros["atleta_id"])
+
+        if "estado" in filtros:
+            queryset = queryset.filter(estado=filtros["estado"])
+
+        if "fecha_inicio" in filtros and filtros["fecha_inicio"]:
+            queryset = queryset.filter(fecha_registro__gte=filtros["fecha_inicio"])
+
+        if "fecha_fin" in filtros and filtros["fecha_fin"]:
+            queryset = queryset.filter(fecha_registro__lte=filtros["fecha_fin"])
+
         # Ordenar por fecha más reciente primero
-        queryset = queryset.order_by('-fecha_registro', '-id')
-        
+        queryset = queryset.order_by("-fecha_registro", "-id")
+
         # Obtener total antes de paginar
         total = queryset.count()
-        
+
         # Aplicar paginación
         start = (page - 1) * page_size
         end = start + page_size
         pruebas = list(queryset[start:end])
-        
+
         return pruebas, total
 
     def get_prueba_antropometrica_by_id(
@@ -118,9 +115,7 @@ class PruebaAntropometricaService:
                 f"No se pudo crear la prueba antropométrica: {str(e)}"
             )
 
-    def update_prueba_antropometrica(
-        self, pk: int, data: dict
-    ) -> PruebaAntropometrica:
+    def update_prueba_antropometrica(self, pk: int, data: dict) -> PruebaAntropometrica:
         """Actualiza una prueba antropométrica existente."""
         try:
             prueba = self.dao.get_by_id(pk)

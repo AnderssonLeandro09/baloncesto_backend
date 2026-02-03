@@ -31,37 +31,38 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         """Lista todas las pruebas antropométricas con filtros y paginación."""
         try:
             # Obtener parámetros de filtrado y paginación
-            page = int(request.query_params.get('page', 1))
-            page_size = int(request.query_params.get('pageSize', 10))
-            atleta_id = request.query_params.get('atleta')
-            estado = request.query_params.get('estado')
-            fecha_inicio = request.query_params.get('fecha_inicio')
-            fecha_fin = request.query_params.get('fecha_fin')
-            
+            page = int(request.query_params.get("page", 1))
+            page_size = int(request.query_params.get("pageSize", 10))
+            atleta_id = request.query_params.get("atleta")
+            estado = request.query_params.get("estado")
+            fecha_inicio = request.query_params.get("fecha_inicio")
+            fecha_fin = request.query_params.get("fecha_fin")
+
             # Construir filtros
             filtros = {}
             if atleta_id:
-                filtros['atleta_id'] = int(atleta_id)
-            if estado is not None and estado != '':
-                filtros['estado'] = estado.lower() == 'true'
+                filtros["atleta_id"] = int(atleta_id)
+            if estado is not None and estado != "":
+                filtros["estado"] = estado.lower() == "true"
             if fecha_inicio:
-                filtros['fecha_inicio'] = fecha_inicio
+                filtros["fecha_inicio"] = fecha_inicio
             if fecha_fin:
-                filtros['fecha_fin'] = fecha_fin
-                
+                filtros["fecha_fin"] = fecha_fin
+
             pruebas, total = self.service.get_all_pruebas_antropometricas(
-                page=page,
-                page_size=page_size,
-                **filtros
+                page=page, page_size=page_size, **filtros
             )
             serializer = PruebaAntropometricaResponseSerializer(pruebas, many=True)
-            
-            return Response({
-                'results': serializer.data,
-                'count': total,
-                'page': page,
-                'page_size': page_size
-            }, status=status.HTTP_200_OK)
+
+            return Response(
+                {
+                    "results": serializer.data,
+                    "count": total,
+                    "page": page,
+                    "page_size": page_size,
+                },
+                status=status.HTTP_200_OK,
+            )
         except Exception as exc:
             logger.error(f"Error en list pruebas antropométricas: {exc}")
             return Response(
