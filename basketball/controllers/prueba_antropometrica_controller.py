@@ -1,7 +1,7 @@
 """Controlador para Prueba Antropométrica."""
 
 import logging
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.core.exceptions import ValidationError
@@ -11,6 +11,7 @@ from ..services.prueba_antropometrica_service import PruebaAntropometricaService
 from ..serializers import (
     PruebaAntropometricaInputSerializer,
     PruebaAntropometricaResponseSerializer,
+    get_user_module_token,
 )
 from ..permissions import IsEntrenadorOrEstudianteVinculacion
 
@@ -22,6 +23,25 @@ class PruebaAntropometricaController(viewsets.ViewSet):
 
     permission_classes = [IsEntrenadorOrEstudianteVinculacion]
     service = PruebaAntropometricaService()
+
+    @extend_schema(
+        responses={200: serializers.ListField(child=serializers.DictField())}
+    )
+    @action(detail=False, methods=["get"], url_path="atletas-habilitados")
+    def atletas_habilitados(self, request):
+        """Obtiene la lista de atletas con inscripción habilitada."""
+        token = get_user_module_token()
+        try:
+            atletas = self.service.get_atletas_habilitados_con_persona(
+                token, user=request.user
+            )
+            return Response(atletas, status=status.HTTP_200_OK)
+        except Exception as exc:
+            logger.error(f"Error en atletas_habilitados antropométricas: {exc}")
+            return Response(
+                {"error": "Error al obtener atletas habilitados"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
     @extend_schema(responses={200: PruebaAntropometricaResponseSerializer(many=True)})
     def list(self, request):
