@@ -182,9 +182,15 @@ class PersonaSerializer(serializers.Serializer):
 
     def validate_phono(self, value):
         """
-        Valida el número de teléfono:
+        Valida el número de teléfono (formato Ecuador):
         - Solo dígitos numéricos
-        - Longitud entre 9 y 15 caracteres
+        - Exactamente 10 dígitos (celular: 09XXXXXXXX)
+
+        Returns:
+            str: Teléfono limpio y validado
+
+        Raises:
+            ValidationError: Si el formato es inválido
         """
         if not value:
             return value
@@ -202,9 +208,9 @@ class PersonaSerializer(serializers.Serializer):
                 "El teléfono debe contener solo dígitos numéricos."
             )
 
-        if len(value) < 9 or len(value) > 15:
+        if len(value) != 10:
             raise serializers.ValidationError(
-                "El teléfono debe tener entre 9 y 15 dígitos."
+                "El teléfono debe tener exactamente 10 dígitos."
             )
 
         return value

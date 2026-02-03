@@ -18,6 +18,43 @@ from ..permissions import IsEntrenadorOrEstudianteVinculacion
 
 logger = logging.getLogger(__name__)
 
+# Constantes para mensajes de error
+MSG_ERROR_INTERNO = "Error interno del servidor"
+MSG_ID_INVALIDO = "ID inválido"
+MSG_PRUEBA_NO_ENCONTRADA = "Prueba física no encontrada"
+MSG_DATOS_INVALIDOS = "Datos de entrada inválidos"
+
+
+def _build_error_response(msg, code=500, data=None):
+    """Construye una respuesta de error estándar."""
+    return {
+        "msg": msg,
+        "data": data,
+        "code": code,
+        "status": "error",
+    }
+
+
+def _build_success_response(msg, data, code=200):
+    """Construye una respuesta exitosa estándar."""
+    return {
+        "msg": msg,
+        "data": data,
+        "code": code,
+        "status": "success",
+    }
+
+
+def _validate_pk(pk):
+    """Valida que pk sea un entero válido. Retorna (pk_int, error_response)."""
+    try:
+        return int(pk), None
+    except (TypeError, ValueError):
+        return None, Response(
+            _build_error_response(MSG_ID_INVALIDO, 400),
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
 
 class PruebaFisicaController(viewsets.ViewSet):
     """Controlador para gestionar las pruebas físicas de los atletas."""
@@ -34,23 +71,15 @@ class PruebaFisicaController(viewsets.ViewSet):
                 token, user=request.user
             )
             return Response(
-                {
-                    "msg": "Listado de pruebas físicas obtenido exitosamente",
-                    "data": pruebas,
-                    "code": 200,
-                    "status": "success",
-                },
+                _build_success_response(
+                    "Listado de pruebas físicas obtenido exitosamente", pruebas
+                ),
                 status=status.HTTP_200_OK,
             )
         except Exception:
             logger.error("Error en list pruebas físicas", exc_info=True)
             return Response(
-                {
-                    "msg": "Error interno del servidor",
-                    "data": None,
-                    "code": 500,
-                    "status": "error",
-                },
+                _build_error_response(MSG_ERROR_INTERNO),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -66,23 +95,15 @@ class PruebaFisicaController(viewsets.ViewSet):
                 token, user=request.user
             )
             return Response(
-                {
-                    "msg": "Lista de atletas habilitados obtenida exitosamente",
-                    "data": atletas,
-                    "code": 200,
-                    "status": "success",
-                },
+                _build_success_response(
+                    "Lista de atletas habilitados obtenida exitosamente", atletas
+                ),
                 status=status.HTTP_200_OK,
             )
         except Exception:
             logger.error("Error en atletas_habilitados", exc_info=True)
             return Response(
-                {
-                    "msg": "Error al obtener atletas habilitados",
-                    "data": None,
-                    "code": 500,
-                    "status": "error",
-                },
+                _build_error_response("Error al obtener atletas habilitados"),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -96,12 +117,7 @@ class PruebaFisicaController(viewsets.ViewSet):
         serializer = PruebaFisicaInputSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(
-                {
-                    "msg": "Datos de entrada inválidos",
-                    "data": serializer.errors,
-                    "code": 400,
-                    "status": "error",
-                },
+                _build_error_response(MSG_DATOS_INVALIDOS, 400, serializer.errors),
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -109,48 +125,29 @@ class PruebaFisicaController(viewsets.ViewSet):
             prueba = self.service.create_prueba_fisica(
                 serializer.validated_data, user=request.user
             )
-            # Obtener datos completos para la respuesta
             prueba_completa = self.service.get_prueba_fisica_completa(
                 prueba.id, token, user=request.user
             )
             return Response(
-                {
-                    "msg": "Prueba física creada exitosamente",
-                    "data": prueba_completa,
-                    "code": 201,
-                    "status": "success",
-                },
+                _build_success_response(
+                    "Prueba física creada exitosamente", prueba_completa, 201
+                ),
                 status=status.HTTP_201_CREATED,
             )
         except ValidationError as exc:
             return Response(
-                {
-                    "msg": str(exc),
-                    "data": None,
-                    "code": 400,
-                    "status": "error",
-                },
+                _build_error_response(str(exc), 400),
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except PermissionDenied as exc:
             return Response(
-                {
-                    "msg": str(exc),
-                    "data": None,
-                    "code": 403,
-                    "status": "error",
-                },
+                _build_error_response(str(exc), 403),
                 status=status.HTTP_403_FORBIDDEN,
             )
         except Exception:
             logger.error("Error en create prueba física", exc_info=True)
             return Response(
-                {
-                    "msg": "Error interno del servidor",
-                    "data": None,
-                    "code": 500,
-                    "status": "error",
-                },
+                _build_error_response(MSG_ERROR_INTERNO),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -159,19 +156,9 @@ class PruebaFisicaController(viewsets.ViewSet):
         """Obtiene una prueba física por ID."""
         token = get_user_module_token()
 
-        # Validar que pk sea un entero válido
-        try:
-            pk = int(pk)
-        except (TypeError, ValueError):
-            return Response(
-                {
-                    "msg": "ID inválido",
-                    "data": None,
-                    "code": 400,
-                    "status": "error",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        pk, error_response = _validate_pk(pk)
+        if error_response:
+            return error_response
 
         try:
             prueba = self.service.get_prueba_fisica_completa(
@@ -179,42 +166,22 @@ class PruebaFisicaController(viewsets.ViewSet):
             )
             if not prueba:
                 return Response(
-                    {
-                        "msg": "Prueba física no encontrada",
-                        "data": None,
-                        "code": 404,
-                        "status": "error",
-                    },
+                    _build_error_response(MSG_PRUEBA_NO_ENCONTRADA, 404),
                     status=status.HTTP_404_NOT_FOUND,
                 )
             return Response(
-                {
-                    "msg": "Prueba física obtenida exitosamente",
-                    "data": prueba,
-                    "code": 200,
-                    "status": "success",
-                },
+                _build_success_response("Prueba física obtenida exitosamente", prueba),
                 status=status.HTTP_200_OK,
             )
         except ValidationError as exc:
             return Response(
-                {
-                    "msg": str(exc),
-                    "data": None,
-                    "code": 400,
-                    "status": "error",
-                },
+                _build_error_response(str(exc), 400),
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except Exception:
             logger.error("Error en retrieve prueba física", exc_info=True)
             return Response(
-                {
-                    "msg": "Error interno del servidor",
-                    "data": None,
-                    "code": 500,
-                    "status": "error",
-                },
+                _build_error_response(MSG_ERROR_INTERNO),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -226,29 +193,14 @@ class PruebaFisicaController(viewsets.ViewSet):
         """Actualiza una prueba física existente."""
         token = get_user_module_token()
 
-        # Validar que pk sea un entero válido
-        try:
-            pk = int(pk)
-        except (TypeError, ValueError):
-            return Response(
-                {
-                    "msg": "ID inválido",
-                    "data": None,
-                    "code": 400,
-                    "status": "error",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        pk, error_response = _validate_pk(pk)
+        if error_response:
+            return error_response
 
         serializer = PruebaFisicaInputSerializer(data=request.data, partial=True)
         if not serializer.is_valid():
             return Response(
-                {
-                    "msg": "Datos de entrada inválidos",
-                    "data": serializer.errors,
-                    "code": 400,
-                    "status": "error",
-                },
+                _build_error_response(MSG_DATOS_INVALIDOS, 400, serializer.errors),
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -256,48 +208,29 @@ class PruebaFisicaController(viewsets.ViewSet):
             prueba = self.service.update_prueba_fisica(
                 pk, serializer.validated_data, user=request.user
             )
-            # Obtener datos completos para la respuesta
             prueba_completa = self.service.get_prueba_fisica_completa(
                 prueba.id, token, user=request.user
             )
             return Response(
-                {
-                    "msg": "Prueba física actualizada exitosamente",
-                    "data": prueba_completa,
-                    "code": 200,
-                    "status": "success",
-                },
+                _build_success_response(
+                    "Prueba física actualizada exitosamente", prueba_completa
+                ),
                 status=status.HTTP_200_OK,
             )
         except ValidationError as exc:
             return Response(
-                {
-                    "msg": str(exc),
-                    "data": None,
-                    "code": 400,
-                    "status": "error",
-                },
+                _build_error_response(str(exc), 400),
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except PermissionDenied as exc:
             return Response(
-                {
-                    "msg": str(exc),
-                    "data": None,
-                    "code": 403,
-                    "status": "error",
-                },
+                _build_error_response(str(exc), 403),
                 status=status.HTTP_403_FORBIDDEN,
             )
         except Exception:
             logger.error("Error en update prueba física", exc_info=True)
             return Response(
-                {
-                    "msg": "Error interno del servidor",
-                    "data": None,
-                    "code": 500,
-                    "status": "error",
-                },
+                _build_error_response(MSG_ERROR_INTERNO),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -307,64 +240,36 @@ class PruebaFisicaController(viewsets.ViewSet):
         """Cambia el estado de la prueba física."""
         token = get_user_module_token()
 
-        # Validar que pk sea un entero válido
-        try:
-            pk = int(pk)
-        except (TypeError, ValueError):
-            return Response(
-                {
-                    "msg": "ID inválido",
-                    "data": None,
-                    "code": 400,
-                    "status": "error",
-                },
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        pk, error_response = _validate_pk(pk)
+        if error_response:
+            return error_response
 
         try:
             prueba = self.service.toggle_estado(pk, user=request.user)
-            # Obtener datos completos para la respuesta
             prueba_completa = self.service.get_prueba_fisica_completa(
                 prueba.id, token, user=request.user
             )
             return Response(
-                {
-                    "msg": "Estado de la prueba física actualizado exitosamente",
-                    "data": prueba_completa,
-                    "code": 200,
-                    "status": "success",
-                },
+                _build_success_response(
+                    "Estado de la prueba física actualizado exitosamente",
+                    prueba_completa,
+                ),
                 status=status.HTTP_200_OK,
             )
         except ValidationError as exc:
             return Response(
-                {
-                    "msg": str(exc),
-                    "data": None,
-                    "code": 400,
-                    "status": "error",
-                },
+                _build_error_response(str(exc), 400),
                 status=status.HTTP_400_BAD_REQUEST,
             )
         except PermissionDenied as exc:
             return Response(
-                {
-                    "msg": str(exc),
-                    "data": None,
-                    "code": 403,
-                    "status": "error",
-                },
+                _build_error_response(str(exc), 403),
                 status=status.HTTP_403_FORBIDDEN,
             )
         except Exception:
             logger.error("Error en toggle_estado prueba física", exc_info=True)
             return Response(
-                {
-                    "msg": "Error interno del servidor",
-                    "data": None,
-                    "code": 500,
-                    "status": "error",
-                },
+                _build_error_response(MSG_ERROR_INTERNO),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
@@ -378,22 +283,14 @@ class PruebaFisicaController(viewsets.ViewSet):
                 atleta_id, token, user=request.user
             )
             return Response(
-                {
-                    "msg": "Pruebas físicas del atleta obtenidas exitosamente",
-                    "data": pruebas,
-                    "code": 200,
-                    "status": "success",
-                },
+                _build_success_response(
+                    "Pruebas físicas del atleta obtenidas exitosamente", pruebas
+                ),
                 status=status.HTTP_200_OK,
             )
         except Exception:
             logger.error("Error en by_atleta pruebas físicas", exc_info=True)
             return Response(
-                {
-                    "msg": "Error interno del servidor",
-                    "data": None,
-                    "code": 500,
-                    "status": "error",
-                },
+                _build_error_response(MSG_ERROR_INTERNO),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )

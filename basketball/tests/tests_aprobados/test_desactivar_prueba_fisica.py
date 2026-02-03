@@ -1,5 +1,5 @@
 from unittest.mock import MagicMock, patch
-from django.test import SimpleTestCase
+from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 from rest_framework import status
 import jwt
@@ -12,7 +12,7 @@ from basketball.services.prueba_fisica_service import PruebaFisicaService
 from basketball.models import PruebaFisica, Atleta, Entrenador, Inscripcion
 
 
-class TestDesactivarPruebaFisica(SimpleTestCase):
+class TestDesactivarPruebaFisica(TestCase):
     """Tests para la desactivación (toggle estado) de pruebas físicas."""
 
     def setUp(self):
@@ -410,9 +410,9 @@ class TestDesactivarPruebaFisica(SimpleTestCase):
         response = self.view(request, pk="1")
 
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-        self.assertIn("error", response.data)
+        self.assertEqual(response.data["status"], "error")
         self.assertIn(
-            "No tiene permiso para modificar esta prueba", response.data["error"]
+            "No tiene permiso para modificar esta prueba", response.data["msg"]
         )
 
     @patch("basketball.serializers.get_persona_from_user_module")

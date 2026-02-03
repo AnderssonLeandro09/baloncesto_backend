@@ -1,8 +1,37 @@
 import re
 from datetime import date
 from rest_framework import serializers
-from ..models import Atleta, Inscripcion, Sexo
+from ..models import Atleta, Inscripcion
 from .persona import PersonaSerializer
+
+# =============================================================================
+# CONSTANTES DE VALIDACIÓN - Sincronizadas con el frontend
+# =============================================================================
+
+# Límites de caracteres para campos médicos
+LIMITES_CAMPOS_MEDICOS = {
+    "MAX_LENGTH": 100,
+    "CAMPOS": ["alergias", "enfermedades", "medicamentos", "lesiones"],
+}
+
+# Límites de caracteres para campos de dirección
+LIMITES_DIRECCION = {"MAX_LENGTH": 75}
+
+# Mensajes de error del backend - Usados en las respuestas JSON
+_MAX_MED = LIMITES_CAMPOS_MEDICOS["MAX_LENGTH"]
+_MAX_DIR = LIMITES_DIRECCION["MAX_LENGTH"]
+MENSAJES_ERROR_BACKEND = {
+    # Campos médicos
+    "ALERGIAS_MAX_LENGTH": f"El campo alergias no puede exceder {_MAX_MED} caracteres.",
+    "ENFERMEDADES_MAX_LENGTH": f"El campo enfermedades no puede exceder {_MAX_MED} caracteres.",
+    "MEDICAMENTOS_MAX_LENGTH": f"El campo medicamentos no puede exceder {_MAX_MED} caracteres.",
+    "LESIONES_MAX_LENGTH": f"El campo lesiones no puede exceder {_MAX_MED} caracteres.",
+    # Direcciones
+    "DIRECCION_MAX_LENGTH": f"El campo dirección no puede exceder {_MAX_DIR} caracteres.",
+    "DIRECCION_REPRESENTANTE_MAX_LENGTH": (
+        f"La dirección del representante no puede exceder {_MAX_DIR} caracteres."
+    ),
+}
 
 
 class AtletaSerializer(serializers.ModelSerializer):
@@ -73,9 +102,15 @@ class AtletaDataSerializer(serializers.ModelSerializer):
 
     def validate_telefono(self, value):
         """
-        Valida el teléfono del atleta:
+        Valida el teléfono del atleta (formato Ecuador):
         - Solo dígitos numéricos
-        - Longitud entre 9 y 15 caracteres
+        - Exactamente 10 dígitos (formato celular: 09XXXXXXXX)
+
+        Returns:
+            str: Teléfono limpio y validado
+
+        Raises:
+            ValidationError: Si el formato es inválido
         """
         if not value:
             return value
@@ -93,18 +128,24 @@ class AtletaDataSerializer(serializers.ModelSerializer):
                 "El teléfono debe contener solo dígitos numéricos."
             )
 
-        if len(value) < 9 or len(value) > 15:
+        if len(value) != 10:
             raise serializers.ValidationError(
-                "El teléfono debe tener entre 9 y 15 dígitos."
+                "El teléfono debe tener exactamente 10 dígitos."
             )
 
         return value
 
     def validate_telefono_representante(self, value):
         """
-        Valida el teléfono del representante:
+        Valida el teléfono del representante (formato Ecuador):
         - Solo dígitos numéricos
-        - Longitud entre 9 y 15 caracteres
+        - Exactamente 10 dígitos
+
+        Returns:
+            str: Teléfono limpio y validado
+
+        Raises:
+            ValidationError: Si el formato es inválido
         """
         if not value:
             return value
@@ -122,9 +163,9 @@ class AtletaDataSerializer(serializers.ModelSerializer):
                 "El teléfono del representante debe contener solo dígitos numéricos."
             )
 
-        if len(value) < 9 or len(value) > 15:
+        if len(value) != 10:
             raise serializers.ValidationError(
-                "El teléfono del representante debe tener entre 9 y 15 dígitos."
+                "El teléfono del representante debe tener exactamente 10 dígitos."
             )
 
         return value
@@ -183,6 +224,99 @@ class AtletaDataSerializer(serializers.ModelSerializer):
         # Capitalizar cada palabra
         return " ".join(word.capitalize() for word in value.split())
 
+    # =========================================================================
+    # VALIDACIONES DE CAMPOS MÉDICOS - Máximo 100 caracteres
+    # =========================================================================
+
+    def validate_alergias(self, value):
+        """
+        Valida el campo alergias:
+        - Máximo 100 caracteres
+        """
+        if not value:
+            return value
+
+        value = value.strip()
+
+        if len(value) > LIMITES_CAMPOS_MEDICOS["MAX_LENGTH"]:
+            raise serializers.ValidationError(
+                MENSAJES_ERROR_BACKEND["ALERGIAS_MAX_LENGTH"]
+            )
+
+        return value
+
+    def validate_enfermedades(self, value):
+        """
+        Valida el campo enfermedades:
+        - Máximo 100 caracteres
+        """
+        if not value:
+            return value
+
+        value = value.strip()
+
+        if len(value) > LIMITES_CAMPOS_MEDICOS["MAX_LENGTH"]:
+            raise serializers.ValidationError(
+                MENSAJES_ERROR_BACKEND["ENFERMEDADES_MAX_LENGTH"]
+            )
+
+        return value
+
+    def validate_medicamentos(self, value):
+        """
+        Valida el campo medicamentos:
+        - Máximo 100 caracteres
+        """
+        if not value:
+            return value
+
+        value = value.strip()
+
+        if len(value) > LIMITES_CAMPOS_MEDICOS["MAX_LENGTH"]:
+            raise serializers.ValidationError(
+                MENSAJES_ERROR_BACKEND["MEDICAMENTOS_MAX_LENGTH"]
+            )
+
+        return value
+
+    def validate_lesiones(self, value):
+        """
+        Valida el campo lesiones:
+        - Máximo 100 caracteres
+        """
+        if not value:
+            return value
+
+        value = value.strip()
+
+        if len(value) > LIMITES_CAMPOS_MEDICOS["MAX_LENGTH"]:
+            raise serializers.ValidationError(
+                MENSAJES_ERROR_BACKEND["LESIONES_MAX_LENGTH"]
+            )
+
+        return value
+
+    # =========================================================================
+    # VALIDACIONES DE DIRECCIONES - Máximo 75 caracteres
+    # =========================================================================
+
+    def validate_direccion_representante(self, value):
+        """
+        Valida la dirección del representante:
+        - Máximo 75 caracteres
+        """
+        if not value:
+            return value
+
+        value = value.strip()
+
+        if len(value) > LIMITES_DIRECCION["MAX_LENGTH"]:
+            raise serializers.ValidationError(
+                MENSAJES_ERROR_BACKEND["DIRECCION_REPRESENTANTE_MAX_LENGTH"]
+            )
+
+        return value
+
     class Meta:
         model = Atleta
         exclude = ["persona_external", "grupos"]
@@ -199,15 +333,20 @@ class InscripcionDataSerializer(serializers.ModelSerializer):
     def validate_fecha_inscripcion(self, value):
         """
         Valida que la fecha de inscripción no sea futura.
-        """
-        if not value:
-            return value
 
-        if value > date.today():
+        Args:
+            value: Fecha de inscripción a validar
+
+        Returns:
+            La fecha validada
+
+        Raises:
+            ValidationError: Si la fecha es futura
+        """
+        if value and value > date.today():
             raise serializers.ValidationError(
                 "La fecha de inscripción no puede ser una fecha futura."
             )
-
         return value
 
     class Meta:
