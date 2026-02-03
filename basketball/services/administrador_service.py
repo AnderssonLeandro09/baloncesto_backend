@@ -161,6 +161,56 @@ class AdministradorService:
             "persona": persona_data,
         }
 
+    def _validate_persona_data(self, persona_data: Dict[str, Any]) -> None:
+        """Valida que los datos de persona requeridos estén presentes."""
+        if not persona_data:
+            raise ValidationError("Datos de persona son obligatorios")
+        if not persona_data.get("email"):
+            raise ValidationError("El correo electrónico es obligatorio")
+        if not persona_data.get("password"):
+            raise ValidationError("La contraseña es obligatoria")
+
+    def _lookup_persona_external(
+        self, identification: Optional[str], token: str
+    ) -> Optional[str]:
+        """Busca el external_id de una persona por su identificación."""
+        if not identification:
+            return None
+
+        lookup_response = self._search_by_identification(identification, token)
+        if lookup_response:
+            return self._extract_external(lookup_response)
+
+        fallback_person = self._search_in_all_filter(identification, token)
+        if fallback_person:
+            return self._extract_external(fallback_person)
+
+        return None
+
+    def _create_or_find_persona(self, persona_data: Dict[str, Any], token: str) -> str:
+        """Crea una persona o la busca si ya existe. Retorna el external_id."""
+        identification = persona_data.get("identification")
+
+        try:
+            persona_response = self._call_user_module(
+                "post", "/api/person/save-account", token, persona_data
+            )
+            persona_external = self._extract_external(persona_response)
+
+            if not persona_external and identification:
+                persona_external = self._lookup_persona_external(identification, token)
+
+            if persona_external:
+                return persona_external
+
+        except ValidationError as exc:
+            persona_external = self._lookup_persona_external(identification, token)
+            if persona_external:
+                return persona_external
+            raise exc
+
+        raise ValidationError("El módulo de usuarios no retornó external_id")
+
     # ======================================================================
     # CRUD operations
     # ======================================================================
@@ -170,61 +220,11 @@ class AdministradorService:
         administrador_data: Dict[str, Any],
         token: str,
     ) -> Dict[str, Any]:
-        if not persona_data:
-            raise ValidationError("Datos de persona son obligatorios")
+        self._validate_persona_data(persona_data)
 
         cargo = administrador_data.get("cargo")
-        # cargo es opcional en el modelo, pero si se requiere validación extra, agregar aquí.
 
-        # Validar que email y contraseña estén presentes
-        if not persona_data.get("email"):
-            raise ValidationError("El correo electrónico es obligatorio")
-
-        if not persona_data.get("password"):
-            raise ValidationError("La contraseña es obligatoria")
-
-        persona_response = None
-        persona_external = None
-
-        # Intentar crear con cuenta primero
-        try:
-            persona_response = self._call_user_module(
-                "post", "/api/person/save-account", token, persona_data
-            )
-            persona_external = self._extract_external(persona_response)
-
-            if not persona_external and persona_data.get("identification"):
-                lookup_response = self._search_by_identification(
-                    persona_data.get("identification"), token
-                )
-                persona_external = (
-                    self._extract_external(lookup_response) if lookup_response else None
-                )
-
-        except ValidationError as exc:
-            # Intentar recuperar si la persona ya existe, independientemente del error
-            # Esto cubre casos donde el mensaje de error no es estándar o es un error de BD (ej. Duplicate entry)
-            if persona_data.get("identification"):
-                lookup_response = self._search_by_identification(
-                    persona_data.get("identification"), token
-                )
-                if lookup_response:
-                    persona_external = self._extract_external(lookup_response)
-
-            if not persona_external:
-                # Fallback: intentar encontrar en la lista all_filter
-                fallback_person = self._search_in_all_filter(
-                    persona_data.get("identification"), token
-                )
-                if fallback_person:
-                    persona_external = self._extract_external(fallback_person)
-
-            if not persona_external:
-                # Si realmente no pudimos encontrarla, lanzamos el error original
-                raise exc
-
-        if not persona_external:
-            raise ValidationError("El módulo de usuarios no retornó external_id")
+        persona_external = self._create_or_find_persona(persona_data, token)
 
         if self.dao.exists(persona_external=persona_external, estado=True):
             raise ValidationError("Ya existe un administrador con ese external")
