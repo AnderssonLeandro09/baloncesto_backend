@@ -6,12 +6,12 @@ from datetime import date
 
 # Para el servicio usamos la excepción de Django ya que es lógica de negocio pura
 from django.core.exceptions import ValidationError
-from django.test import SimpleTestCase
+from django.test import TestCase
 
 from basketball.services.inscripcion_service import InscripcionService
 
 
-class InscripcionServiceTests(SimpleTestCase):
+class InscripcionServiceTests(TestCase):
     def setUp(self):
         # Inicialización del servicio con mocks para evitar acceso a DB y red
         self.service = InscripcionService()
@@ -82,7 +82,7 @@ class InscripcionServiceTests(SimpleTestCase):
 
         # Ejecutamos con datos mínimos (sin email ni password)
         result = self.service.create_atleta_inscripcion(
-            {"first_name": "Juan", "identification": "0102030405"},
+            {"first_name": "Juan", "last_name": "Test", "identification": "0102030405"},
             {"edad": 15, "sexo": "MASCULINO"},
             {},
             "token",
@@ -147,6 +147,7 @@ class InscripcionServiceTests(SimpleTestCase):
         result = self.service.create_atleta_inscripcion(
             {
                 "first_name": "Juan",
+                "last_name": "Test",
                 "identification": "0102030406",
                 "email": "juan@test.com",
                 "password": "pass",

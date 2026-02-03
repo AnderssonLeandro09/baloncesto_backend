@@ -63,44 +63,11 @@ class AuthController(viewsets.ViewSet):
             )
 
         if response.status_code != 200:
-            error_msg = "Credenciales inválidas"
-            try:
-                resp_json = response.json()
-                # Intentar obtener el mensaje de error del servicio externo
-                # Puede venir en 'msg', 'message', 'error' o 'data'
-                error_msg = (
-                    resp_json.get("msg")
-                    or resp_json.get("message")
-                    or resp_json.get("error")
-                    or error_msg
-                )
-
-                # Si el mensaje es muy genérico o técnico, podemos mapearlo
-                if response.status_code == 404:
-                    error_msg = "El correo electrónico no está registrado."
-                elif response.status_code == 401:
-                    if (
-                        "password" in str(error_msg).lower()
-                        or "contraseña" in str(error_msg).lower()
-                    ):
-                        error_msg = "La contraseña es incorrecta."
-                    elif (
-                        "account" in str(error_msg).lower()
-                        or "cuenta" in str(error_msg).lower()
-                    ):
-                        error_msg = "La cuenta tiene problemas (bloqueada/inactiva)."
-                    else:
-                        error_msg = "Credenciales incorrectas (correo o contraseña)."
-            except ValueError:
-                pass
-
-            return Response(
-                {"error": error_msg},
-                status=(
-                    response.status_code
-                    if response.status_code < 500
-                    else status.HTTP_502_BAD_GATEWAY
-                ),
+            error_msg = self._extract_error_message(response)
+            response_status = (
+                response.status_code
+                if response.status_code < 500
+                else status.HTTP_502_BAD_GATEWAY
             )
 
         # 2. Extraer información del usuario
@@ -140,12 +107,28 @@ class AuthController(viewsets.ViewSet):
 
         if is_admin:
             role = "ADMIN"
-        elif Entrenador.objects.filter(persona_external=external_id).exists():
-            role = "ENTRENADOR"
-        elif EstudianteVinculacion.objects.filter(
-            persona_external=external_id, eliminado=False
-        ).exists():
-            role = "ESTUDIANTE_VINCULACION"
+        else:
+            # Verificar si es Entrenador
+            entrenador = Entrenador.objects.filter(persona_external=external_id).first()
+            if entrenador:
+                if entrenador.eliminado:
+                    return Response(
+                        {"error": "La cuenta está inactiva."},
+                        status=status.HTTP_403_FORBIDDEN,
+                    )
+                role = "ENTRENADOR"
+            else:
+                # Verificar si es Estudiante de Vinculación
+                estudiante = EstudianteVinculacion.objects.filter(
+                    persona_external=external_id
+                ).first()
+                if estudiante:
+                    if estudiante.eliminado:
+                        return Response(
+                            {"error": "La cuenta está inactiva."},
+                            status=status.HTTP_403_FORBIDDEN,
+                        )
+                    role = "ESTUDIANTE_VINCULACION"
 
         # 4. Generar Nuestro JWT Local
         # Usamos la SECRET_KEY de Django para firmar
