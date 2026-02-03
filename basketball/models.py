@@ -13,6 +13,11 @@ from django.utils import timezone
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 
+# Constantes para verbose_name y help_text duplicados
+VERBOSE_EXTERNAL_ID_PERSONA = "External ID Persona"
+HELP_TEXT_UUID_EXTERNO = "UUID externo de la persona en el módulo de usuarios"
+VERBOSE_FECHA_REGISTRO = "Fecha de registro"
+
 
 class TipoInscripcion(models.TextChoices):
     """Enum para tipos de inscripción según edad del atleta"""
@@ -49,14 +54,14 @@ class Administrador(models.Model):
     persona_external = models.CharField(
         max_length=100,
         unique=True,
-        verbose_name="External ID Persona",
-        help_text="UUID externo de la persona en el módulo de usuarios",
+        verbose_name=VERBOSE_EXTERNAL_ID_PERSONA,
+        help_text=HELP_TEXT_UUID_EXTERNO,
     )
     cargo = models.CharField(
         max_length=100, blank=True, null=True, verbose_name="Cargo"
     )
     fecha_registro = models.DateTimeField(
-        auto_now_add=True, verbose_name="Fecha de registro"
+        auto_now_add=True, verbose_name=VERBOSE_FECHA_REGISTRO
     )
     estado = models.BooleanField(default=True, verbose_name="Estado")
 
@@ -118,8 +123,8 @@ class Entrenador(models.Model):
     persona_external = models.CharField(
         max_length=100,
         unique=True,
-        verbose_name="External ID Persona",
-        help_text="UUID externo de la persona en el módulo de usuarios",
+        verbose_name=VERBOSE_EXTERNAL_ID_PERSONA,
+        help_text=HELP_TEXT_UUID_EXTERNO,
     )
     especialidad = models.CharField(
         max_length=100,
@@ -156,8 +161,8 @@ class EstudianteVinculacion(models.Model):
     persona_external = models.CharField(
         max_length=100,
         unique=True,
-        verbose_name="External ID Persona",
-        help_text="UUID externo de la persona en el módulo de usuarios",
+        verbose_name=VERBOSE_EXTERNAL_ID_PERSONA,
+        help_text=HELP_TEXT_UUID_EXTERNO,
     )
     carrera = models.CharField(max_length=100, verbose_name="Carrera")
     semestre = models.CharField(max_length=20, verbose_name="Semestre")
@@ -183,8 +188,8 @@ class Atleta(models.Model):
         max_length=100,
         unique=True,
         null=True,
-        verbose_name="External ID Persona",
-        help_text="UUID externo de la persona en el módulo de usuarios",
+        verbose_name=VERBOSE_EXTERNAL_ID_PERSONA,
+        help_text=HELP_TEXT_UUID_EXTERNO,
     )
 
     # Datos Personales Redundantes (backup local si el microservicio falla)
@@ -379,7 +384,7 @@ class PruebaAntropometrica(models.Model):
     # Datos antropométricos
     # ================================
     fecha_registro = models.DateField(
-        default=timezone.now, verbose_name="Fecha de registro"
+        default=timezone.now, verbose_name=VERBOSE_FECHA_REGISTRO
     )
 
     peso = models.DecimalField(
@@ -529,7 +534,7 @@ class PruebaFisica(models.Model):
         related_name="pruebas_fisicas",
         verbose_name="Atleta",
     )
-    fecha_registro = models.DateField(verbose_name="Fecha de registro")
+    fecha_registro = models.DateField(verbose_name=VERBOSE_FECHA_REGISTRO)
     tipo_prueba = models.CharField(
         max_length=20,
         choices=TipoPrueba.choices,
