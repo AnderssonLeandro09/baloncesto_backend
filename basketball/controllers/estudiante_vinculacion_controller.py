@@ -2,6 +2,7 @@
 
 from rest_framework import status, viewsets
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from drf_spectacular.utils import extend_schema
 
 from ..permissions import IsAdmin
@@ -31,7 +32,8 @@ class EstudianteVinculacionController(viewsets.ViewSet):
         # Usar token de admin para consultar el módulo de usuarios
         token = get_user_module_token()
         try:
-            data = self.service.list_estudiantes(token)
+            # Listar todos incluyendo deshabilitados para poder hacer toggle
+            data = self.service.list_all_estudiantes(token)
             return Response(
                 {
                     "msg": "Estudiantes listados correctamente",
@@ -223,3 +225,49 @@ class EstudianteVinculacionController(viewsets.ViewSet):
             },
             status=status.HTTP_200_OK,
         )
+
+    @action(detail=True, methods=["post"], url_path="toggle-estado")
+    @extend_schema(request=None)
+    def toggle_estado(self, request, pk=None):
+        """
+        Alterna el estado de habilitación de un estudiante (Toggle).
+        Usa el campo 'eliminado' como borrado lógico.
+        """
+        token = get_user_module_token()
+        try:
+            result = self.service.toggle_estado(pk, token)
+            if not result:
+                return Response(
+                    {
+                        "msg": MSG_ESTUDIANTE_NO_ENCONTRADO,
+                        "data": None,
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "status": "error",
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            mensaje = (
+                "Estudiante habilitado correctamente"
+                if not result["estudiante"]["eliminado"]
+                else "Estudiante deshabilitado correctamente"
+            )
+            return Response(
+                {
+                    "msg": mensaje,
+                    "data": result,
+                    "code": status.HTTP_200_OK,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as exc:
+            return Response(
+                {
+                    "msg": "Error al cambiar estado del estudiante",
+                    "data": str(exc),
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )

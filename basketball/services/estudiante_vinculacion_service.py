@@ -384,3 +384,32 @@ class EstudianteVinculacionService:
             )
             resultados.append(self._build_response(estudiante, persona_info))
         return resultados
+
+    def list_all_estudiantes(self, token: str) -> List[Dict[str, Any]]:
+        """Lista todos los estudiantes incluyendo los deshabilitados."""
+        estudiantes = self.dao.get_all()
+        resultados: List[Dict[str, Any]] = []
+        for estudiante in estudiantes:
+            persona_info = self._fetch_persona(
+                estudiante.persona_external, token, allow_fail=True
+            )
+            resultados.append(self._build_response(estudiante, persona_info))
+        return resultados
+
+    def toggle_estado(self, pk: int, token: str) -> Optional[Dict[str, Any]]:
+        """Alterna el estado eliminado del estudiante (habilitar/deshabilitar)."""
+        estudiante = self.dao.get_by_id(pk)
+        if not estudiante:
+            return None
+
+        # Toggle del campo eliminado
+        nuevo_estado = not estudiante.eliminado
+        updated = self.dao.update(pk, eliminado=nuevo_estado)
+
+        if not updated:
+            return None
+
+        persona_info = self._fetch_persona(
+            updated.persona_external, token, allow_fail=True
+        )
+        return self._build_response(updated, persona_info)
