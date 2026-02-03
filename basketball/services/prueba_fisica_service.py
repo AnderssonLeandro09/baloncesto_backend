@@ -278,7 +278,7 @@ class PruebaFisicaService:
         try:
             atleta_id = data.pop("atleta_id", None)
             if not atleta_id:
-                raise ValidationError("El ID del atleta es requerido")
+                raise ValidationError("El atleta es requerido")
 
             atleta_id = self._validate_int_id(atleta_id, "ID del atleta")
 
