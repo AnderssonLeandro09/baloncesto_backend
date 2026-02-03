@@ -788,81 +788,9 @@ class InscripcionService:
 
             # Actualizar persona externa (si aplica)
             if persona_data:
-                persona_payload = persona_data.copy()
-                persona_payload.setdefault("external", atleta.persona_external)
+                atleta = self._update_persona_data(atleta, persona_data, token)
 
-                # Relleno de seguridad para update
-                if "email" not in persona_payload:
-                    persona_payload[
-                        "email"
-                    ] = f"update_{atleta.persona_external}@sistema.local"
-
-                try:
-                    self._call_user_module(
-                        "post",
-                        "/api/person/update",
-                        token,
-                        persona_payload,
-                    )
-                except Exception:
-                    logger.warning(
-                        "[UPDATE] Fallo API externa, solo se actualizará localmente"
-                    )
-
-                # CRÍTICO: Actualizar TODOS los datos personales LOCALMENTE
-                # con MAPEO ROBUSTO
-                nombre_real = (
-                    persona_data.get("first_name")
-                    or persona_data.get("firts_name")
-                    or persona_data.get("nombres")
-                    or persona_data.get("nombre")
-                )
-                apellido_real = (
-                    persona_data.get("last_name")
-                    or persona_data.get("apellidos")
-                    or persona_data.get("apellido")
-                )
-                cedula_real = (
-                    persona_data.get("identification")
-                    or persona_data.get("cedula")
-                    or persona_data.get("dni")
-                )
-                telefono_real = (
-                    persona_data.get("phono")
-                    or persona_data.get("telefono")
-                    or persona_data.get("phone")
-                )
-                direccion_real = (
-                    persona_data.get("direction")
-                    or persona_data.get("direccion")
-                    or persona_data.get("address")
-                )
-                email_real = persona_data.get("email") or persona_data.get("correo")
-                genero_real = persona_data.get("gender") or persona_data.get("genero")
-
-                local_update = {}
-                if nombre_real:
-                    local_update["nombres"] = nombre_real
-                if apellido_real:
-                    local_update["apellidos"] = apellido_real
-                if cedula_real:
-                    local_update["cedula"] = cedula_real
-                if email_real:
-                    local_update["email"] = email_real
-                if telefono_real:
-                    local_update["telefono"] = telefono_real
-                if direccion_real:
-                    local_update["direccion"] = direccion_real
-                if genero_real:
-                    local_update["genero"] = genero_real
-
-                logger.info(f"[UPDATE MAPEO] local_update={local_update}")
-
-                if local_update:
-                    self.atleta_dao.update(atleta.id, **local_update)
-                    atleta = self.atleta_dao.get_by_id(atleta.id)  # Refrescar
-
-            # Actualizar Atleta Local (otros campos)
+            # Actualizar atleta local (otros campos)
             if atleta_data:
                 atleta = self._update_atleta_data(atleta, atleta_data)
 

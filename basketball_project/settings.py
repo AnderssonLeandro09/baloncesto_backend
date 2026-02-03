@@ -256,14 +256,7 @@ CORS_ALLOW_METHODS = [
 CORS_PREFLIGHT_MAX_AGE = 86400
 
 
-# Detectar entorno: en Linux/GitHub Actions usar localhost, en Windows usar host.docker.internal
-# En Docker Compose, ambos funcionan correctamente
-if os.name == "nt":  # Windows
-    _default_user_url = "http://host.docker.internal:8096"
-else:  # Linux/GitHub Actions
-    _default_user_url = "http://localhost:8096"
-
-USER_MODULE_URL = os.getenv("USER_MODULE_URL", _default_user_url)
+USER_MODULE_URL = os.getenv("USER_MODULE_URL", "http://host.docker.internal:8096")
 USER_MODULE_ADMIN_EMAIL = os.getenv("USER_MODULE_ADMIN_EMAIL", "")
 USER_MODULE_ADMIN_PASSWORD = os.getenv("USER_MODULE_ADMIN_PASSWORD", "")
 
