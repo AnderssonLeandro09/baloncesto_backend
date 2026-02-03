@@ -176,6 +176,43 @@ class GrupoAtletaSerializer(serializers.ModelSerializer):
                 "La edad máxima debe ser un número válido"
             )
 
+    def _get_age_range(self):
+        """Obtiene el rango de edad del payload o de la instancia existente."""
+        min_v = self.initial_data.get("rango_edad_minima")
+        max_v = self.initial_data.get("rango_edad_maxima")
+        instance = getattr(self, "instance", None)
+
+        def to_int(val, default):
+            try:
+                return int(val) if val is not None else default
+            except (ValueError, TypeError):
+                return default
+
+        min_edad = to_int(min_v, instance.rango_edad_minima if instance else None)
+        max_edad = to_int(max_v, instance.rango_edad_maxima if instance else None)
+        return min_edad, max_edad
+
+    def _validate_single_atleta(self, atleta_id, min_edad, max_edad):
+        """Valida un único atleta por ID y rango de edad."""
+        from ..models import Atleta
+
+        try:
+            aid = int(atleta_id)
+            atleta = Atleta.objects.filter(id=aid).first()
+            if not atleta:
+                raise serializers.ValidationError(f"El atleta con ID {aid} no existe.")
+
+            if min_edad is not None and max_edad is not None:
+                if not (min_edad <= atleta.edad <= max_edad):
+                    raise serializers.ValidationError(
+                        f"El atleta {atleta.id} tiene {atleta.edad} años, está fuera del rango ({min_edad}-{max_edad})."
+                    )
+            return aid
+        except (ValueError, TypeError) as e:
+            if isinstance(e, serializers.ValidationError):
+                raise e
+            raise serializers.ValidationError(f"El ID '{atleta_id}' no es válido.")
+
     def validate_atletas(self, value):
         """Valida la lista de IDs de atletas y su edad respecto al rango del grupo."""
         if not isinstance(value, list):
@@ -184,49 +221,9 @@ class GrupoAtletaSerializer(serializers.ModelSerializer):
         if len(value) > 100:
             raise serializers.ValidationError("No se pueden asignar más de 100 atletas")
 
-        # Intentar obtener el rango del payload o de la instancia existente
-        min_v = self.initial_data.get("rango_edad_minima")
-        max_v = self.initial_data.get("rango_edad_maxima")
+        min_edad, max_edad = self._get_age_range()
+        valid_ids = [self._validate_single_atleta(aid, min_edad, max_edad) for aid in value]
 
-        # Si es una actualización parcial y no vienen los datos, intentar usar la instancia
-        instance = getattr(self, "instance", None)
-        min_edad = (
-            int(min_v)
-            if min_v is not None
-            else (instance.rango_edad_minima if instance else None)
-        )
-        max_edad = (
-            int(max_v)
-            if max_v is not None
-            else (instance.rango_edad_maxima if instance else None)
-        )
-
-        from ..models import Atleta
-
-        valid_ids = []
-        for atleta_id in value:
-            try:
-                aid = int(atleta_id)
-                atleta = Atleta.objects.filter(id=aid).first()
-                if not atleta:
-                    raise serializers.ValidationError(
-                        f"El atleta con ID {aid} no existe."
-                    )
-
-                # Validar rango de edad si tenemos los datos necesarios
-                if min_edad is not None and max_edad is not None:
-                    if not (min_edad <= atleta.edad <= max_edad):
-                        raise serializers.ValidationError(
-                            f"El atleta {atleta.id} tiene {atleta.edad} años, está fuera del rango ({min_edad}-{max_edad})."
-                        )
-
-                valid_ids.append(aid)
-            except (ValueError, TypeError) as e:
-                if isinstance(e, serializers.ValidationError):
-                    raise e
-                raise serializers.ValidationError(f"El ID '{atleta_id}' no es válido.")
-
-        # Eliminar duplicados
         return list(set(valid_ids))
 
     def validate_estado(self, value):

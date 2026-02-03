@@ -12,6 +12,8 @@ from ..services.grupo_atleta_service import GrupoAtletaService
 
 logger = logging.getLogger(__name__)
 
+MSG_GRUPO_NO_ENCONTRADO = "Grupo no encontrado"
+
 
 class GrupoAtletaController(viewsets.ViewSet):
     """CRUD para la gestión de grupos de atletas, solo para entrenadores"""
@@ -163,7 +165,7 @@ class GrupoAtletaController(viewsets.ViewSet):
             if not grupo:
                 return Response(
                     {
-                        "msg": "Grupo no encontrado",
+                        "msg": MSG_GRUPO_NO_ENCONTRADO,
                         "data": None,
                         "code": status.HTTP_404_NOT_FOUND,
                         "status": "error",
@@ -284,7 +286,7 @@ class GrupoAtletaController(viewsets.ViewSet):
             if not grupo_existente:
                 return Response(
                     {
-                        "msg": "Grupo no encontrado",
+                        "msg": MSG_GRUPO_NO_ENCONTRADO,
                         "data": None,
                         "code": status.HTTP_404_NOT_FOUND,
                         "status": "error",
@@ -364,7 +366,7 @@ class GrupoAtletaController(viewsets.ViewSet):
             if not success:
                 return Response(
                     {
-                        "msg": "Grupo no encontrado",
+                        "msg": MSG_GRUPO_NO_ENCONTRADO,
                         "data": None,
                         "code": status.HTTP_404_NOT_FOUND,
                         "status": "error",
