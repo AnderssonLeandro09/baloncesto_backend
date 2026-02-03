@@ -309,6 +309,7 @@ class GrupoAtletaResponseSerializer(serializers.ModelSerializer):
             "categoria",
             "fecha_creacion",
             "estado",
+            "eliminado",
             "entrenador",
             "atletas",
         ]
