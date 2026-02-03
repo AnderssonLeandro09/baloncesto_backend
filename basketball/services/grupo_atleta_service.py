@@ -375,7 +375,9 @@ class GrupoAtletaService:
         if user:
             entrenador = self.get_entrenador_from_user(user)
             if grupo.entrenador_id != entrenador.id:
-                raise ValidationError("No tienes permiso para cambiar el estado de este grupo")
+                raise ValidationError(
+                    "No tienes permiso para cambiar el estado de este grupo"
+                )
 
         # Toggle del campo eliminado
         grupo.eliminado = not grupo.eliminado
