@@ -15,6 +15,8 @@ from ..services.estudiante_vinculacion_service import (
     EstudianteVinculacionService,
 )
 
+MSG_ESTUDIANTE_NO_ENCONTRADO = "Estudiante no encontrado"
+
 
 class EstudianteVinculacionController(viewsets.ViewSet):
     """CRUD para estudiantes de vinculación."""
@@ -58,7 +60,7 @@ class EstudianteVinculacionController(viewsets.ViewSet):
             if not data:
                 return Response(
                     {
-                        "msg": "Estudiante no encontrado",
+                        "msg": MSG_ESTUDIANTE_NO_ENCONTRADO,
                         "data": None,
                         "code": status.HTTP_404_NOT_FOUND,
                         "status": "error",
@@ -166,7 +168,7 @@ class EstudianteVinculacionController(viewsets.ViewSet):
             if not result:
                 return Response(
                     {
-                        "msg": "Estudiante no encontrado",
+                        "msg": MSG_ESTUDIANTE_NO_ENCONTRADO,
                         "data": None,
                         "code": status.HTTP_404_NOT_FOUND,
                         "status": "error",
@@ -205,7 +207,7 @@ class EstudianteVinculacionController(viewsets.ViewSet):
         if not success:
             return Response(
                 {
-                    "msg": "Estudiante no encontrado",
+                    "msg": MSG_ESTUDIANTE_NO_ENCONTRADO,
                     "data": None,
                     "code": status.HTTP_404_NOT_FOUND,
                     "status": "error",
