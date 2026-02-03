@@ -222,7 +222,9 @@ class GrupoAtletaSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("No se pueden asignar más de 100 atletas")
 
         min_edad, max_edad = self._get_age_range()
-        valid_ids = [self._validate_single_atleta(aid, min_edad, max_edad) for aid in value]
+        valid_ids = [
+            self._validate_single_atleta(aid, min_edad, max_edad) for aid in value
+        ]
 
         return list(set(valid_ids))
 
