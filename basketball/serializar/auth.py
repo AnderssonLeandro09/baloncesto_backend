@@ -1,4 +1,6 @@
 import re
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework import serializers
 
 
@@ -28,8 +30,12 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("El correo electrónico es requerido.")
 
         # Validar que contenga @ y tenga formato válido
-        email_regex = r"^[^\s@]+@[^\s@]+\.[^\s@]+$"
-        if not re.match(email_regex, value):
+        try:
+            validate_email(value)
+            # Asegurar que el dominio tenga un punto (comportamiento original del regex)
+            if '.' not in value.split('@')[1]:
+                raise DjangoValidationError("El dominio debe contener un punto.")
+        except (DjangoValidationError, IndexError):
             raise serializers.ValidationError(
                 "Ingrese un correo electrónico válido (debe contener @)."
             )
