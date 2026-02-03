@@ -17,6 +17,8 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 VERBOSE_EXTERNAL_ID_PERSONA = "External ID Persona"
 HELP_TEXT_UUID_EXTERNO = "UUID externo de la persona en el módulo de usuarios"
 VERBOSE_FECHA_REGISTRO = "Fecha de registro"
+HELP_TEXT_MAX_100_CHARS = "Máximo 100 caracteres"
+HELP_TEXT_MAX_75_CHARS = "Máximo 75 caracteres"
 
 
 class TipoInscripcion(models.TextChoices):
@@ -208,7 +210,7 @@ class Atleta(models.Model):
         blank=True,
         null=True,
         verbose_name="Dirección",
-        help_text="Máximo 75 caracteres",
+        help_text=HELP_TEXT_MAX_75_CHARS,
     )
     genero = models.CharField(
         max_length=20, blank=True, null=True, verbose_name="Género"
@@ -234,28 +236,28 @@ class Atleta(models.Model):
         blank=True,
         null=True,
         verbose_name="Alergias",
-        help_text="Máximo 100 caracteres",
+        help_text=HELP_TEXT_MAX_100_CHARS,
     )
     enfermedades = models.CharField(
         max_length=100,
         blank=True,
         null=True,
         verbose_name="Enfermedades",
-        help_text="Máximo 100 caracteres",
+        help_text=HELP_TEXT_MAX_100_CHARS,
     )
     medicamentos = models.CharField(
         max_length=100,
         blank=True,
         null=True,
         verbose_name="Medicamentos",
-        help_text="Máximo 100 caracteres",
+        help_text=HELP_TEXT_MAX_100_CHARS,
     )
     lesiones = models.CharField(
         max_length=100,
         blank=True,
         null=True,
         verbose_name="Lesiones",
-        help_text="Máximo 100 caracteres",
+        help_text=HELP_TEXT_MAX_100_CHARS,
     )
 
     # Datos del Representante
@@ -282,7 +284,7 @@ class Atleta(models.Model):
         blank=True,
         null=True,
         verbose_name="Dirección representante",
-        help_text="Máximo 75 caracteres",
+        help_text=HELP_TEXT_MAX_75_CHARS,
     )
     ocupacion_representante = models.CharField(
         max_length=100, blank=True, null=True, verbose_name="Ocupación representante"
