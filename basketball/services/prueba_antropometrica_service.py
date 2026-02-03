@@ -202,7 +202,7 @@ class PruebaAntropometricaService:
     ) -> List[Dict[str, Any]]:
         """
         Obtiene atletas con inscripción habilitada y sus datos de persona.
-        
+
         REGLA DE NEGOCIO ACTUALIZADA:
         - Los ENTRENADORES pueden ver TODOS los atletas con inscripción habilitada.
         - La asignación a grupos es para organización, NO limita la visibilidad.

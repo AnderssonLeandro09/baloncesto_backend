@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 class ErrorMessages:
     """
     Mensajes de error centralizados para evitar duplicación de literales.
-    
+
     IMPORTANTE: Estos mensajes deben ser IDÉNTICOS a los del frontend
     para garantizar coherencia en la experiencia del usuario.
     Ver: baloncesto_frontend/src/utils/validacionesInscripcion.js
