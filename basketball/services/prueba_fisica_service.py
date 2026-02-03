@@ -391,17 +391,27 @@ class PruebaFisicaService:
     def get_atletas_habilitados_con_persona(
         self, token: str, user=None
     ) -> List[Dict[str, Any]]:
-        """Obtiene atletas con inscripción habilitada y sus datos de persona."""
+        """
+        Obtiene atletas con inscripción habilitada y sus datos de persona.
+        
+        REGLA DE NEGOCIO ACTUALIZADA:
+        - Los ENTRENADORES pueden ver TODOS los atletas con inscripción habilitada.
+        - La asignación a grupos es para organización, NO limita la visibilidad.
+        - Esto permite registrar pruebas físicas a cualquier atleta inscrito.
+        """
         from ..models import Atleta
 
+        # Filtro base: atletas con inscripción activa (habilitada=True)
         queryset = Atleta.objects.filter(inscripcion__habilitada=True)
 
+        # Los entrenadores ven TODOS los atletas con inscripción habilitada
+        # Ya no se filtra por grupos asignados al entrenador
         if user and user.role == "ENTRENADOR":
             entrenador = Entrenador.objects.filter(persona_external=user.pk).first()
-            if entrenador:
-                queryset = queryset.filter(grupos__entrenador=entrenador).distinct()
-            else:
+            if not entrenador:
+                # Si el usuario no está registrado como entrenador, denegar acceso
                 return []
+            # Se mantiene el queryset sin filtro de grupos para máxima visibilidad
 
         results = []
         for atleta in queryset:

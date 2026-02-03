@@ -117,3 +117,116 @@ class PruebaAntropometricaService:
             raise ValidationError("Prueba antropométrica no encontrada")
 
         return self.dao.update(prueba_id, estado=not prueba.estado)
+
+    def _call_user_module(
+        self,
+        method: str,
+        path: str,
+        token: str,
+    ) -> Dict[str, Any]:
+        """Llama al módulo de usuarios."""
+        user_module_url = settings.USER_MODULE_URL.rstrip("/")
+        headers = {
+            "Authorization": token if token.startswith("Bearer ") else f"Bearer {token}"
+        }
+        url = f"{user_module_url}{path}"
+        try:
+            response = requests.request(
+                method=method,
+                url=url,
+                headers=headers,
+                timeout=8,
+            )
+        except requests.RequestException as exc:
+            logger.error("Fallo al invocar user_module %s: %s", url, exc)
+            raise ValidationError("No se pudo contactar al módulo de usuarios")
+        if response.status_code >= 400:
+            logger.error(
+                "Error en módulo de usuarios: %s - %s",
+                response.status_code,
+                response.text,
+            )
+            return None
+
+        try:
+            return response.json()
+        except ValueError:
+            return None
+
+    def _fetch_persona(
+        self, persona_external: str, token: str
+    ) -> Optional[Dict[str, Any]]:
+        """Obtiene información de la persona desde el módulo de usuarios."""
+        if not persona_external:
+            return None
+        try:
+            response = self._call_user_module(
+                "get", f"/api/person/search/{persona_external}", token
+            )
+            if not response:
+                return None
+            persona_data = response.get("data") if isinstance(response, dict) else None
+            if persona_data:
+                return {
+                    "nombre": persona_data.get("first_name")
+                    or persona_data.get("firts_name"),
+                    "apellido": persona_data.get("last_name"),
+                    "identificacion": persona_data.get("identification"),
+                }
+            return None
+        except Exception:
+            return None
+
+    def _get_persona_info(self, atleta, token: str) -> Dict[str, Any]:
+        """Obtiene información de la persona con fallback a datos locales."""
+        persona_info = self._fetch_persona(atleta.persona_external, token)
+
+        if not persona_info:
+            return {
+                "nombre": atleta.nombres or "Atleta",
+                "apellido": atleta.apellidos or f"ID: {atleta.id}",
+                "identificacion": atleta.cedula or "N/A",
+            }
+
+        if not persona_info.get("nombre") and atleta.nombres:
+            persona_info["nombre"] = atleta.nombres
+        if not persona_info.get("apellido") and atleta.apellidos:
+            persona_info["apellido"] = atleta.apellidos
+        if not persona_info.get("identificacion") and atleta.cedula:
+            persona_info["identificacion"] = atleta.cedula
+
+        return persona_info
+
+    def get_atletas_habilitados_con_persona(
+        self, token: str, user=None
+    ) -> List[Dict[str, Any]]:
+        """
+        Obtiene atletas con inscripción habilitada y sus datos de persona.
+        
+        REGLA DE NEGOCIO ACTUALIZADA:
+        - Los ENTRENADORES pueden ver TODOS los atletas con inscripción habilitada.
+        - La asignación a grupos es para organización, NO limita la visibilidad.
+        - Esto permite registrar pruebas antropométricas a cualquier atleta inscrito.
+        """
+        queryset = Atleta.objects.filter(inscripcion__habilitada=True)
+
+        # Los entrenadores ven TODOS los atletas con inscripción habilitada
+        # Ya no se filtra por grupos asignados al entrenador
+        if user and user.role == "ENTRENADOR":
+            entrenador = Entrenador.objects.filter(persona_external=user.pk).first()
+            if not entrenador:
+                # Si el usuario no está registrado como entrenador, denegar acceso
+                return []
+            # Se mantiene el queryset sin filtro de grupos para máxima visibilidad
+
+        results = []
+        for atleta in queryset:
+            persona_info = self._get_persona_info(atleta, token)
+            results.append(
+                {
+                    "id": atleta.id,
+                    "persona": persona_info,
+                    "persona_external": atleta.persona_external,
+                }
+            )
+        return results

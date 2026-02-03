@@ -33,7 +33,13 @@ logger = logging.getLogger(__name__)
 # CONSTANTES DE MENSAJES DE ERROR
 # ==========================================================================
 class ErrorMessages:
-    """Mensajes de error centralizados para evitar duplicación de literales."""
+    """
+    Mensajes de error centralizados para evitar duplicación de literales.
+    
+    IMPORTANTE: Estos mensajes deben ser IDÉNTICOS a los del frontend
+    para garantizar coherencia en la experiencia del usuario.
+    Ver: baloncesto_frontend/src/utils/validacionesInscripcion.js
+    """
 
     PERSONA_DATA_REQUIRED = "Datos de persona son requeridos"
     NOMBRE_REQUIRED = "El nombre del atleta es requerido"
@@ -41,12 +47,13 @@ class ErrorMessages:
     APELLIDO_REQUIRED = "El apellido del atleta es requerido"
     APELLIDO_INVALID = "El apellido solo puede contener letras y espacios"
     CEDULA_REQUIRED = "La cédula es obligatoria para el registro"
+    # ACTUALIZADO: Validación simplificada (solo 10 dígitos numéricos)
     CEDULA_INVALID = "La cédula debe tener exactamente 10 dígitos numéricos"
     TELEFONO_INVALID = "El teléfono debe tener exactamente 10 dígitos numéricos"
-    INSCRIPCION_DUPLICADA = (
-        "Este atleta ya tiene una inscripción activa. "
-        "Verifica el número de cédula o contacta al administrador."
-    )
+    # MENSAJE UNIFICADO con frontend (sincronizado)
+    ATLETA_YA_REGISTRADO = "El atleta ya se encuentra registrado."
+    ATLETA_DISPONIBLE = "Disponible"
+    INSCRIPCION_DUPLICADA = "El atleta ya se encuentra registrado."
     INSCRIPCION_NOT_FOUND = "Inscripción no encontrada"
     ENTRENADOR_NOT_FOUND = "Entrenador no encontrado"
     ERROR_INTERNO_GUARDAR = "Error interno al guardar"
