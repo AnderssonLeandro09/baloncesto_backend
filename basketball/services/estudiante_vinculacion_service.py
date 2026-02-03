@@ -172,7 +172,10 @@ class EstudianteVinculacionService:
     def _is_already_registered_error(self, message: str) -> bool:
         """Verifica si el error indica que la persona ya está registrada."""
         message_lower = message.lower()
-        return "ya esta registrada" in message_lower or "already registered" in message_lower
+        return (
+            "ya esta registrada" in message_lower
+            or "already registered" in message_lower
+        )
 
     def _handle_create_account_error(
         self,
@@ -187,7 +190,9 @@ class EstudianteVinculacionService:
             persona_response = self._search_by_identification(
                 persona_data.get("identification"), token
             )
-            return self._extract_external(persona_response) if persona_response else None
+            return (
+                self._extract_external(persona_response) if persona_response else None
+            )
 
         identification = persona_data.get("identification")
         if identification:
@@ -270,10 +275,14 @@ class EstudianteVinculacionService:
         estudiante_data: Dict[str, Any],
         token: str,
     ) -> Dict[str, Any]:
-        carrera, semestre = self._validate_estudiante_input(persona_data, estudiante_data)
+        carrera, semestre = self._validate_estudiante_input(
+            persona_data, estudiante_data
+        )
 
         persona_external = self._try_create_persona_account(persona_data, token)
-        persona_external = self._resolve_persona_external(persona_external, persona_data, token)
+        persona_external = self._resolve_persona_external(
+            persona_external, persona_data, token
+        )
 
         if self.dao.exists(persona_external=persona_external, eliminado=False):
             raise ValidationError(
