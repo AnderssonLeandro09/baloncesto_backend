@@ -2,13 +2,14 @@
 
 import logging
 import requests
-from typing import List, Optional, Dict, Any
-from django.core.exceptions import ValidationError
-from django.contrib.contenttypes.models import ContentType
+from typing import Any, Dict, List, Optional
+
 from django.conf import settings
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 
 from ..dao.prueba_antropometrica_dao import PruebaAntropometricaDAO
-from ..models import PruebaAntropometrica, Atleta, Entrenador
+from ..models import Atleta, Entrenador, PruebaAntropometrica
 
 logger = logging.getLogger(__name__)
 
@@ -19,50 +20,9 @@ class PruebaAntropometricaService:
     def __init__(self):
         self.dao = PruebaAntropometricaDAO()
 
-    def get_all_pruebas_antropometricas(
-        self, page: int = 1, page_size: int = 10, **filtros
-    ) -> tuple[List[PruebaAntropometrica], int]:
-        """
-        Obtiene todas las pruebas antropométricas con paginación y filtros.
-
-        Args:
-            page: Número de página
-            page_size: Tamaño de página
-            **filtros: Filtros opcionales (atleta_id, estado, fecha_inicio, fecha_fin)
-
-        Returns:
-            Tupla con (lista de pruebas, total de registros)
-        """
-        from django.db.models import Q
-        from datetime import datetime
-
-        queryset = PruebaAntropometrica.objects.all()
-
-        # Aplicar filtros
-        if "atleta_id" in filtros:
-            queryset = queryset.filter(atleta_id=filtros["atleta_id"])
-
-        if "estado" in filtros:
-            queryset = queryset.filter(estado=filtros["estado"])
-
-        if "fecha_inicio" in filtros and filtros["fecha_inicio"]:
-            queryset = queryset.filter(fecha_registro__gte=filtros["fecha_inicio"])
-
-        if "fecha_fin" in filtros and filtros["fecha_fin"]:
-            queryset = queryset.filter(fecha_registro__lte=filtros["fecha_fin"])
-
-        # Ordenar por fecha más reciente primero
-        queryset = queryset.order_by("-fecha_registro", "-id")
-
-        # Obtener total antes de paginar
-        total = queryset.count()
-
-        # Aplicar paginación
-        start = (page - 1) * page_size
-        end = start + page_size
-        pruebas = list(queryset[start:end])
-
-        return pruebas, total
+    def get_all_pruebas_antropometricas(self) -> List[PruebaAntropometrica]:
+        """Obtiene todas las pruebas antropométricas."""
+        return list(self.dao.get_all())
 
     def get_prueba_antropometrica_by_id(
         self, pk: int
@@ -126,13 +86,13 @@ class PruebaAntropometricaService:
             if not prueba:
                 raise ValidationError("Prueba antropométrica no encontrada")
 
-            # No permitir cambios en atleta ni fecha de registro en actualizaciones
-            # Estos campos no deben modificarse después de la creación
-            data.pop("atleta_id", None)
-            data.pop("atleta", None)
-            data.pop("fecha_registro", None)
+            # Soportar tanto 'atleta_id' como 'atleta' del frontend
+            atleta_id = data.pop("atleta_id", None) or data.pop("atleta", None)
+            if atleta_id:
+                if not Atleta.objects.filter(id=atleta_id).exists():
+                    raise ValidationError("El atleta no existe")
+                data["atleta_id"] = atleta_id
 
-            # Actualizar solo los campos permitidos (medidas y observaciones)
             return self.dao.update(pk, **data)
 
         except ValidationError:
@@ -244,16 +204,24 @@ class PruebaAntropometricaService:
     def get_atletas_habilitados_con_persona(
         self, token: str, user=None
     ) -> List[Dict[str, Any]]:
-        """Obtiene atletas con inscripción habilitada y sus datos de persona."""
+        """
+        Obtiene atletas con inscripción habilitada y sus datos de persona.
+
+        REGLA DE NEGOCIO ACTUALIZADA:
+        - Los ENTRENADORES pueden ver TODOS los atletas con inscripción habilitada.
+        - La asignación a grupos es para organización, NO limita la visibilidad.
+        - Esto permite registrar pruebas antropométricas a cualquier atleta inscrito.
+        """
         queryset = Atleta.objects.filter(inscripcion__habilitada=True)
 
-        # Filtrar por grupos del entrenador si es entrenador
+        # Los entrenadores ven TODOS los atletas con inscripción habilitada
+        # Ya no se filtra por grupos asignados al entrenador
         if user and user.role == "ENTRENADOR":
             entrenador = Entrenador.objects.filter(persona_external=user.pk).first()
-            if entrenador:
-                queryset = queryset.filter(grupos__entrenador=entrenador).distinct()
-            else:
+            if not entrenador:
+                # Si el usuario no está registrado como entrenador, denegar acceso
                 return []
+            # Se mantiene el queryset sin filtro de grupos para máxima visibilidad
 
         results = []
         for atleta in queryset:

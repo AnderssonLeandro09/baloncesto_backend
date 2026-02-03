@@ -30,6 +30,7 @@ PAGE_SIZE_MAX = 100
 
 # ==========================================================================
 # CONSTANTES DE MENSAJES (Usando ErrorMessages del servicio + propias)
+# IMPORTANTE: Mensajes sincronizados con frontend (validacionesInscripcion.js)
 # ==========================================================================
 MSG_INSCRIPCION_NOT_FOUND = ErrorMessages.INSCRIPCION_NOT_FOUND
 MSG_PERSONA_DATA_REQUIRED = "ERROR: Datos de persona son requeridos"
@@ -41,8 +42,9 @@ MSG_INSCRIPCION_ENABLED = "Inscripción habilitada correctamente"
 MSG_INSCRIPCION_DISABLED = "Inscripción deshabilitada correctamente"
 MSG_DNI_REQUIRED = "DNI requerido"
 MSG_DNI_REPRESENTANTE_REQUIRED = "DNI del representante requerido"
-MSG_ATLETA_REGISTERED = "El atleta ya se encuentra registrado"
-MSG_ATLETA_AVAILABLE = "Disponible para inscripción"
+# MENSAJES UNIFICADOS con frontend (sincronizado con validacionesInscripcion.js)
+MSG_ATLETA_REGISTERED = "El atleta ya se encuentra registrado."
+MSG_ATLETA_AVAILABLE = "Disponible"
 MSG_REPRESENTANTE_EXISTS = "Este representante ya tiene atletas registrados"
 MSG_REPRESENTANTE_AVAILABLE = "DNI de representante disponible"
 MSG_ERROR_GENERAL_CREATE = (
