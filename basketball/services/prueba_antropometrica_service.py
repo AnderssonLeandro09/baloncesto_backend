@@ -1,12 +1,15 @@
 """Servicio de negocio para Prueba Antropométrica."""
 
 import logging
-from typing import List, Optional
-from django.core.exceptions import ValidationError
+import requests
+from typing import Any, Dict, List, Optional
+
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 
 from ..dao.prueba_antropometrica_dao import PruebaAntropometricaDAO
-from ..models import PruebaAntropometrica, Atleta
+from ..models import Atleta, Entrenador, PruebaAntropometrica
 
 logger = logging.getLogger(__name__)
 
@@ -140,6 +143,7 @@ class PruebaAntropometricaService:
         except requests.RequestException as exc:
             logger.error("Fallo al invocar user_module %s: %s", url, exc)
             raise ValidationError("No se pudo contactar al módulo de usuarios")
+
         if response.status_code >= 400:
             logger.error(
                 "Error en módulo de usuarios: %s - %s",
@@ -202,7 +206,7 @@ class PruebaAntropometricaService:
     ) -> List[Dict[str, Any]]:
         """
         Obtiene atletas con inscripción habilitada y sus datos de persona.
-
+        
         REGLA DE NEGOCIO ACTUALIZADA:
         - Los ENTRENADORES pueden ver TODOS los atletas con inscripción habilitada.
         - La asignación a grupos es para organización, NO limita la visibilidad.
@@ -230,3 +234,4 @@ class PruebaAntropometricaService:
                 }
             )
         return results
+

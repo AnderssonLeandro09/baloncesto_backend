@@ -1,7 +1,7 @@
 """Controlador para Prueba Antropométrica."""
 
 import logging
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.core.exceptions import ValidationError
@@ -11,6 +11,7 @@ from ..services.prueba_antropometrica_service import PruebaAntropometricaService
 from ..serializers import (
     PruebaAntropometricaInputSerializer,
     PruebaAntropometricaResponseSerializer,
+    get_user_module_token,
 )
 from ..permissions import IsEntrenadorOrEstudianteVinculacion
 
@@ -23,13 +24,62 @@ class PruebaAntropometricaController(viewsets.ViewSet):
     permission_classes = [IsEntrenadorOrEstudianteVinculacion]
     service = PruebaAntropometricaService()
 
+    @extend_schema(
+        responses={200: serializers.ListField(child=serializers.DictField())}
+    )
+    @action(detail=False, methods=["get"], url_path="atletas-habilitados")
+    def atletas_habilitados(self, request):
+        """Obtiene la lista de atletas con inscripción habilitada."""
+        token = get_user_module_token()
+        try:
+            atletas = self.service.get_atletas_habilitados_con_persona(
+                token, user=request.user
+            )
+            return Response(atletas, status=status.HTTP_200_OK)
+        except Exception as exc:
+            logger.error(f"Error en atletas_habilitados antropométricas: {exc}")
+            return Response(
+                {"error": "Error al obtener atletas habilitados"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
     @extend_schema(responses={200: PruebaAntropometricaResponseSerializer(many=True)})
     def list(self, request):
-        """Lista todas las pruebas antropométricas."""
+        """Lista todas las pruebas antropométricas con filtros y paginación."""
         try:
-            pruebas = self.service.get_all_pruebas_antropometricas()
+            # Obtener parámetros de filtrado y paginación
+            page = int(request.query_params.get("page", 1))
+            page_size = int(request.query_params.get("pageSize", 10))
+            atleta_id = request.query_params.get("atleta")
+            estado = request.query_params.get("estado")
+            fecha_inicio = request.query_params.get("fecha_inicio")
+            fecha_fin = request.query_params.get("fecha_fin")
+
+            # Construir filtros
+            filtros = {}
+            if atleta_id:
+                filtros["atleta_id"] = int(atleta_id)
+            if estado is not None and estado != "":
+                filtros["estado"] = estado.lower() == "true"
+            if fecha_inicio:
+                filtros["fecha_inicio"] = fecha_inicio
+            if fecha_fin:
+                filtros["fecha_fin"] = fecha_fin
+
+            pruebas, total = self.service.get_all_pruebas_antropometricas(
+                page=page, page_size=page_size, **filtros
+            )
             serializer = PruebaAntropometricaResponseSerializer(pruebas, many=True)
-            return Response(serializer.data, status=status.HTTP_200_OK)
+
+            return Response(
+                {
+                    "results": serializer.data,
+                    "count": total,
+                    "page": page,
+                    "page_size": page_size,
+                },
+                status=status.HTTP_200_OK,
+            )
         except Exception as exc:
             logger.error(f"Error en list pruebas antropométricas: {exc}")
             return Response(
@@ -87,7 +137,7 @@ class PruebaAntropometricaController(viewsets.ViewSet):
         responses={200: PruebaAntropometricaResponseSerializer},
     )
     def update(self, request, pk=None):
-        """Actualiza una prueba antropométrica existente."""
+        """Actualiza una prueba antropométrica existente (PUT - completo)."""
         serializer = PruebaAntropometricaInputSerializer(
             data=request.data, partial=True
         )
@@ -106,6 +156,35 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
             logger.error(f"Error en update prueba antropométrica: {exc}")
+            return Response(
+                {"error": "Error interno del servidor"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @extend_schema(
+        request=PruebaAntropometricaInputSerializer,
+        responses={200: PruebaAntropometricaResponseSerializer},
+    )
+    def partial_update(self, request, pk=None):
+        """Actualiza parcialmente una prueba antropométrica (PATCH)."""
+        serializer = PruebaAntropometricaInputSerializer(
+            data=request.data, partial=True
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            prueba = self.service.update_prueba_antropometrica(
+                pk,
+                serializer.validated_data,
+                request.user,
+            )
+            response_serializer = PruebaAntropometricaResponseSerializer(prueba)
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        except ValidationError as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as exc:
+            logger.error(f"Error en partial_update prueba antropométrica: {exc}")
             return Response(
                 {"error": "Error interno del servidor"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,

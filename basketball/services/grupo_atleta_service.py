@@ -326,6 +326,55 @@ class GrupoAtletaService:
         entrenador = self.get_entrenador_from_user(user)
         return list(self.dao.get_by_entrenador(entrenador.id))
 
+    def list_all_grupos_by_user(self, user) -> List[GrupoAtleta]:
+        """Lista todos los grupos del entrenador incluyendo los eliminados.
+
+        Args:
+            user: Usuario autenticado
+
+        Returns:
+            Lista de todos los grupos del entrenador
+        """
+        entrenador = self.get_entrenador_from_user(user)
+        return list(GrupoAtleta.objects.filter(entrenador_id=entrenador.id))
+
     def list_grupos_por_entrenador(self, entrenador_id: int) -> List[GrupoAtleta]:
         """Lista los grupos activos de un entrenador."""
         return list(self.dao.get_by_entrenador(entrenador_id))
+
+    def toggle_estado(self, pk: int, user=None) -> Optional[GrupoAtleta]:
+        """Alterna el estado eliminado del grupo (habilitar/deshabilitar).
+
+        Args:
+            pk: ID del grupo
+            user: Usuario autenticado (se valida ownership)
+
+        Returns:
+            GrupoAtleta actualizado o None si no existe
+        """
+        # Validar tipo de dato
+        try:
+            pk = int(pk)
+            if pk <= 0:
+                raise ValidationError("ID de grupo inválido")
+        except (ValueError, TypeError):
+            raise ValidationError("ID de grupo debe ser un número válido")
+
+        # Obtener grupo sin filtrar por eliminado
+        grupo = GrupoAtleta.objects.filter(id=pk).first()
+        if not grupo:
+            return None
+
+        # Validar ownership si se proporciona usuario
+        if user:
+            entrenador = self.get_entrenador_from_user(user)
+            if grupo.entrenador_id != entrenador.id:
+                raise ValidationError(
+                    "No tienes permiso para cambiar el estado de este grupo"
+                )
+
+        # Toggle del campo eliminado
+        grupo.eliminado = not grupo.eliminado
+        grupo.save()
+
+        return grupo
