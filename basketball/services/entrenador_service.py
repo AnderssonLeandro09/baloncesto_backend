@@ -56,7 +56,11 @@ class EntrenadorService:
 
         if response.status_code >= 400:
             message = self._extract_message(response)
-            raise ValidationError(f"Error en módulo de usuarios: {message}")
+            logger.error(f"Error del user_module con status {response.status_code}: {response.text}")
+            logger.error(f"Mensaje extraído: {message}")
+            # Pasar el mensaje tal cual, sin agregar prefijo
+            raise ValidationError(message)
+
 
         try:
             return response.json()
@@ -66,8 +70,32 @@ class EntrenadorService:
     def _extract_message(self, response) -> str:
         try:
             data = response.json()
-            return data.get("message") or str(data)
-        except Exception:
+            # Intentar extraer mensaje de diferentes formatos
+            if isinstance(data, dict):
+                # Buscar mensaje en varias ubicaciones comunes
+                msg = data.get("message") or data.get("error") or data.get("detail")
+                if msg:
+                    if isinstance(msg, list):
+                        msg = " | ".join(str(m) for m in msg)
+                    return str(msg)
+                # Si hay errores de validación, concatenarlos
+                if "errors" in data:
+                    errors = data.get("errors", {})
+                    if isinstance(errors, dict):
+                        error_msgs = [f"{k}: {v}" for k, v in errors.items()]
+                        return " | ".join(error_msgs)
+                    elif isinstance(errors, list):
+                        return " | ".join(str(e) for e in errors)
+                # Buscar errores en la raíz del diccionario (formato DRF)
+                for key, value in data.items():
+                    if isinstance(value, (list, str)) and value and key != "non_field_errors":
+                        if isinstance(value, list):
+                            return f"{key}: " + " | ".join(str(v) for v in value)
+                        else:
+                            return f"{key}: {value}"
+            return str(data)
+        except Exception as e:
+            logger.error(f"Error extrayendo mensaje de respuesta: {e}")
             return response.text or "error"
 
     def _search_by_identification(
@@ -160,6 +188,13 @@ class EntrenadorService:
         if not persona_data:
             raise ValidationError("Datos de persona son obligatorios")
 
+        # Debug logging detallado
+        logger.info(f"=== CREANDO ENTRENADOR ===")
+        logger.info(f"Persona data completa: {persona_data}")
+        logger.info(f"Fields en persona_data:")
+        for key, value in persona_data.items():
+            logger.info(f"  {key}: {value!r} (tipo: {type(value).__name__})")
+
         especialidad = entrenador_data.get("especialidad")
         club_asignado = entrenador_data.get("club_asignado")
         if not especialidad or not club_asignado:
@@ -176,9 +211,11 @@ class EntrenadorService:
         persona_external = None
 
         try:
+            logger.info(f"Llamando a user_module para crear persona")
             persona_response = self._call_user_module(
                 "post", "/api/person/save-account", token, persona_data
             )
+            logger.info(f"Respuesta del user_module: {persona_response}")
             persona_external = self._extract_external(persona_response)
 
             if not persona_external and persona_data.get("identification"):
@@ -190,6 +227,7 @@ class EntrenadorService:
                 )
 
         except ValidationError as exc:
+            logger.error(f"Error de validación al crear persona: {exc}")
             if persona_data.get("identification"):
                 lookup_response = self._search_by_identification(
                     persona_data.get("identification"), token
@@ -282,6 +320,21 @@ class EntrenadorService:
         updated = self.dao.update(pk, eliminado=True)
         return updated is not None
 
+    def toggle_estado(self, pk: int, token: str) -> Optional[Dict[str, Any]]:
+        entrenador = self.dao.get_by_id(pk)
+        if not entrenador:
+            return None
+
+        nuevo_estado = not entrenador.eliminado
+        updated = self.dao.update(pk, eliminado=nuevo_estado)
+        if not updated:
+            return None
+
+        persona_info = self._fetch_persona(
+            updated.persona_external, token, allow_fail=True
+        )
+        return self._build_response(updated, persona_info)
+
     def get_entrenador(self, pk: int, token: str) -> Optional[Dict[str, Any]]:
         entrenador = self.dao.get_by_id(pk)
         if not entrenador or entrenador.eliminado:
@@ -292,7 +345,7 @@ class EntrenadorService:
         return self._build_response(entrenador, persona_info)
 
     def list_entrenadores(self, token: str) -> List[Dict[str, Any]]:
-        entrenadores = self.dao.get_by_filter(eliminado=False)
+        entrenadores = self.dao.get_by_filter()
         resultados: List[Dict[str, Any]] = []
         for entrenador in entrenadores:
             persona_info = self._fetch_persona(

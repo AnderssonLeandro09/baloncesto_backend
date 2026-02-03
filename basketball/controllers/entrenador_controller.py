@@ -1,7 +1,8 @@
 """Controlador para Entrenador."""
 
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, serializers
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from drf_spectacular.utils import extend_schema
 
 from ..permissions import IsAdmin
@@ -63,8 +64,17 @@ class EntrenadorController(viewsets.ViewSet):
                 persona_data or {}, entrenador_data, token
             )
             return Response(result, status=status.HTTP_201_CREATED)
+        except serializers.ValidationError as exc:
+            # Manejar errores de validación del serializer
+            error_detail = exc.detail if hasattr(exc, 'detail') else str(exc)
+            if isinstance(error_detail, list):
+                error_msg = " | ".join(str(e) for e in error_detail)
+            else:
+                error_msg = str(error_detail)
+            return Response({"error": error_msg}, status=status.HTTP_400_BAD_REQUEST)
         except Exception as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            error_msg = str(exc)
+            return Response({"error": error_msg}, status=status.HTTP_400_BAD_REQUEST)
 
     @extend_schema(
         request=EntrenadorInputSerializer,
@@ -98,6 +108,22 @@ class EntrenadorController(viewsets.ViewSet):
     def partial_update(self, request, pk=None):
         """Actualización parcial de un entrenador."""
         return self.update(request, pk)
+
+    @extend_schema(responses={200: EntrenadorResponseSerializer})
+    @action(detail=True, methods=["patch"], url_path="toggle-estado")
+    def toggle_estado(self, request, pk=None):
+        """Activa o desactiva un entrenador (eliminación lógica reversible)."""
+        token = get_user_module_token()
+        try:
+            result = self.service.toggle_estado(pk, token)
+            if not result:
+                return Response(
+                    {"error": "Entrenador no encontrado"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            return Response(result, status=status.HTTP_200_OK)
+        except Exception as exc:
+            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
 
     def destroy(self, request, pk=None):
         """Da de baja (eliminación lógica) un entrenador."""
