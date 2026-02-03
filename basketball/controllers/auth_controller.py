@@ -119,17 +119,25 @@ class AuthController(viewsets.ViewSet):
 
             if not external_id:
                 logger.error(f"Respuesta de login sin ID externo: {resp_json}")
-                return None, None, Response(
-                    {"error": "Error obteniendo identidad del usuario"},
-                    status=status.HTTP_502_BAD_GATEWAY,
+                return (
+                    None,
+                    None,
+                    Response(
+                        {"error": "Error obteniendo identidad del usuario"},
+                        status=status.HTTP_502_BAD_GATEWAY,
+                    ),
                 )
 
             return user_data, external_id, None
 
         except ValueError:
-            return None, None, Response(
-                {"error": "Respuesta inválida del servicio de usuarios"},
-                status=status.HTTP_502_BAD_GATEWAY,
+            return (
+                None,
+                None,
+                Response(
+                    {"error": "Respuesta inválida del servicio de usuarios"},
+                    status=status.HTTP_502_BAD_GATEWAY,
+                ),
             )
 
     def _determine_user_role(self, external_id):

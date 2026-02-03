@@ -33,7 +33,7 @@ class LoginSerializer(serializers.Serializer):
         try:
             validate_email(value)
             # Asegurar que el dominio tenga un punto (comportamiento original del regex)
-            if '.' not in value.split('@')[1]:
+            if "." not in value.split("@")[1]:
                 raise DjangoValidationError("El dominio debe contener un punto.")
         except (DjangoValidationError, IndexError):
             raise serializers.ValidationError(
