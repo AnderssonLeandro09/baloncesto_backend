@@ -169,7 +169,9 @@ class PruebaAntropometricaService:
     ) -> Dict[str, Any]:
         """Llama al módulo de usuarios."""
         user_module_url = settings.USER_MODULE_URL.rstrip("/")
-        headers = {"Authorization": token if token.startswith("Bearer ") else f"Bearer {token}"}
+        headers = {
+            "Authorization": token if token.startswith("Bearer ") else f"Bearer {token}"
+        }
         url = f"{user_module_url}{path}"
         try:
             response = requests.request(
