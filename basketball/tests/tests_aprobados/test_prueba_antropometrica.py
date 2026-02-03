@@ -83,7 +83,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
 
     def test_list_pruebas_success(self):
         mock_service = MagicMock()
-        mock_service.get_all_pruebas_antropometricas.return_value = []
+        mock_service.get_all_pruebas_antropometricas.return_value = ([], 0)
 
         original_service = PruebaAntropometricaController.service
         PruebaAntropometricaController.service = mock_service
@@ -95,7 +95,7 @@ class PruebaAntropometricaControllerTests(SimpleTestCase):
             )
             response = self.view_list_create(request)
             self.assertEqual(response.status_code, status.HTTP_200_OK)
-            self.assertIsInstance(response.data, list)
+            self.assertIsInstance(response.data, dict)
         finally:
             PruebaAntropometricaController.service = original_service
 

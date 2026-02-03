@@ -1,6 +1,7 @@
 """Servicio de negocio para Entrenador."""
 
 import logging
+import os
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -21,6 +22,10 @@ class EntrenadorService:
     def __init__(self):
         self.dao = EntrenadorDAO()
         self.user_module_url = settings.USER_MODULE_URL.rstrip("/")
+        
+        # En Linux, host.docker.internal no se resuelve, usar localhost
+        if os.name != "nt" and "host.docker.internal" in self.user_module_url:
+            self.user_module_url = self.user_module_url.replace("host.docker.internal", "localhost")
 
     # ======================================================================
     # Helper HTTP

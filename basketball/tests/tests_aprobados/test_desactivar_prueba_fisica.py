@@ -301,8 +301,8 @@ class TestDesactivarPruebaFisica(SimpleTestCase):
         response = self.view(request, pk="999")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
-        self.assertIn("Prueba física no encontrada", response.data["error"])
+        self.assertIn("msg", response.data)
+        self.assertIn("Prueba física no encontrada", response.data["msg"])
 
     @patch("basketball.serializers.get_persona_from_user_module")
     def test_desactivar_prueba_fisica_id_invalido_falla(
@@ -320,8 +320,8 @@ class TestDesactivarPruebaFisica(SimpleTestCase):
         response = self.view(request, pk="abc")
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
-        self.assertIn("error", response.data)
-        self.assertIn("ID inválido", response.data["error"])
+        self.assertIn("msg", response.data)
+        self.assertIn("ID inválido", response.data["msg"])
 
     @patch("basketball.serializers.get_persona_from_user_module")
     @patch("basketball.services.prueba_fisica_service.Entrenador.objects")
