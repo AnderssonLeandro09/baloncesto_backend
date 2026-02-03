@@ -9,6 +9,9 @@ from ..models import GrupoAtleta, Entrenador, Atleta
 
 logger = logging.getLogger(__name__)
 
+MSG_ID_GRUPO_INVALIDO = "ID de grupo inválido"
+MSG_ID_GRUPO_NUMERO_VALIDO = "ID de grupo debe ser un número válido"
+
 
 class GrupoAtletaService:
     """Lógica de negocio para la gestión de grupos de atletas."""
@@ -206,6 +209,36 @@ class GrupoAtletaService:
 
         grupo.atletas.set(atletas)
 
+    def _validate_grupo_id(self, grupo_id: Optional[int]) -> int:
+        """Valida y convierte el ID de grupo a entero."""
+        try:
+            grupo_id = int(grupo_id)
+            if grupo_id <= 0:
+                raise ValidationError(MSG_ID_GRUPO_INVALIDO)
+            return grupo_id
+        except (ValueError, TypeError):
+            raise ValidationError(MSG_ID_GRUPO_NUMERO_VALIDO)
+
+    def _validate_edad(self, edad: Optional[int], campo: str) -> Optional[int]:
+        """Valida y convierte un valor de edad a entero."""
+        if edad is None:
+            return None
+        try:
+            edad = int(edad)
+            if edad < 0 or edad > 150:
+                raise ValidationError(f"Edad {campo} debe estar entre 0 y 150")
+            return edad
+        except (ValueError, TypeError):
+            raise ValidationError(f"Edad {campo} debe ser un número válido")
+
+    def _get_edad_range_from_grupo(self, grupo_id: int) -> tuple:
+        """Obtiene el rango de edad de un grupo existente."""
+        grupo_id = self._validate_grupo_id(grupo_id)
+        grupo = self.dao.get_by_id_activo(grupo_id)
+        if not grupo:
+            raise ValidationError("Grupo no encontrado")
+        return grupo_id, grupo.rango_edad_minima, grupo.rango_edad_maxima
+
     def list_atletas_elegibles(
         self,
         grupo_id: Optional[int] = None,
@@ -214,40 +247,13 @@ class GrupoAtletaService:
     ) -> List[Atleta]:
         """Lista atletas que cumplen con el rango de edad de un grupo o rango específico."""
         if grupo_id:
-            # Validar tipo de dato
-            try:
-                grupo_id = int(grupo_id)
-                if grupo_id <= 0:
-                    raise ValidationError("ID de grupo inválido")
-            except (ValueError, TypeError):
-                raise ValidationError("ID de grupo debe ser un número válido")
+            grupo_id, min_edad, max_edad = self._get_edad_range_from_grupo(grupo_id)
+        else:
+            min_edad = self._validate_edad(min_edad, "mínima")
+            max_edad = self._validate_edad(max_edad, "máxima")
 
-            grupo = self.dao.get_by_id_activo(grupo_id)
-            if not grupo:
-                raise ValidationError("Grupo no encontrado")
-            min_edad = grupo.rango_edad_minima
-            max_edad = grupo.rango_edad_maxima
-
-        # Validar tipos y rangos
-        if min_edad is not None:
-            try:
-                min_edad = int(min_edad)
-                if min_edad < 0 or min_edad > 150:
-                    raise ValidationError("Edad mínima debe estar entre 0 y 150")
-            except (ValueError, TypeError):
-                raise ValidationError("Edad mínima debe ser un número válido")
-
-        if max_edad is not None:
-            try:
-                max_edad = int(max_edad)
-                if max_edad < 0 or max_edad > 150:
-                    raise ValidationError("Edad máxima debe estar entre 0 y 150")
-            except (ValueError, TypeError):
-                raise ValidationError("Edad máxima debe ser un número válido")
-
-        if min_edad is not None and max_edad is not None:
-            if min_edad > max_edad:
-                raise ValidationError("Edad mínima no puede ser mayor a la máxima")
+        if min_edad is not None and max_edad is not None and min_edad > max_edad:
+            raise ValidationError("Edad mínima no puede ser mayor a la máxima")
 
         if min_edad is None or max_edad is None:
             raise ValidationError(
@@ -271,13 +277,7 @@ class GrupoAtletaService:
         Returns:
             True si se eliminó, False si no existe
         """
-        # Validar tipo de dato
-        try:
-            pk = int(pk)
-            if pk <= 0:
-                raise ValidationError("ID de grupo inválido")
-        except (ValueError, TypeError):
-            raise ValidationError("ID de grupo debe ser un número válido")
+        pk = self._validate_grupo_id(pk)
 
         if user:
             # Validar que el grupo pertenezca al entrenador
@@ -302,13 +302,7 @@ class GrupoAtletaService:
         Returns:
             GrupoAtleta o None si no existe
         """
-        # Validar tipo de dato
-        try:
-            pk = int(pk)
-            if pk <= 0:
-                raise ValidationError("ID de grupo inválido")
-        except (ValueError, TypeError):
-            raise ValidationError("ID de grupo debe ser un número válido")
+        pk = self._validate_grupo_id(pk)
 
         grupo = self.dao.get_by_id_activo(pk)
 
