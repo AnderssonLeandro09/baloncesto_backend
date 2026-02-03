@@ -143,6 +143,110 @@ class EstudianteVinculacionService:
                 return None
             raise
 
+    def _validate_estudiante_input(
+        self,
+        persona_data: Dict[str, Any],
+        estudiante_data: Dict[str, Any],
+    ) -> tuple:
+        """Valida los datos de entrada y retorna (carrera, semestre)."""
+        if not persona_data:
+            raise ValidationError("Datos de persona son obligatorios")
+
+        carrera = estudiante_data.get("carrera")
+        semestre = estudiante_data.get("semestre")
+        if not carrera or not semestre:
+            raise ValidationError("carrera y semestre son obligatorios")
+
+        email = persona_data.get("email")
+        if not email:
+            raise ValidationError("Email es obligatorio")
+
+        if not email.endswith("@unl.edu.ec"):
+            raise ValidationError("El correo debe ser institucional (@unl.edu.ec)")
+
+        if not persona_data.get("password"):
+            raise ValidationError("Password es obligatorio")
+
+        return carrera, semestre
+
+    def _is_already_registered_error(self, message: str) -> bool:
+        """Verifica si el error indica que la persona ya está registrada."""
+        message_lower = message.lower()
+        return (
+            "ya esta registrada" in message_lower
+            or "already registered" in message_lower
+        )
+
+    def _handle_create_account_error(
+        self,
+        exc: ValidationError,
+        persona_data: Dict[str, Any],
+        token: str,
+    ) -> Optional[str]:
+        """Maneja errores al crear cuenta de persona."""
+        message = str(exc)
+
+        if self._is_already_registered_error(message):
+            persona_response = self._search_by_identification(
+                persona_data.get("identification"), token
+            )
+            return (
+                self._extract_external(persona_response) if persona_response else None
+            )
+
+        identification = persona_data.get("identification")
+        if identification:
+            lookup_response = self._search_by_identification(identification, token)
+            if lookup_response:
+                return self._extract_external(lookup_response)
+
+        raise exc
+
+    def _try_create_persona_account(
+        self,
+        persona_data: Dict[str, Any],
+        token: str,
+    ) -> Optional[str]:
+        """Intenta crear cuenta de persona y retorna el external_id."""
+        try:
+            persona_response = self._call_user_module(
+                "post", "/api/person/save-account", token, persona_data
+            )
+            persona_external = self._extract_external(persona_response)
+
+            if not persona_external and persona_data.get("identification"):
+                lookup_response = self._search_by_identification(
+                    persona_data.get("identification"), token
+                )
+                if lookup_response:
+                    persona_external = self._extract_external(lookup_response)
+
+            return persona_external
+
+        except ValidationError as exc:
+            return self._handle_create_account_error(exc, persona_data, token)
+
+    def _resolve_persona_external(
+        self,
+        persona_external: Optional[str],
+        persona_data: Dict[str, Any],
+        token: str,
+    ) -> str:
+        """Resuelve el external_id de la persona, con fallback si es necesario."""
+        if persona_external:
+            return persona_external
+
+        fallback_person = self._search_in_all_filter(
+            persona_data.get("identification"), token
+        )
+        if fallback_person:
+            persona_external = self._extract_external(fallback_person)
+
+        if not persona_external:
+            raise ValidationError("El módulo de usuarios no retornó external_id")
+
+        return persona_external
+
     def _build_response(
         self,
         estudiante: EstudianteVinculacion,
@@ -171,87 +275,18 @@ class EstudianteVinculacionService:
         estudiante_data: Dict[str, Any],
         token: str,
     ) -> Dict[str, Any]:
-        if not persona_data:
-            raise ValidationError("Datos de persona son obligatorios")
+        carrera, semestre = self._validate_estudiante_input(
+            persona_data, estudiante_data
+        )
 
-        carrera = estudiante_data.get("carrera")
-        semestre = estudiante_data.get("semestre")
-        if not carrera or not semestre:
-            raise ValidationError("carrera y semestre son obligatorios")
-
-        email = persona_data.get("email")
-        if not email:
-            raise ValidationError("Email es obligatorio")
-
-        if not email.endswith("@unl.edu.ec"):
-            raise ValidationError("El correo debe ser institucional (@unl.edu.ec)")
-
-        if not persona_data.get("password"):
-            raise ValidationError("Password es obligatorio")
-
-        persona_response = None
-        persona_external = None
-
-        # Intentar crear con cuenta primero (más confiable en este entorno)
-        try:
-            # Usar save-account en lugar de save
-            persona_response = self._call_user_module(
-                "post", "/api/person/save-account", token, persona_data
-            )
-            # save-account retorna data vacía en éxito, así que DEBEMOS buscar
-            persona_external = self._extract_external(persona_response)
-
-            # Siempre buscar después de save-account porque podría no retornar el ID
-            if not persona_external and persona_data.get("identification"):
-                lookup_response = self._search_by_identification(
-                    persona_data.get("identification"), token
-                )
-                persona_external = (
-                    self._extract_external(lookup_response) if lookup_response else None
-                )
-
-        except ValidationError as exc:
-            message = str(exc)
-            # Si ya está registrada, intentar encontrarla
-            if (
-                "ya esta registrada" in message.lower()
-                or "already registered" in message.lower()
-            ):
-                persona_response = self._search_by_identification(
-                    persona_data.get("identification"), token
-                )
-                persona_external = (
-                    self._extract_external(persona_response)
-                    if persona_response
-                    else None
-                )
-            else:
-                # Si save-account falló por otras razones, intentar buscar por si acaso
-                # existe pero save-account falló por problemas de email/password.
-                if persona_data.get("identification"):
-                    lookup_response = self._search_by_identification(
-                        persona_data.get("identification"), token
-                    )
-                    if lookup_response:
-                        persona_external = self._extract_external(lookup_response)
-
-                if not persona_external:
-                    raise
-
-        if not persona_external:
-            # Fallback: intentar encontrar en la lista all_filter
-            fallback_person = self._search_in_all_filter(
-                persona_data.get("identification"), token
-            )
-            if fallback_person:
-                persona_external = self._extract_external(fallback_person)
-
-        if not persona_external:
-            raise ValidationError("El módulo de usuarios no retornó external_id")
+        persona_external = self._try_create_persona_account(persona_data, token)
+        persona_external = self._resolve_persona_external(
+            persona_external, persona_data, token
+        )
 
         if self.dao.exists(persona_external=persona_external, eliminado=False):
             raise ValidationError(
-                "Ya existe un estudiante de vinculación con ese external"
+                "Ya existe un estudiante de vinculación registrado con esta cédula"
             )
 
         estudiante = self.dao.create(
