@@ -1,26 +1,56 @@
 import logging
 import traceback
-from rest_framework import status, viewsets
-from rest_framework.response import Response
-from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny
-from rest_framework.exceptions import ValidationError as DRFValidationError
+
 from django.core.exceptions import ValidationError as DjangoValidationError
-from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.utils import OpenApiParameter, extend_schema
+from rest_framework import status, viewsets
+from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 
 from ..models import Inscripcion
-from ..services.inscripcion_service import InscripcionService
 from ..serializers import (
-    InscripcionSerializer,
     AtletaInscripcionInputSerializer,
     AtletaInscripcionResponseSerializer,
+    InscripcionSerializer,
     get_user_module_token,
 )
+from ..services.inscripcion_service import ErrorMessages, InscripcionService
 
 logger = logging.getLogger(__name__)
 
-# Configuración de paginación
+
+# ==========================================================================
+# CONSTANTES DE CONFIGURACIÓN
+# ==========================================================================
 PAGE_SIZE = 50
+PAGE_SIZE_MAX = 100
+
+
+# ==========================================================================
+# CONSTANTES DE MENSAJES (Usando ErrorMessages del servicio + propias)
+# ==========================================================================
+MSG_INSCRIPCION_NOT_FOUND = ErrorMessages.INSCRIPCION_NOT_FOUND
+MSG_PERSONA_DATA_REQUIRED = "ERROR: Datos de persona son requeridos"
+MSG_INSCRIPCION_CREATED = "Inscripción creada exitosamente"
+MSG_INSCRIPCION_UPDATED = "Inscripción actualizada correctamente"
+MSG_INSCRIPCION_LISTED = "Inscripciones listadas correctamente"
+MSG_INSCRIPCION_RETRIEVED = "Inscripción obtenida correctamente"
+MSG_INSCRIPCION_ENABLED = "Inscripción habilitada correctamente"
+MSG_INSCRIPCION_DISABLED = "Inscripción deshabilitada correctamente"
+MSG_DNI_REQUIRED = "DNI requerido"
+MSG_DNI_REPRESENTANTE_REQUIRED = "DNI del representante requerido"
+MSG_ATLETA_REGISTERED = "El atleta ya se encuentra registrado"
+MSG_ATLETA_AVAILABLE = "Disponible para inscripción"
+MSG_REPRESENTANTE_EXISTS = "Este representante ya tiene atletas registrados"
+MSG_REPRESENTANTE_AVAILABLE = "DNI de representante disponible"
+MSG_ERROR_GENERAL_CREATE = (
+    "Ocurrió un error al procesar la inscripción. Por favor, intenta de nuevo"
+)
+MSG_ERROR_GENERAL_UPDATE = (
+    "Ocurrió un error al actualizar la inscripción. Por favor, intenta de nuevo"
+)
 
 
 class InscripcionController(viewsets.ViewSet):
@@ -76,12 +106,8 @@ class InscripcionController(viewsets.ViewSet):
             page_size = int(request.query_params.get("page_size", PAGE_SIZE))
 
             # Validar parámetros
-            if page < 1:
-                page = 1
-            if page_size < 1:
-                page_size = PAGE_SIZE
-            if page_size > 100:  # Límite máximo para evitar sobrecarga
-                page_size = 100
+            page = max(1, page)
+            page_size = max(1, min(page_size, PAGE_SIZE_MAX))
 
             # Obtener datos paginados del servicio
             result = self.service.list_inscripciones_completas_paginado(
@@ -90,7 +116,7 @@ class InscripcionController(viewsets.ViewSet):
 
             return Response(
                 {
-                    "msg": "Inscripciones listadas correctamente",
+                    "msg": MSG_INSCRIPCION_LISTED,
                     "data": result["data"],
                     "pagination": {
                         "page": result["page"],
@@ -137,7 +163,7 @@ class InscripcionController(viewsets.ViewSet):
             if not persona_data:
                 return Response(
                     {
-                        "msg": "ERROR: Datos de persona son requeridos",
+                        "msg": MSG_PERSONA_DATA_REQUIRED,
                         "data": None,
                         "code": status.HTTP_400_BAD_REQUEST,
                         "status": "error",
@@ -150,7 +176,7 @@ class InscripcionController(viewsets.ViewSet):
             )
             return Response(
                 {
-                    "msg": "Inscripción creada exitosamente",
+                    "msg": MSG_INSCRIPCION_CREATED,
                     "data": result,
                     "code": status.HTTP_201_CREATED,
                     "status": "success",
@@ -182,7 +208,7 @@ class InscripcionController(viewsets.ViewSet):
             traceback.print_exc()
             return Response(
                 {
-                    "msg": "Ocurrió un error al procesar la inscripción. Por favor, intenta de nuevo",
+                    "msg": MSG_ERROR_GENERAL_CREATE,
                     "data": None,
                     "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                     "status": "error",
@@ -199,7 +225,7 @@ class InscripcionController(viewsets.ViewSet):
             if not data:
                 return Response(
                     {
-                        "msg": "Inscripción no encontrada",
+                        "msg": MSG_INSCRIPCION_NOT_FOUND,
                         "data": None,
                         "code": status.HTTP_404_NOT_FOUND,
                         "status": "error",
@@ -208,7 +234,7 @@ class InscripcionController(viewsets.ViewSet):
                 )
             return Response(
                 {
-                    "msg": "Inscripción obtenida correctamente",
+                    "msg": MSG_INSCRIPCION_RETRIEVED,
                     "data": data,
                     "code": status.HTTP_200_OK,
                     "status": "success",
@@ -249,7 +275,7 @@ class InscripcionController(viewsets.ViewSet):
             if not result:
                 return Response(
                     {
-                        "msg": "Inscripción no encontrada",
+                        "msg": MSG_INSCRIPCION_NOT_FOUND,
                         "data": None,
                         "code": status.HTTP_404_NOT_FOUND,
                         "status": "error",
@@ -258,7 +284,7 @@ class InscripcionController(viewsets.ViewSet):
                 )
             return Response(
                 {
-                    "msg": "Inscripción actualizada correctamente",
+                    "msg": MSG_INSCRIPCION_UPDATED,
                     "data": result,
                     "code": status.HTTP_200_OK,
                     "status": "success",
@@ -287,7 +313,7 @@ class InscripcionController(viewsets.ViewSet):
             traceback.print_exc()
             return Response(
                 {
-                    "msg": "Ocurrió un error al actualizar la inscripción. Por favor, intenta de nuevo",
+                    "msg": MSG_ERROR_GENERAL_UPDATE,
                     "data": None,
                     "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                     "status": "error",
@@ -307,7 +333,7 @@ class InscripcionController(viewsets.ViewSet):
             if not inscripcion:
                 return Response(
                     {
-                        "msg": "Inscripción no encontrada",
+                        "msg": MSG_INSCRIPCION_NOT_FOUND,
                         "data": None,
                         "code": status.HTTP_404_NOT_FOUND,
                         "status": "error",
@@ -316,9 +342,9 @@ class InscripcionController(viewsets.ViewSet):
                 )
 
             mensaje = (
-                "Inscripción habilitada correctamente"
+                MSG_INSCRIPCION_ENABLED
                 if inscripcion.habilitada
-                else "Inscripción deshabilitada correctamente"
+                else MSG_INSCRIPCION_DISABLED
             )
             return Response(
                 {
@@ -374,7 +400,7 @@ class InscripcionController(viewsets.ViewSet):
         if not dni:
             return Response(
                 {
-                    "msg": "DNI requerido",
+                    "msg": MSG_DNI_REQUIRED,
                     "data": None,
                     "code": status.HTTP_400_BAD_REQUEST,
                     "status": "error",
@@ -389,11 +415,7 @@ class InscripcionController(viewsets.ViewSet):
 
         return Response(
             {
-                "msg": (
-                    "El atleta ya se encuentra registrado"
-                    if existe
-                    else "Disponible para inscripción"
-                ),
+                "msg": MSG_ATLETA_REGISTERED if existe else MSG_ATLETA_AVAILABLE,
                 "data": {"existe": existe},
                 "code": status.HTTP_200_OK,
                 "status": "success",
@@ -434,7 +456,7 @@ class InscripcionController(viewsets.ViewSet):
         if not dni:
             return Response(
                 {
-                    "msg": "DNI del representante requerido",
+                    "msg": MSG_DNI_REPRESENTANTE_REQUIRED,
                     "data": None,
                     "code": status.HTTP_400_BAD_REQUEST,
                     "status": "error",
@@ -449,11 +471,9 @@ class InscripcionController(viewsets.ViewSet):
 
         return Response(
             {
-                "msg": (
-                    "Este representante ya tiene atletas registrados"
-                    if existe
-                    else "DNI de representante disponible"
-                ),
+                "msg": MSG_REPRESENTANTE_EXISTS
+                if existe
+                else MSG_REPRESENTANTE_AVAILABLE,
                 "data": {"existe": existe},
                 "code": status.HTTP_200_OK,
                 "status": "success",
