@@ -24,10 +24,11 @@ class GrupoAtletaController(viewsets.ViewSet):
     def list(self, request):
         """Lista los grupos del entrenador autenticado.
 
-        Cada entrenador ve únicamente sus propios grupos.
+        Cada entrenador ve únicamente sus propios grupos (incluyendo deshabilitados).
         """
         try:
-            data = self.service.list_grupos_by_user(request.user)
+            # Listar todos incluyendo deshabilitados para poder hacer toggle
+            data = self.service.list_all_grupos_by_user(request.user)
             serializer = GrupoAtletaResponseSerializer(data, many=True)
             return Response(
                 {
@@ -399,6 +400,64 @@ class GrupoAtletaController(viewsets.ViewSet):
             return Response(
                 {
                     "msg": "Error al eliminar el grupo",
+                    "data": None,
+                    "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    "status": "error",
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+    @extend_schema(responses={200: GrupoAtletaResponseSerializer})
+    @action(detail=True, methods=["post"], url_path="toggle-estado")
+    def toggle_estado(self, request, pk=None):
+        """
+        Alterna el estado de habilitación de un grupo (Toggle).
+        Usa el campo 'eliminado' como borrado lógico.
+        """
+        try:
+            grupo = self.service.toggle_estado(pk, user=request.user)
+            if not grupo:
+                return Response(
+                    {
+                        "msg": "Grupo no encontrado",
+                        "data": None,
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "status": "error",
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            serializer = GrupoAtletaResponseSerializer(grupo)
+            mensaje = (
+                "Grupo habilitado correctamente"
+                if not grupo.eliminado
+                else "Grupo deshabilitado correctamente"
+            )
+            return Response(
+                {
+                    "msg": mensaje,
+                    "data": serializer.data,
+                    "code": status.HTTP_200_OK,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
+        except ValidationError as exc:
+            logger.warning(f"Validation error en toggle_estado grupo: {exc}")
+            return Response(
+                {
+                    "msg": str(exc),
+                    "data": None,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        except Exception as exc:
+            logger.error(f"Error inesperado en toggle_estado grupo: {exc}")
+            return Response(
+                {
+                    "msg": "Error al cambiar estado del grupo",
                     "data": None,
                     "code": status.HTTP_500_INTERNAL_SERVER_ERROR,
                     "status": "error",
