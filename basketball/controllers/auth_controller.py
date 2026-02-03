@@ -56,19 +56,35 @@ class AuthController(viewsets.ViewSet):
         except requests.RequestException as e:
             logger.error(f"Error conectando al servicio de usuarios: {e}")
             return Response(
-                {
-                    "error": "Servicio de autenticación no disponible. Intente más tarde."
-                },
+                {"error": "No se pudo conectar con el servidor"},
                 status=status.HTTP_503_SERVICE_UNAVAILABLE,
             )
 
         if response.status_code != 200:
+            # Manejar errores específicos del microservicio de usuarios
             error_msg = self._extract_error_message(response)
-            response_status = (
-                response.status_code
-                if response.status_code < 500
-                else status.HTTP_502_BAD_GATEWAY
-            )
+
+            # Mapear errores comunes a mensajes amigables
+            if response.status_code == 401:
+                return Response(
+                    {"error": "Clave incorrecta"},
+                    status=status.HTTP_401_UNAUTHORIZED,
+                )
+            elif response.status_code == 404:
+                return Response(
+                    {"error": "La cuenta no existe"},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+            else:
+                response_status = (
+                    response.status_code
+                    if response.status_code < 500
+                    else status.HTTP_502_BAD_GATEWAY
+                )
+                return Response(
+                    {"error": error_msg or "Error en el servicio de autenticación"},
+                    status=response_status,
+                )
 
         # 2. Extraer información del usuario
         try:
@@ -156,3 +172,19 @@ class AuthController(viewsets.ViewSet):
                 },
             }
         )
+
+    def _extract_error_message(self, response):
+        """Extrae el mensaje de error de la respuesta del microservicio."""
+        try:
+            resp_json = response.json()
+            # Intentar diferentes formatos de respuesta de error
+            if isinstance(resp_json, dict):
+                return (
+                    resp_json.get("error")
+                    or resp_json.get("message")
+                    or resp_json.get("detail")
+                    or resp_json.get("msg")
+                )
+            return str(resp_json)
+        except ValueError:
+            return None
