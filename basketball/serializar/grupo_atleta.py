@@ -1,3 +1,4 @@
+from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 from ..models import GrupoAtleta, Entrenador
 
@@ -302,7 +303,7 @@ class GrupoAtletaResponseSerializer(serializers.ModelSerializer):
             try:
                 if hasattr(atleta, "inscripcion") and atleta.inscripcion.habilitada:
                     atletas_habilitados.append(atleta)
-            except Exception:
+            except (AttributeError, ObjectDoesNotExist):
                 # Si no tiene inscripción o hay error, no incluir
                 continue
 

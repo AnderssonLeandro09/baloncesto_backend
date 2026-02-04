@@ -358,8 +358,8 @@ class InscripcionService:
             if cedula:
                 lookup_response = self._search_by_identification(cedula, token)
                 return self._extract_external(lookup_response)
-        except Exception:
-            pass
+        except (KeyError, ValueError, TypeError, AttributeError) as e:
+            logger.debug(f"Fallback lookup failed for cedula {cedula}: {e}")
         return None
 
     # ======================================================================

@@ -1,6 +1,6 @@
 """Serializadores para Prueba Antropométrica."""
 
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from datetime import date, timedelta
 from rest_framework import serializers
 from ..models import PruebaAntropometrica, Atleta
@@ -60,7 +60,7 @@ class PruebaAntropometricaInputSerializer(serializers.Serializer):
                 try:
                     # Asegurar que sea Decimal con 2 decimales
                     data[campo] = Decimal(str(data[campo])).quantize(Decimal("0.01"))
-                except:
+                except (InvalidOperation, ValueError, TypeError):
                     pass  # Dejar que la validación normal maneje el error
 
         return super().to_internal_value(data)
