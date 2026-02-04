@@ -41,86 +41,61 @@ class TestGrupoAtletaGet(SimpleTestCase):
     # Tests de list exitosos
     # =========================================================================
 
-    @patch("basketball.serializers.get_persona_from_user_module")
-    @patch("basketball.models.Entrenador.objects")
-    @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
-    def test_listar_grupos_exitoso(
-        self,
-        mock_service_entrenador_objects,
-        mock_model_entrenador_objects,
-        mock_get_persona,
-    ):
+    def test_listar_grupos_exitoso(self):
         """Test: Listar todos los grupos del entrenador autenticado."""
-        mock_get_persona.return_value = {
-            "first_name": "Test",
-            "last_name": "Entrenador",
-            "identification": "123456",
-        }
-        mock_entrenador = MagicMock(spec=Entrenador)
-        mock_entrenador.id = 1
-        mock_entrenador.persona_external = "entrenador-123"
-        mock_service_entrenador_objects.get.return_value = mock_entrenador
-        mock_model_entrenador_objects.get.return_value = mock_entrenador
+        with patch.object(GrupoAtletaController, "service") as mock_service:
+            mock_grupo1 = MagicMock(spec=GrupoAtleta)
+            mock_grupo1.id = 1
+            mock_grupo1.nombre = "Grupo Juvenil A"
+            mock_grupo1.rango_edad_minima = 14
+            mock_grupo1.rango_edad_maxima = 18
+            mock_grupo1.categoria = "Juvenil"
+            mock_grupo1.estado = True
+            mock_grupo1.eliminado = False
+            mock_grupo1.entrenador_id = 1
+            mock_grupo1.atletas = MagicMock()
+            mock_grupo1.atletas.all.return_value = []
 
-        mock_grupo1 = MagicMock(spec=GrupoAtleta)
-        mock_grupo1.id = 1
-        mock_grupo1.nombre = "Grupo Juvenil A"
-        mock_grupo1.rango_edad_minima = 14
-        mock_grupo1.rango_edad_maxima = 18
-        mock_grupo1.categoria = "Juvenil"
-        mock_grupo1.estado = True
-        mock_grupo1.eliminado = False
-        mock_grupo1.entrenador_id = 1
-        mock_grupo1.atletas.all.return_value = []
+            mock_grupo2 = MagicMock(spec=GrupoAtleta)
+            mock_grupo2.id = 2
+            mock_grupo2.nombre = "Grupo Infantil B"
+            mock_grupo2.rango_edad_minima = 10
+            mock_grupo2.rango_edad_maxima = 14
+            mock_grupo2.categoria = "Infantil"
+            mock_grupo2.estado = True
+            mock_grupo2.eliminado = False
+            mock_grupo2.entrenador_id = 1
+            mock_grupo2.atletas = MagicMock()
+            mock_grupo2.atletas.all.return_value = []
 
-        mock_grupo2 = MagicMock(spec=GrupoAtleta)
-        mock_grupo2.id = 2
-        mock_grupo2.nombre = "Grupo Infantil B"
-        mock_grupo2.rango_edad_minima = 10
-        mock_grupo2.rango_edad_maxima = 14
-        mock_grupo2.categoria = "Infantil"
-        mock_grupo2.estado = True
-        mock_grupo2.eliminado = False
-        mock_grupo2.entrenador_id = 1
-        mock_grupo2.atletas.all.return_value = []
+            mock_service.list_all_grupos_by_user.return_value = [mock_grupo1, mock_grupo2]
 
-        real_service = GrupoAtletaService()
-        real_service.dao = MagicMock()
-        real_service.dao.list_by_entrenador.return_value = [mock_grupo1, mock_grupo2]
-        GrupoAtletaController.service = real_service
+            request = self.factory.get(
+                "/api/grupos-atletas/", HTTP_AUTHORIZATION=self.auth_header
+            )
+            response = self.view_list(request)
 
-        request = self.factory.get(
-            "/api/grupos-atletas/", HTTP_AUTHORIZATION=self.auth_header
-        )
-        response = self.view_list(request)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data["status"], "success")
+            self.assertEqual(response.data["msg"], "Grupos listados exitosamente")
+            self.assertIsInstance(response.data["data"], list)
+            mock_service.list_all_grupos_by_user.assert_called_once()
 
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["status"], "success")
-        self.assertEqual(response.data["msg"], "Grupos listados exitosamente")
-        self.assertIsInstance(response.data["data"], list)
-
-    @patch("basketball.services.grupo_atleta_service.Entrenador.objects")
-    def test_listar_grupos_vacio_exitoso(self, mock_entrenador_objects):
+    def test_listar_grupos_vacio_exitoso(self):
         """Test: Listar grupos cuando el entrenador no tiene ninguno."""
-        mock_entrenador = MagicMock(spec=Entrenador)
-        mock_entrenador.id = 1
-        mock_entrenador.persona_external = "entrenador-123"
-        mock_entrenador_objects.get.return_value = mock_entrenador
+        with patch.object(GrupoAtletaController, "service") as mock_service:
+            mock_service.list_all_grupos_by_user.return_value = []
 
-        real_service = GrupoAtletaService()
-        real_service.dao = MagicMock()
-        real_service.dao.list_by_entrenador.return_value = []
-        GrupoAtletaController.service = real_service
+            request = self.factory.get(
+                "/api/grupos-atletas/", HTTP_AUTHORIZATION=self.auth_header
+            )
+            response = self.view_list(request)
 
-        request = self.factory.get(
-            "/api/grupos-atletas/", HTTP_AUTHORIZATION=self.auth_header
-        )
-        response = self.view_list(request)
-
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data["status"], "success")
-        self.assertIsInstance(response.data["data"], list)
-        self.assertEqual(len(response.data["data"]), 0)
+            self.assertEqual(response.status_code, status.HTTP_200_OK)
+            self.assertEqual(response.data["status"], "success")
+            self.assertIsInstance(response.data["data"], list)
+            self.assertEqual(len(response.data["data"]), 0)
+            mock_service.list_all_grupos_by_user.assert_called_once()
 
     # =========================================================================
     # Tests de retrieve exitosos
