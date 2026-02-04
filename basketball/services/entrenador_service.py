@@ -207,13 +207,22 @@ class EntrenadorService:
         if not persona_data.get("password"):
             raise ValidationError("Password es obligatorio")
 
+        # Limpiar campos None antes de enviar al módulo de usuarios
+        # El módulo de usuarios no acepta None/null en campos opcionales
+        persona_data_clean = {}
+        for key, value in persona_data.items():
+            if value is not None:
+                persona_data_clean[key] = value
+        
+        logger.info(f"Persona data limpia (sin None): {persona_data_clean}")
+        
         persona_response = None
         persona_external = None
 
         try:
             logger.info(f"Llamando a user_module para crear persona")
             persona_response = self._call_user_module(
-                "post", "/api/person/save-account", token, persona_data
+                "post", "/api/person/save-account", token, persona_data_clean
             )
             logger.info(f"Respuesta del user_module: {persona_response}")
             persona_external = self._extract_external(persona_response)
@@ -275,15 +284,48 @@ class EntrenadorService:
         if not persona_data:
             raise ValidationError("Datos de persona son obligatorios")
 
-        persona_data = persona_data.copy()
-        persona_data.setdefault("external", entrenador.persona_external)
+        # PASO 1: Obtener datos actuales de la persona desde el módulo de usuarios
+        logger.info(f"=== ACTUALIZANDO ENTRENADOR {pk} ===")
+        logger.info(f"Datos recibidos - persona_data: {persona_data}")
+        logger.info(f"Datos recibidos - entrenador_data: {entrenador_data}")
+        
+        current_persona_response = self._fetch_persona(
+            entrenador.persona_external, token, allow_fail=False
+        )
+        current_persona = current_persona_response.get("data", {}) if current_persona_response else {}
+        
+        if not current_persona:
+            raise ValidationError("No se pudieron obtener los datos actuales de la persona")
+        
+        logger.info(f"Datos actuales de persona desde user_module: {current_persona}")
+        
+        # PASO 2: Mezclar datos actuales con los nuevos
+        # Los datos actuales son la base, los nuevos sobreescriben solo si no son None o vacíos
+        merged_persona_data = current_persona.copy()
+        
+        for key, value in persona_data.items():
+            # Solo actualizar si el valor no es None y no es una cadena vacía
+            if value is not None and value != "":
+                merged_persona_data[key] = value
+        
+        # Asegurar que external esté presente
+        merged_persona_data["external"] = entrenador.persona_external
+        
+        # No enviar password vacío (el módulo de usuarios no lo requiere en actualización)
+        if "password" in merged_persona_data:
+            if not merged_persona_data["password"]:
+                del merged_persona_data["password"]
+        
+        logger.info(f"Datos mezclados para enviar a user_module: {merged_persona_data}")
 
-        self._call_user_module("post", "/api/person/update", token, persona_data)
+        # PASO 3: Enviar datos completos al módulo de usuarios
+        self._call_user_module("post", "/api/person/update", token, merged_persona_data)
 
+        # PASO 4: Verificar si cambió la identificación
         ident = persona_data.get("identification")
         new_external = None
 
-        if ident:
+        if ident and ident != current_persona.get("identification"):
             lookup_response = self._search_by_identification(ident, token)
             new_external = (
                 self._extract_external(lookup_response) if lookup_response else None
@@ -299,6 +341,7 @@ class EntrenadorService:
                 "El external_id retornado ya está en uso por otro entrenador"
             )
 
+        # PASO 5: Actualizar datos específicos del entrenador
         especialidad = entrenador_data.get("especialidad", entrenador.especialidad)
         club_asignado = entrenador_data.get("club_asignado", entrenador.club_asignado)
 
