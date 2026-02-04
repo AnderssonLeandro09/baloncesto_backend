@@ -2,7 +2,7 @@
 
 import logging
 import requests
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -20,9 +20,48 @@ class PruebaAntropometricaService:
     def __init__(self):
         self.dao = PruebaAntropometricaDAO()
 
-    def get_all_pruebas_antropometricas(self) -> List[PruebaAntropometrica]:
-        """Obtiene todas las pruebas antropométricas."""
-        return list(self.dao.get_all())
+    def get_all_pruebas_antropometricas(
+        self,
+        page: int = 1,
+        page_size: int = 10,
+        atleta_id: Optional[int] = None,
+        estado: Optional[bool] = None,
+        fecha_inicio: Optional[str] = None,
+        fecha_fin: Optional[str] = None,
+    ) -> Tuple[List[PruebaAntropometrica], int]:
+        """Obtiene todas las pruebas antropométricas con paginación y filtros.
+
+        Args:
+            page: Número de página (1-indexed)
+            page_size: Tamaño de página
+            atleta_id: Filtrar por ID de atleta
+            estado: Filtrar por estado (True/False)
+            fecha_inicio: Filtrar por fecha de inicio
+            fecha_fin: Filtrar por fecha de fin
+
+        Returns:
+            Tupla con (lista de pruebas, total de registros)
+        """
+        queryset = self.dao.get_all()
+
+        # Aplicar filtros
+        if atleta_id is not None:
+            queryset = queryset.filter(atleta_id=atleta_id)
+        if estado is not None:
+            queryset = queryset.filter(estado=estado)
+        if fecha_inicio:
+            queryset = queryset.filter(fecha_registro__gte=fecha_inicio)
+        if fecha_fin:
+            queryset = queryset.filter(fecha_registro__lte=fecha_fin)
+
+        # Obtener total antes de paginar
+        total = queryset.count()
+
+        # Aplicar paginación
+        offset = (page - 1) * page_size
+        pruebas = list(queryset[offset : offset + page_size])
+
+        return pruebas, total
 
     def get_prueba_antropometrica_by_id(
         self, pk: int
