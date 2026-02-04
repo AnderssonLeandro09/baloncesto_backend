@@ -16,7 +16,9 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 max_length=100,
                 validators=[
-                    django.core.validators.MinLengthValidator(3, "La especialidad debe tener al menos 3 caracteres")
+                    django.core.validators.MinLengthValidator(
+                        3, "La especialidad debe tener al menos 3 caracteres"
+                    )
                 ],
                 verbose_name="Especialidad",
             ),
@@ -27,7 +29,9 @@ class Migration(migrations.Migration):
             field=models.CharField(
                 max_length=100,
                 validators=[
-                    django.core.validators.MinLengthValidator(3, "El club asignado debe tener al menos 3 caracteres")
+                    django.core.validators.MinLengthValidator(
+                        3, "El club asignado debe tener al menos 3 caracteres"
+                    )
                 ],
                 verbose_name="Club asignado",
             ),

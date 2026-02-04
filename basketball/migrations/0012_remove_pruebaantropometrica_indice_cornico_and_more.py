@@ -49,8 +49,12 @@ class Migration(migrations.Migration):
                 default=Decimal("0.00"),
                 max_digits=5,
                 validators=[
-                    django.core.validators.MinValueValidator(Decimal("20.0"), message="El peso mínimo es 20 kg"),
-                    django.core.validators.MaxValueValidator(Decimal("200.0"), message="El peso máximo es 200 kg"),
+                    django.core.validators.MinValueValidator(
+                        Decimal("20.0"), message="El peso mínimo es 20 kg"
+                    ),
+                    django.core.validators.MaxValueValidator(
+                        Decimal("200.0"), message="El peso máximo es 200 kg"
+                    ),
                 ],
                 verbose_name="Peso (kg)",
             ),
@@ -76,8 +80,12 @@ class Migration(migrations.Migration):
                 default=Decimal("0.00"),
                 max_digits=4,
                 validators=[
-                    django.core.validators.MinValueValidator(Decimal("0.5"), message="La altura sentado mínima es 0.5 m"),
-                    django.core.validators.MaxValueValidator(Decimal("1.5"), message="La altura sentado máxima es 1.5 m"),
+                    django.core.validators.MinValueValidator(
+                        Decimal("0.5"), message="La altura sentado mínima es 0.5 m"
+                    ),
+                    django.core.validators.MaxValueValidator(
+                        Decimal("1.5"), message="La altura sentado máxima es 1.5 m"
+                    ),
                 ],
                 verbose_name="Altura sentado (m)",
             ),
@@ -90,8 +98,12 @@ class Migration(migrations.Migration):
                 default=Decimal("0.00"),
                 max_digits=4,
                 validators=[
-                    django.core.validators.MinValueValidator(Decimal("1.0"), message="La envergadura mínima es 1.0 m"),
-                    django.core.validators.MaxValueValidator(Decimal("3.0"), message="La envergadura máxima es 3.0 m"),
+                    django.core.validators.MinValueValidator(
+                        Decimal("1.0"), message="La envergadura mínima es 1.0 m"
+                    ),
+                    django.core.validators.MaxValueValidator(
+                        Decimal("3.0"), message="La envergadura máxima es 3.0 m"
+                    ),
                 ],
                 verbose_name="Envergadura (m)",
             ),
@@ -104,8 +116,12 @@ class Migration(migrations.Migration):
                 default=Decimal("0.00"),
                 max_digits=4,
                 validators=[
-                    django.core.validators.MinValueValidator(Decimal("1.0"), message="La estatura mínima es 1.0 m"),
-                    django.core.validators.MaxValueValidator(Decimal("2.5"), message="La estatura máxima es 2.5 m"),
+                    django.core.validators.MinValueValidator(
+                        Decimal("1.0"), message="La estatura mínima es 1.0 m"
+                    ),
+                    django.core.validators.MaxValueValidator(
+                        Decimal("2.5"), message="La estatura máxima es 2.5 m"
+                    ),
                 ],
                 verbose_name="Estatura (m)",
             ),

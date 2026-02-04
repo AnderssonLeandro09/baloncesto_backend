@@ -71,14 +71,21 @@ class EntrenadorController(viewsets.ViewSet):
         logger.info(f"persona_data: {persona_data}")
         logger.info(f"entrenador_data: {entrenador_data}")
 
-        # Validar con serializer antes de enviar al servicio
-        serializer = EntrenadorInputSerializer(data=payload)
-        if not serializer.is_valid():
-            logger.error(f"Errores de validación del serializer: {serializer.errors}")
-            return Response(
-                {"error": "Error de validacion de datos", "details": serializer.errors},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        # Validar con serializer antes de enviar al servicio (solo si hay datos completos)
+        # Si no hay persona_data o entrenador_data, dejar que el servicio lo maneje
+        if persona_data and entrenador_data:
+            serializer = EntrenadorInputSerializer(data=payload)
+            if not serializer.is_valid():
+                logger.error(
+                    f"Errores de validación del serializer: {serializer.errors}"
+                )
+                return Response(
+                    {
+                        "error": "Error de validacion de datos",
+                        "details": serializer.errors,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         try:
             result = self.service.create_entrenador(
