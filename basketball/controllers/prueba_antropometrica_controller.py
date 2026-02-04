@@ -52,24 +52,24 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             page_size = int(request.query_params.get("pageSize", 10))
             atleta_id = request.query_params.get("atleta")
             estado = request.query_params.get("estado")
-            fecha_inicio = request.query_params.get("fecha_inicio")
-            fecha_fin = request.query_params.get("fecha_fin")
 
-            # Construir filtros
-            filtros = {}
+            # Obtener todas las pruebas
+            pruebas = self.service.get_all_pruebas_antropometricas()
+
+            # Aplicar filtros manualmente
             if atleta_id:
-                filtros["atleta_id"] = int(atleta_id)
+                pruebas = [p for p in pruebas if p.atleta_id == int(atleta_id)]
             if estado is not None and estado != "":
-                filtros["estado"] = estado.lower() == "true"
-            if fecha_inicio:
-                filtros["fecha_inicio"] = fecha_inicio
-            if fecha_fin:
-                filtros["fecha_fin"] = fecha_fin
+                estado_bool = estado.lower() == "true"
+                pruebas = [p for p in pruebas if p.estado == estado_bool]
 
-            pruebas, total = self.service.get_all_pruebas_antropometricas(
-                page=page, page_size=page_size, **filtros
-            )
-            serializer = PruebaAntropometricaResponseSerializer(pruebas, many=True)
+            # Calcular paginación
+            total = len(pruebas)
+            start = (page - 1) * page_size
+            end = start + page_size
+            pruebas_paginadas = pruebas[start:end]
+
+            serializer = PruebaAntropometricaResponseSerializer(pruebas_paginadas, many=True)
 
             return Response(
                 {
