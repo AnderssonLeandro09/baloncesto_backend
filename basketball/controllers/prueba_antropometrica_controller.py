@@ -69,7 +69,9 @@ class PruebaAntropometricaController(viewsets.ViewSet):
             end = start + page_size
             pruebas_paginadas = pruebas[start:end]
 
-            serializer = PruebaAntropometricaResponseSerializer(pruebas_paginadas, many=True)
+            serializer = PruebaAntropometricaResponseSerializer(
+                pruebas_paginadas, many=True
+            )
 
             return Response(
                 {
