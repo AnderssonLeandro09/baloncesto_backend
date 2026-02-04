@@ -215,6 +215,7 @@ class PersonaSerializer(serializers.Serializer):
 
         return value
 
+
 class PersonaEstudianteSerializer(PersonaSerializer):
     """
     Serializer para Estudiante de Vinculación.
@@ -237,6 +238,7 @@ class PersonaEstudianteSerializer(PersonaSerializer):
 
         # Se elimina la validación de 10 dígitos y algoritmo de Ecuador
         return value
+
 
 class PersonaMinimalSerializer(serializers.Serializer):
     """

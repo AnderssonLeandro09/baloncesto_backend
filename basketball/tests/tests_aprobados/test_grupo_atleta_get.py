@@ -68,7 +68,10 @@ class TestGrupoAtletaGet(SimpleTestCase):
             mock_grupo2.atletas = MagicMock()
             mock_grupo2.atletas.all.return_value = []
 
-            mock_service.list_all_grupos_by_user.return_value = [mock_grupo1, mock_grupo2]
+            mock_service.list_all_grupos_by_user.return_value = [
+                mock_grupo1,
+                mock_grupo2,
+            ]
 
             request = self.factory.get(
                 "/api/grupos-atletas/", HTTP_AUTHORIZATION=self.auth_header
