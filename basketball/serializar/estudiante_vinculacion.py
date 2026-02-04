@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from ..models import EstudianteVinculacion
-from .persona import PersonaSerializer
+from .persona import PersonaSerializer, PersonaEstudianteSerializer
 
 
 class EstudianteVinculacionSerializer(serializers.ModelSerializer):
@@ -49,7 +49,7 @@ class EstudianteVinculacionDataSerializer(serializers.ModelSerializer):
 class EstudianteVinculacionInputSerializer(serializers.Serializer):
     """Input para crear/editar estudiante de vinculación + persona."""
 
-    persona = PersonaSerializer()
+    persona = PersonaEstudianteSerializer()
     estudiante = EstudianteVinculacionDataSerializer()
 
 

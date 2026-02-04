@@ -39,7 +39,7 @@ class TestEstudianteVinculacionGet(SimpleTestCase):
         mock_get_token.return_value = "admin-token-123"
 
         with patch.object(EstudianteVinculacionController, "service") as mock_service:
-            mock_service.list_estudiantes.return_value = [
+            mock_service.list_all_estudiantes.return_value = [
                 {
                     "estudiante": {
                         "id": 1,
@@ -82,7 +82,7 @@ class TestEstudianteVinculacionGet(SimpleTestCase):
             self.assertEqual(response.status_code, status.HTTP_200_OK)
             self.assertEqual(response.data["status"], "success")
             self.assertEqual(len(response.data["data"]), 2)
-            mock_service.list_estudiantes.assert_called_once()
+            mock_service.list_all_estudiantes.assert_called_once()
 
     @patch(
         "basketball.controllers.estudiante_vinculacion_controller.get_user_module_token"
@@ -92,7 +92,7 @@ class TestEstudianteVinculacionGet(SimpleTestCase):
         mock_get_token.return_value = "admin-token-123"
 
         with patch.object(EstudianteVinculacionController, "service") as mock_service:
-            mock_service.list_estudiantes.return_value = []
+            mock_service.list_all_estudiantes.return_value = []
 
             view = EstudianteVinculacionController.as_view({"get": "list"})
             request = self.factory.get(

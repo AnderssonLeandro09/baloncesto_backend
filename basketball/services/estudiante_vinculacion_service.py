@@ -286,7 +286,7 @@ class EstudianteVinculacionService:
 
         if self.dao.exists(persona_external=persona_external, eliminado=False):
             raise ValidationError(
-                "Ya existe un estudiante de vinculación registrado con esta cédula"
+                "Ya existe un estudiante de vinculación registrado con esta identificación"
             )
 
         estudiante = self.dao.create(

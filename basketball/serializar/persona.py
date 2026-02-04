@@ -216,6 +216,30 @@ class PersonaSerializer(serializers.Serializer):
         return value
 
 
+class PersonaEstudianteSerializer(PersonaSerializer):
+    """
+    Serializer para Estudiante de Vinculación.
+    Permite identificaciones de cualquier longitud (para otros países).
+    Deshabilita la validación específica de cédula ecuatoriana.
+    """
+
+    def validate_identification(self, value):
+        if not value:
+            raise serializers.ValidationError("La identificación es requerida.")
+
+        value = value.strip()
+        # Remover espacios o guiones
+        value = re.sub(r"[\s\-]", "", value)
+
+        if not value.isdigit():
+            raise serializers.ValidationError(
+                "La identificación debe contener solo dígitos numéricos."
+            )
+
+        # Se elimina la validación de 10 dígitos y algoritmo de Ecuador
+        return value
+
+
 class PersonaMinimalSerializer(serializers.Serializer):
     """
     Serializer mínimo para datos de persona.
