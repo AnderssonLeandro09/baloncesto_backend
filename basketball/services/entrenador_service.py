@@ -56,11 +56,12 @@ class EntrenadorService:
 
         if response.status_code >= 400:
             message = self._extract_message(response)
-            logger.error(f"Error del user_module con status {response.status_code}: {response.text}")
+            logger.error(
+                f"Error del user_module con status {response.status_code}: {response.text}"
+            )
             logger.error(f"Mensaje extraído: {message}")
             # Pasar el mensaje tal cual, sin agregar prefijo
             raise ValidationError(message)
-
 
         try:
             return response.json()
@@ -88,7 +89,11 @@ class EntrenadorService:
                         return " | ".join(str(e) for e in errors)
                 # Buscar errores en la raíz del diccionario (formato DRF)
                 for key, value in data.items():
-                    if isinstance(value, (list, str)) and value and key != "non_field_errors":
+                    if (
+                        isinstance(value, (list, str))
+                        and value
+                        and key != "non_field_errors"
+                    ):
                         if isinstance(value, list):
                             return f"{key}: " + " | ".join(str(v) for v in value)
                         else:
@@ -213,9 +218,9 @@ class EntrenadorService:
         for key, value in persona_data.items():
             if value is not None:
                 persona_data_clean[key] = value
-        
+
         logger.info(f"Persona data limpia (sin None): {persona_data_clean}")
-        
+
         persona_response = None
         persona_external = None
 
@@ -281,45 +286,75 @@ class EntrenadorService:
         if not entrenador or entrenador.eliminado:
             return None
 
-        if not persona_data:
-            raise ValidationError("Datos de persona son obligatorios")
-
         # PASO 1: Obtener datos actuales de la persona desde el módulo de usuarios
         logger.info(f"=== ACTUALIZANDO ENTRENADOR {pk} ===")
-        logger.info(f"Datos recibidos - persona_data: {persona_data}")
-        logger.info(f"Datos recibidos - entrenador_data: {entrenador_data}")
-        
+        logger.info(f"Datos recibidos del frontend - persona_data: {persona_data}")
+        logger.info(f"Campos en persona_data:")
+        for key, value in persona_data.items():
+            logger.info(f"  {key}: {value!r}")
+        logger.info(
+            f"Datos recibidos del frontend - entrenador_data: {entrenador_data}"
+        )
+
         current_persona_response = self._fetch_persona(
             entrenador.persona_external, token, allow_fail=False
         )
-        current_persona = current_persona_response.get("data", {}) if current_persona_response else {}
-        
+        current_persona = (
+            current_persona_response.get("data", {}) if current_persona_response else {}
+        )
+
         if not current_persona:
-            raise ValidationError("No se pudieron obtener los datos actuales de la persona")
-        
+            raise ValidationError(
+                "No se pudieron obtener los datos actuales de la persona"
+            )
+
         logger.info(f"Datos actuales de persona desde user_module: {current_persona}")
-        
+        logger.info(f"Campos en current_persona:")
+        for key, value in current_persona.items():
+            logger.info(f"  {key}: {value!r}")
+
         # PASO 2: Mezclar datos actuales con los nuevos
-        # Los datos actuales son la base, los nuevos sobreescriben solo si no son None o vacíos
+        # Los datos actuales son la base, los nuevos sobreescriben solo si están presentes
         merged_persona_data = current_persona.copy()
-        
-        for key, value in persona_data.items():
-            # Solo actualizar si el valor no es None y no es una cadena vacía
-            if value is not None and value != "":
-                merged_persona_data[key] = value
-        
+
+        # Si se recibieron datos de persona, actualizarlos
+        if persona_data:
+            for key, value in persona_data.items():
+                # Solo actualizar si el valor está presente y no es None
+                # Permitir cadenas vacías si el usuario quiere limpiar un campo
+                if value is not None:
+                    merged_persona_data[key] = value
+
+        logger.info(f"Datos mezclados (antes de limpiar None): {merged_persona_data}")
+        logger.info(f"Campos mezclados:")
+        for key, value in merged_persona_data.items():
+            logger.info(f"  {key}: {value!r}")
+
         # Asegurar que external esté presente
         merged_persona_data["external"] = entrenador.persona_external
-        
+
+        # Limpiar campos None antes de enviar al módulo de usuarios
+        merged_persona_data_clean = {}
+        for key, value in merged_persona_data.items():
+            if value is not None:
+                merged_persona_data_clean[key] = value
+
         # No enviar password vacío (el módulo de usuarios no lo requiere en actualización)
-        if "password" in merged_persona_data:
-            if not merged_persona_data["password"]:
-                del merged_persona_data["password"]
-        
-        logger.info(f"Datos mezclados para enviar a user_module: {merged_persona_data}")
+        if "password" in merged_persona_data_clean:
+            if not merged_persona_data_clean["password"]:
+                del merged_persona_data_clean["password"]
+
+        logger.info(
+            f"Datos finales a enviar a user_module (limpio): {merged_persona_data_clean}"
+        )
+        logger.info(f"Campos finales a enviar:")
+        for key, value in merged_persona_data_clean.items():
+            logger.info(f"  {key}: {value!r}")
 
         # PASO 3: Enviar datos completos al módulo de usuarios
-        self._call_user_module("post", "/api/person/update", token, merged_persona_data)
+        self._call_user_module(
+            "post", "/api/person/update", token, merged_persona_data_clean
+        )
 
         # PASO 4: Verificar si cambió la identificación
         ident = persona_data.get("identification")
