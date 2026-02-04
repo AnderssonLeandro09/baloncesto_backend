@@ -21,7 +21,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Quick-start development settings - unsuitable for production
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-dev-key-change-in-production")
+# La SECRET_KEY DEBE ser configurada como variable de entorno en producción
+_default_secret = (
+    None
+    if not os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
+    else "dev-only-insecure-key"
+)  # noqa: E501
+SECRET_KEY = os.getenv("SECRET_KEY", _default_secret)
+if not SECRET_KEY:
+    raise ValueError(
+        "La variable de entorno SECRET_KEY es obligatoria en producción. "
+        "Configure SECRET_KEY en su archivo .env o variables de entorno."
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
@@ -193,10 +204,25 @@ SPECTACULAR_SETTINGS = {
 CORS_ALLOW_ALL_ORIGINS = DEBUG
 
 # Orígenes permitidos en producción (agregar los dominios de tu frontend)
-CORS_ALLOWED_ORIGINS = os.getenv(
-    "CORS_ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173,http://localhost:8096",
-).split(",")
+_default_cors = (
+    "http://localhost:3000,http://localhost:5173,"
+    "http://127.0.0.1:3000,http://127.0.0.1:5173,"
+    "http://localhost:8096,http://localhost:8023,"
+    "http://127.0.0.1:8023,http://127.0.0.1:8096"
+)
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", _default_cors).split(",")
+
+# CSRF Trusted Origins (necesario para POST requests)
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://localhost:8023",
+    "http://localhost:8096",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:8023",
+    "http://127.0.0.1:8096",
+]
 
 # Permitir credenciales (cookies, authorization headers)
 CORS_ALLOW_CREDENTIALS = True

@@ -2,6 +2,7 @@
 
 from rest_framework import status, viewsets
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from drf_spectacular.utils import extend_schema
 
 from ..permissions import IsAdmin
@@ -14,6 +15,8 @@ from ..serializers import (
 from ..services.estudiante_vinculacion_service import (
     EstudianteVinculacionService,
 )
+
+MSG_ESTUDIANTE_NO_ENCONTRADO = "Estudiante no encontrado"
 
 
 class EstudianteVinculacionController(viewsets.ViewSet):
@@ -29,10 +32,27 @@ class EstudianteVinculacionController(viewsets.ViewSet):
         # Usar token de admin para consultar el módulo de usuarios
         token = get_user_module_token()
         try:
-            data = self.service.list_estudiantes(token)
-            return Response(data, status=status.HTTP_200_OK)
+            # Listar todos incluyendo deshabilitados para poder hacer toggle
+            data = self.service.list_all_estudiantes(token)
+            return Response(
+                {
+                    "msg": "Estudiantes listados correctamente",
+                    "data": data,
+                    "code": status.HTTP_200_OK,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
         except Exception as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": "Error al listar estudiantes",
+                    "data": str(exc),
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @extend_schema(responses={200: EstudianteVinculacionResponseSerializer})
     def retrieve(self, request, pk=None):
@@ -41,12 +61,33 @@ class EstudianteVinculacionController(viewsets.ViewSet):
             data = self.service.get_estudiante(pk, token)
             if not data:
                 return Response(
-                    {"error": "Estudiante no encontrado"},
+                    {
+                        "msg": MSG_ESTUDIANTE_NO_ENCONTRADO,
+                        "data": None,
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "status": "error",
+                    },
                     status=status.HTTP_404_NOT_FOUND,
                 )
-            return Response(data, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "msg": "Estudiante obtenido correctamente",
+                    "data": data,
+                    "code": status.HTTP_200_OK,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
         except Exception as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": "Error al obtener estudiante",
+                    "data": str(exc),
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @extend_schema(
         request=EstudianteVinculacionInputSerializer,
@@ -54,18 +95,47 @@ class EstudianteVinculacionController(viewsets.ViewSet):
     )
     def create(self, request):
         token = get_user_module_token()
-        payload = request.data.dict() if hasattr(request.data, "dict") else request.data
-        persona_data = payload.get("persona") or payload.get("persona_data")
-        estudiante_data = (
-            payload.get("estudiante") or payload.get("estudiante_data") or {}
-        )
+
+        # Validar datos usando el serializer
+        serializer = EstudianteVinculacionInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "msg": "Error de validación",
+                    "data": serializer.errors,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        validated_data = serializer.validated_data
+        persona_data = validated_data.get("persona")
+        estudiante_data = validated_data.get("estudiante")
+
         try:
             result = self.service.create_estudiante(
-                persona_data or {}, estudiante_data, token
+                persona_data, estudiante_data, token
             )
-            return Response(result, status=status.HTTP_201_CREATED)
+            return Response(
+                {
+                    "msg": "Estudiante creado correctamente",
+                    "data": result,
+                    "code": status.HTTP_201_CREATED,
+                    "status": "success",
+                },
+                status=status.HTTP_201_CREATED,
+            )
         except Exception as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": "Error al crear estudiante",
+                    "data": str(exc),
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @extend_schema(
         request=EstudianteVinculacionInputSerializer,
@@ -73,23 +143,59 @@ class EstudianteVinculacionController(viewsets.ViewSet):
     )
     def update(self, request, pk=None):
         token = get_user_module_token()
-        payload = request.data.dict() if hasattr(request.data, "dict") else request.data
-        persona_data = payload.get("persona") or payload.get("persona_data")
-        estudiante_data = (
-            payload.get("estudiante") or payload.get("estudiante_data") or {}
+
+        # Validar datos usando el serializer (permitiendo actualización parcial si es necesario)
+        serializer = EstudianteVinculacionInputSerializer(
+            data=request.data, partial=True
         )
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "msg": "Error de validación",
+                    "data": serializer.errors,
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        validated_data = serializer.validated_data
+        persona_data = validated_data.get("persona")
+        estudiante_data = validated_data.get("estudiante")
+
         try:
             result = self.service.update_estudiante(
-                pk, persona_data or {}, estudiante_data, token
+                pk, persona_data or {}, estudiante_data or {}, token
             )
             if not result:
                 return Response(
-                    {"error": "Estudiante no encontrado"},
+                    {
+                        "msg": MSG_ESTUDIANTE_NO_ENCONTRADO,
+                        "data": None,
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "status": "error",
+                    },
                     status=status.HTTP_404_NOT_FOUND,
                 )
-            return Response(result, status=status.HTTP_200_OK)
+            return Response(
+                {
+                    "msg": "Estudiante actualizado correctamente",
+                    "data": result,
+                    "code": status.HTTP_200_OK,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
         except Exception as exc:
-            return Response({"error": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {
+                    "msg": "Error al actualizar estudiante",
+                    "data": str(exc),
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     @extend_schema(
         request=EstudianteVinculacionInputSerializer,
@@ -102,7 +208,66 @@ class EstudianteVinculacionController(viewsets.ViewSet):
         success = self.service.delete_estudiante(pk)
         if not success:
             return Response(
-                {"error": "Estudiante no encontrado"},
+                {
+                    "msg": MSG_ESTUDIANTE_NO_ENCONTRADO,
+                    "data": None,
+                    "code": status.HTTP_404_NOT_FOUND,
+                    "status": "error",
+                },
                 status=status.HTTP_404_NOT_FOUND,
             )
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(
+            {
+                "msg": "Estudiante eliminado correctamente",
+                "data": None,
+                "code": status.HTTP_200_OK,
+                "status": "success",
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    @action(detail=True, methods=["post"], url_path="toggle-estado")
+    @extend_schema(request=None)
+    def toggle_estado(self, request, pk=None):
+        """
+        Alterna el estado de habilitación de un estudiante (Toggle).
+        Usa el campo 'eliminado' como borrado lógico.
+        """
+        token = get_user_module_token()
+        try:
+            result = self.service.toggle_estado(pk, token)
+            if not result:
+                return Response(
+                    {
+                        "msg": MSG_ESTUDIANTE_NO_ENCONTRADO,
+                        "data": None,
+                        "code": status.HTTP_404_NOT_FOUND,
+                        "status": "error",
+                    },
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
+            mensaje = (
+                "Estudiante habilitado correctamente"
+                if not result["estudiante"]["eliminado"]
+                else "Estudiante deshabilitado correctamente"
+            )
+            return Response(
+                {
+                    "msg": mensaje,
+                    "data": result,
+                    "code": status.HTTP_200_OK,
+                    "status": "success",
+                },
+                status=status.HTTP_200_OK,
+            )
+        except Exception as exc:
+            return Response(
+                {
+                    "msg": "Error al cambiar estado del estudiante",
+                    "data": str(exc),
+                    "code": status.HTTP_400_BAD_REQUEST,
+                    "status": "error",
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )

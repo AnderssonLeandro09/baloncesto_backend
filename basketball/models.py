@@ -5,8 +5,20 @@ Las personas se referencian al módulo externo de usuarios mediante `persona_ext
 """
 
 from django.db import models
+from django.core.validators import MinLengthValidator
 from django.core.validators import MinValueValidator, MaxValueValidator
 from decimal import Decimal
+from django.core.exceptions import ValidationError
+from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
+
+# Constantes para verbose_name y help_text duplicados
+VERBOSE_EXTERNAL_ID_PERSONA = "External ID Persona"
+HELP_TEXT_UUID_EXTERNO = "UUID externo de la persona en el módulo de usuarios"
+VERBOSE_FECHA_REGISTRO = "Fecha de registro"
+HELP_TEXT_MAX_100_CHARS = "Máximo 100 caracteres"
+HELP_TEXT_MAX_75_CHARS = "Máximo 75 caracteres"
 
 
 class TipoInscripcion(models.TextChoices):
@@ -25,11 +37,17 @@ class TipoPrueba(models.TextChoices):
 
 
 class Sexo(models.TextChoices):
-    """Enum para sexo"""
+    """
+    Enum para sexo - Referencia para el frontend.
 
-    MASCULINO = "M", "Masculino"
-    FEMENINO = "F", "Femenino"
-    OTRO = "O", "Otro"
+    NOTA: El campo 'sexo' en Atleta permite valores personalizados.
+    Si el usuario selecciona 'Otro', puede escribir texto libre (max 20 chars).
+    Valores estándar: 'Masculino', 'Femenino', o texto personalizado.
+    """
+
+    MASCULINO = "Masculino", "Masculino"
+    FEMENINO = "Femenino", "Femenino"
+    OTRO = "Otro", "Otro"
 
 
 class Administrador(models.Model):
@@ -38,14 +56,14 @@ class Administrador(models.Model):
     persona_external = models.CharField(
         max_length=100,
         unique=True,
-        verbose_name="External ID Persona",
-        help_text="UUID externo de la persona en el módulo de usuarios",
+        verbose_name=VERBOSE_EXTERNAL_ID_PERSONA,
+        help_text=HELP_TEXT_UUID_EXTERNO,
     )
     cargo = models.CharField(
         max_length=100, blank=True, null=True, verbose_name="Cargo"
     )
     fecha_registro = models.DateTimeField(
-        auto_now_add=True, verbose_name="Fecha de registro"
+        auto_now_add=True, verbose_name=VERBOSE_FECHA_REGISTRO
     )
     estado = models.BooleanField(default=True, verbose_name="Estado")
 
@@ -77,6 +95,7 @@ class GrupoAtleta(models.Model):
         auto_now_add=True, verbose_name="Fecha de creación"
     )
     estado = models.BooleanField(default=True, verbose_name="Estado")
+    eliminado = models.BooleanField(default=False, verbose_name="Eliminado")
 
     # Relación con Entrenador (implementa) - Cardinalidad 1 Entrenador tiene 1..* Grupos
     # La FK se define como string porque Entrenador se define después
@@ -106,11 +125,23 @@ class Entrenador(models.Model):
     persona_external = models.CharField(
         max_length=100,
         unique=True,
-        verbose_name="External ID Persona",
-        help_text="UUID externo de la persona en el módulo de usuarios",
+        verbose_name=VERBOSE_EXTERNAL_ID_PERSONA,
+        help_text=HELP_TEXT_UUID_EXTERNO,
     )
-    especialidad = models.CharField(max_length=100, verbose_name="Especialidad")
-    club_asignado = models.CharField(max_length=100, verbose_name="Club asignado")
+    especialidad = models.CharField(
+        max_length=100,
+        verbose_name="Especialidad",
+        validators=[
+            MinLengthValidator(3, "La especialidad debe tener al menos 3 caracteres")
+        ],
+    )
+    club_asignado = models.CharField(
+        max_length=100,
+        verbose_name="Club asignado",
+        validators=[
+            MinLengthValidator(3, "El club asignado debe tener al menos 3 caracteres")
+        ],
+    )
     eliminado = models.BooleanField(default=False, verbose_name="Eliminado")
 
     class Meta:
@@ -132,8 +163,8 @@ class EstudianteVinculacion(models.Model):
     persona_external = models.CharField(
         max_length=100,
         unique=True,
-        verbose_name="External ID Persona",
-        help_text="UUID externo de la persona en el módulo de usuarios",
+        verbose_name=VERBOSE_EXTERNAL_ID_PERSONA,
+        help_text=HELP_TEXT_UUID_EXTERNO,
     )
     carrera = models.CharField(max_length=100, verbose_name="Carrera")
     semestre = models.CharField(max_length=20, verbose_name="Semestre")
@@ -159,9 +190,32 @@ class Atleta(models.Model):
         max_length=100,
         unique=True,
         null=True,
-        verbose_name="External ID Persona",
-        help_text="UUID externo de la persona en el módulo de usuarios",
+        verbose_name=VERBOSE_EXTERNAL_ID_PERSONA,
+        help_text=HELP_TEXT_UUID_EXTERNO,
     )
+
+    # Datos Personales Redundantes (backup local si el microservicio falla)
+    nombres = models.CharField(
+        max_length=150, blank=True, null=True, verbose_name="Nombres"
+    )
+    apellidos = models.CharField(
+        max_length=150, blank=True, null=True, verbose_name="Apellidos"
+    )
+    cedula = models.CharField(
+        max_length=20, blank=True, null=True, verbose_name="Cédula/Identificación"
+    )
+    email = models.EmailField(blank=True, null=True, verbose_name="Email")
+    direccion = models.CharField(
+        max_length=75,
+        blank=True,
+        null=True,
+        verbose_name="Dirección",
+        help_text=HELP_TEXT_MAX_75_CHARS,
+    )
+    genero = models.CharField(
+        max_length=20, blank=True, null=True, verbose_name="Género"
+    )
+
     # Datos Personales
     fecha_nacimiento = models.DateField(null=True, verbose_name="Fecha de nacimiento")
     edad = models.IntegerField(
@@ -173,14 +227,38 @@ class Atleta(models.Model):
         max_length=20, blank=True, null=True, verbose_name="Teléfono"
     )
 
-    # Información de Salud
+    # Información de Salud - Máximo 100 caracteres cada campo
     tipo_sangre = models.CharField(
         max_length=10, blank=True, null=True, verbose_name="Tipo de sangre (RH)"
     )
-    alergias = models.TextField(blank=True, null=True, verbose_name="Alergias")
-    enfermedades = models.TextField(blank=True, null=True, verbose_name="Enfermedades")
-    medicamentos = models.TextField(blank=True, null=True, verbose_name="Medicamentos")
-    lesiones = models.TextField(blank=True, null=True, verbose_name="Lesiones")
+    alergias = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Alergias",
+        help_text=HELP_TEXT_MAX_100_CHARS,
+    )
+    enfermedades = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Enfermedades",
+        help_text=HELP_TEXT_MAX_100_CHARS,
+    )
+    medicamentos = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Medicamentos",
+        help_text=HELP_TEXT_MAX_100_CHARS,
+    )
+    lesiones = models.CharField(
+        max_length=100,
+        blank=True,
+        null=True,
+        verbose_name="Lesiones",
+        help_text=HELP_TEXT_MAX_100_CHARS,
+    )
 
     # Datos del Representante
     nombre_representante = models.CharField(
@@ -202,7 +280,11 @@ class Atleta(models.Model):
         blank=True, null=True, verbose_name="Correo representante"
     )
     direccion_representante = models.CharField(
-        max_length=255, blank=True, null=True, verbose_name="Dirección representante"
+        max_length=75,
+        blank=True,
+        null=True,
+        verbose_name="Dirección representante",
+        help_text=HELP_TEXT_MAX_75_CHARS,
     )
     ocupacion_representante = models.CharField(
         max_length=100, blank=True, null=True, verbose_name="Ocupación representante"
@@ -260,52 +342,133 @@ class Inscripcion(models.Model):
 # =============================================================================
 # Modelo PruebaAntropometrica
 # =============================================================================
+
+
 class PruebaAntropometrica(models.Model):
     """Modelo para Pruebas Antropométricas"""
 
-    # Relación con Atleta (tiene)
+    # ================================
+    # Relación con Atleta
+    # ================================
     atleta = models.ForeignKey(
         Atleta,
         on_delete=models.CASCADE,
         related_name="pruebas_antropometricas",
         verbose_name="Atleta",
     )
-    fecha_registro = models.DateField(verbose_name="Fecha de registro")
+
+    # ================================
+    # Registrador (Entrenador o Estudiante)
+    # ================================
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        verbose_name="Tipo de registrador",
+    )
+    object_id = models.PositiveIntegerField(
+        null=True, blank=True, verbose_name="ID del registrador"
+    )
+    registrado_por = GenericForeignKey("content_type", "object_id")
+
+    rol_registrador = models.CharField(
+        max_length=30,
+        choices=[
+            ("ENTRENADOR", "Entrenador"),
+            ("ESTUDIANTE_VINCULACION", "Estudiante de Vinculación"),
+        ],
+        default="ENTRENADOR",
+        verbose_name="Rol del registrador",
+    )
+
+    # ================================
+    # Datos antropométricos
+    # ================================
+    fecha_registro = models.DateField(
+        default=timezone.now, verbose_name=VERBOSE_FECHA_REGISTRO
+    )
+
+    peso = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[
+            MinValueValidator(Decimal("20.0"), message="El peso mínimo es 20 kg"),
+            MaxValueValidator(Decimal("200.0"), message="El peso máximo es 200 kg"),
+        ],
+        verbose_name="Peso (kg)",
+    )
+
+    estatura = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[
+            MinValueValidator(Decimal("1.0"), message="La estatura mínima es 1.0 m"),
+            MaxValueValidator(Decimal("2.5"), message="La estatura máxima es 2.5 m"),
+        ],
+        verbose_name="Estatura (m)",
+    )
+
+    altura_sentado = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[
+            MinValueValidator(
+                Decimal("0.5"), message="La altura sentado mínima es 0.5 m"
+            ),
+            MaxValueValidator(
+                Decimal("1.5"), message="La altura sentado máxima es 1.5 m"
+            ),
+        ],
+        verbose_name="Altura sentado (m)",
+    )
+
+    envergadura = models.DecimalField(
+        max_digits=4,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[
+            MinValueValidator(Decimal("1.0"), message="La envergadura mínima es 1.0 m"),
+            MaxValueValidator(Decimal("3.0"), message="La envergadura máxima es 3.0 m"),
+        ],
+        verbose_name="Envergadura (m)",
+    )
+
+    # ================================
+    # Índices calculados
+    # ================================
     indice_masa_corporal = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.00"))],
-        verbose_name="Índice de masa corporal",
+        default=Decimal("0.00"),
+        editable=False,
+        verbose_name="Índice de Masa Corporal",
     )
-    estatura = models.DecimalField(
+
+    indice_cormico = models.DecimalField(
         max_digits=5,
         decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.00"))],
-        verbose_name="Estatura (cm)",
+        default=Decimal("0.00"),
+        editable=False,
+        verbose_name="Índice Córmico",
     )
-    altura_sentado = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.00"))],
-        verbose_name="Altura sentado (cm)",
-    )
-    envergadura = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        validators=[MinValueValidator(Decimal("0.00"))],
-        verbose_name="Envergadura (cm)",
-    )
-    indice_cornico = models.DecimalField(
-        max_digits=5,
-        decimal_places=2,
-        null=True,
-        blank=True,
-        verbose_name="Índice córnico",
-    )
+
+    # ================================
+    # Control
+    # ================================
     observaciones = models.TextField(
-        blank=True, null=True, verbose_name="Observaciones"
+        blank=True,
+        null=True,
+        verbose_name="Observaciones",
     )
-    estado = models.BooleanField(default=True, verbose_name="Estado")
+
+    estado = models.BooleanField(
+        default=True,
+        verbose_name="Estado",
+    )
 
     class Meta:
         db_table = "prueba_antropometrica"
@@ -313,8 +476,44 @@ class PruebaAntropometrica(models.Model):
         verbose_name_plural = "Pruebas Antropométricas"
         ordering = ["-fecha_registro"]
 
+    # ================================
+    # Validaciones de dominio
+    # ================================
+    def clean(self):
+        if self.altura_sentado > self.estatura:
+            raise ValidationError(
+                {
+                    "altura_sentado": "La altura sentado no puede ser mayor que la estatura total."
+                }
+            )
+
+        if self.envergadura < (self.estatura - Decimal("0.05")):
+            raise ValidationError(
+                {"envergadura": "La envergadura es incoherente respecto a la estatura."}
+            )
+
+    # ================================
+    # Cálculos automáticos
+    # ================================
+    def calcular_imc(self):
+        return Decimal(self.peso) / (Decimal(self.estatura) ** 2)
+
+    def calcular_indice_cormico(self):
+        if self.estatura == 0:
+            return Decimal("0")
+        return (Decimal(self.altura_sentado) / Decimal(self.estatura)) * Decimal("100")
+
+    def save(self, *args, **kwargs):
+        self.indice_masa_corporal = Decimal(self.calcular_imc()).quantize(
+            Decimal("0.01")
+        )
+        self.indice_cormico = Decimal(self.calcular_indice_cormico()).quantize(
+            Decimal("0.01")
+        )
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Prueba Antropométrica {self.id} - {self.atleta}"
+        return f"Prueba Antropométrica #{self.id} - {self.atleta}"
 
 
 # =============================================================================
@@ -323,6 +522,13 @@ class PruebaAntropometrica(models.Model):
 class PruebaFisica(models.Model):
     """Modelo para Pruebas Físicas"""
 
+    # Mapeo de tipo de prueba a unidad de medida (basado en pruebas de baloncesto)
+    UNIDADES_POR_TIPO = {
+        TipoPrueba.FUERZA: "Centímetros (cm)",  # Salto horizontal
+        TipoPrueba.VELOCIDAD: "Segundos (seg)",  # 30 metros
+        TipoPrueba.AGILIDAD: "Segundos (seg)",  # Zigzag
+    }
+
     # Relación con Atleta (tiene)
     atleta = models.ForeignKey(
         Atleta,
@@ -330,20 +536,28 @@ class PruebaFisica(models.Model):
         related_name="pruebas_fisicas",
         verbose_name="Atleta",
     )
-    fecha_registro = models.DateField(verbose_name="Fecha de registro")
+    fecha_registro = models.DateField(verbose_name=VERBOSE_FECHA_REGISTRO)
     tipo_prueba = models.CharField(
         max_length=20,
         choices=TipoPrueba.choices,
         verbose_name="Tipo de prueba",
     )
     resultado = models.DecimalField(
-        max_digits=10, decimal_places=2, verbose_name="Resultado"
+        max_digits=10,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal("0.01"))],
+        verbose_name="Resultado",
     )
     unidad_medida = models.CharField(max_length=20, verbose_name="Unidad de medida")
     observaciones = models.TextField(
         blank=True, null=True, verbose_name="Observaciones"
     )
     estado = models.BooleanField(default=True, verbose_name="Estado")
+
+    @staticmethod
+    def get_unidad_por_tipo(tipo_prueba: str) -> str:
+        """Retorna la unidad de medida según el tipo de prueba."""
+        return PruebaFisica.UNIDADES_POR_TIPO.get(tipo_prueba, "N/A")
 
     class Meta:
         db_table = "prueba_fisica"
