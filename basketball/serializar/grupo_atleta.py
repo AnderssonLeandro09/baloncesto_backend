@@ -10,22 +10,44 @@ class AtletaSanitizedSerializer(serializers.Serializer):
     inscripcion = serializers.SerializerMethodField()
 
     def get_persona(self, atleta):
-        """Obtiene datos sanitizados de la persona desde el módulo externo."""
+        """
+        Obtiene datos sanitizados de la persona.
+        PRIORIDAD: Datos locales del atleta (nunca se pierden).
+        Fallback al módulo externo solo si los datos locales están vacíos.
+        """
         from ..serializers import get_persona_from_user_module
 
-        if not atleta.persona_external:
+        # Intentar obtener datos del módulo externo
+        persona_data = None
+        if atleta.persona_external:
+            persona_data = get_persona_from_user_module(atleta.persona_external)
+
+        # Construir respuesta priorizando datos locales (como en inscripcion_service)
+        first_name = (
+            atleta.nombres
+            or (persona_data.get("first_name") if persona_data else None)
+            or (persona_data.get("firts_name") if persona_data else None)
+            or ""
+        )
+        last_name = (
+            atleta.apellidos
+            or (persona_data.get("last_name") if persona_data else None)
+            or ""
+        )
+        identification = (
+            atleta.cedula
+            or (persona_data.get("identification") if persona_data else None)
+            or ""
+        )
+
+        # Si no hay datos, retornar None
+        if not first_name and not last_name and not identification:
             return None
 
-        persona_data = get_persona_from_user_module(atleta.persona_external)
-        if not persona_data:
-            return None
-
-        # Retornar solo campos permitidos
         return {
-            "first_name": persona_data.get("first_name")
-            or persona_data.get("firts_name"),
-            "last_name": persona_data.get("last_name"),
-            "identification": persona_data.get("identification"),
+            "first_name": first_name,
+            "last_name": last_name,
+            "identification": identification,
         }
 
     def get_inscripcion(self, atleta):
