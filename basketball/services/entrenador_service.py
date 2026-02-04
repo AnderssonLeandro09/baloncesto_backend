@@ -356,16 +356,20 @@ class EntrenadorService:
             "post", "/api/person/update", token, merged_persona_data_clean
         )
 
-        # PASO 4: Verificar si cambió la identificación
-        ident = persona_data.get("identification")
+        # PASO 4: Buscar de nuevo para obtener el external_id potencialmente nuevo
+        # El endpoint de actualización retorna data vacía, así que debemos buscar por identificación
+        ident = persona_data.get("identification") or current_persona.get(
+            "identification"
+        )
         new_external = None
 
-        if ident and ident != current_persona.get("identification"):
+        if ident:
             lookup_response = self._search_by_identification(ident, token)
             new_external = (
                 self._extract_external(lookup_response) if lookup_response else None
             )
 
+        # Fallback si la búsqueda falló
         if not new_external:
             new_external = entrenador.persona_external
 
