@@ -37,7 +37,15 @@ if not SECRET_KEY:
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "True").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0").split(",")
+ALLOWED_HOSTS = os.getenv(
+    "ALLOWED_HOSTS", "localhost,127.0.0.1,0.0.0.0"
+).split(",")
+
+# En Azure App Service, confiar en el header X-Forwarded-Host
+if not DEBUG:
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 
 # Application definition
@@ -58,6 +66,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -143,6 +152,13 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# WhiteNoise para servir archivos estáticos en producción
+STATICFILES_STORAGE = (
+    "whitenoise.storage.CompressedManifestStaticFilesStorage"
+    if not DEBUG
+    else "django.contrib.staticfiles.storage.StaticFilesStorage"
+)
+
 # Media files
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -213,16 +229,12 @@ _default_cors = (
 CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", _default_cors).split(",")
 
 # CSRF Trusted Origins (necesario para POST requests)
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:3000",
-    "http://localhost:5173",
-    "http://localhost:8023",
-    "http://localhost:8096",
-    "http://127.0.0.1:3000",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:8023",
-    "http://127.0.0.1:8096",
-]
+_default_csrf = os.getenv(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://localhost:3000,http://localhost:5173,http://localhost:8023,http://localhost:8096,"
+    "http://127.0.0.1:3000,http://127.0.0.1:5173,http://127.0.0.1:8023,http://127.0.0.1:8096",
+)
+CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in _default_csrf.split(",") if origin.strip()]
 
 # Permitir credenciales (cookies, authorization headers)
 CORS_ALLOW_CREDENTIALS = True

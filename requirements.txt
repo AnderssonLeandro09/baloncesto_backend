@@ -1,6 +1,12 @@
 # Django Framework
 Django==4.2.7
 
+# Production Server
+gunicorn==21.2.0
+
+# Static Files (production)
+whitenoise==6.6.0
+
 # PostgreSQL Database
 psycopg2-binary==2.9.9
 

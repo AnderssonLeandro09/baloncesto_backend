@@ -23,14 +23,21 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy project
 COPY . .
 
+# Collect static files
+RUN python manage.py collectstatic --noinput || true
+
+# Copy startup script
+COPY startup.sh /app/startup.sh
+RUN chmod +x /app/startup.sh
+
 # Change ownership to non-root user
 RUN chown -R appuser:appuser /app
 
 # Switch to non-root user
 USER appuser
 
-# Expose port
+# Azure App Service uses port 8000 by default
 EXPOSE 8000
 
-# Run the application
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+# Run with gunicorn in production
+CMD ["/app/startup.sh"]
